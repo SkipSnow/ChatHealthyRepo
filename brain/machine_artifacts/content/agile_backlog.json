@@ -18319,7 +18319,7 @@
                     "name": "Construct the NormalizedIndicationMap front-end collection",
                     "description": "Construct the NormalizedIndicationMap front-end-bound collection, chatHealthy.ai's proprietary normalized relation of indications to the diagnoses that express them and to the drugs indicated for them. Constructed from FDA drug labels via openFDA/DailyMed, RxNorm, the ICD-10-CM code set, and the clinical grouping that informs it. The indication is the canonical unit; the diagnoses it owns are ICD-10-CM codes at the 3-character and 4-character levels.",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "deferred",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
@@ -18329,7 +18329,7 @@
                           "name": "Canonical indication is the unique record",
                           "requirement": "The NormalizedIndicationMap holds one record per indication. The indication is the canonical unit: FDA wordings across drug labels that denote the same clinical concept are normalized into one indication, stored once, identified by a stable identifier and carrying a plain-language name.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18348,7 +18348,7 @@
                           "name": "An indication owns many diagnoses; each diagnosis belongs to one indication",
                           "requirement": "Each indication owns the set of ICD-10-CM diagnosis codes that express it, at the 3-character and 4-character levels; an indication owns many such codes. Each ICD-10-CM diagnosis code belongs to exactly one indication. The relation of diagnoses to indications is many-to-one and normalized: a diagnosis code's indication is recorded once, with no diagnosis duplicated across indications.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18367,7 +18367,7 @@
                           "name": "A molecule is indicated for one or more indications",
                           "requirement": "Each drug molecule is associated with the indication or indications it is indicated for, drawn from FDA labeling; a molecule may be associated with many indications, and through them reaches their diagnosis codes.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18386,7 +18386,7 @@
                           "name": "The map spans every FDA-labeled drug",
                           "requirement": "The map relates every FDA-labeled drug to the indication or indications it is indicated for, and every indication to its ICD-10-CM diagnosis codes, across the full FDA drug-label set - the molecule universe is every FDA-labeled drug, not only the drugs prescribed under Medicare.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18405,7 +18405,7 @@
                           "name": "Every association carries its provenance",
                           "requirement": "Every molecule-to-indication association and every diagnosis-to-indication association carries the provenance of how it was manufactured, so a reader can tell an association adopted from a published vocabulary from one joined from a coded source from one produced by inference.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18424,7 +18424,7 @@
                           "name": "Every inferred association is auditable to the rule that set its trust",
                           "requirement": "Every inferred association carries a trust value and is auditable to the trust rule that set it, as defined by EPIC-010-F-002.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18443,7 +18443,7 @@
                           "name": "Built so a diagnosis resolves to its indication",
                           "requirement": "The map is built so that any ICD-10-CM diagnosis code at the 3-character or 4-character level resolves to the single indication that owns it.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18462,7 +18462,7 @@
                           "name": "Summarized usage description per drug",
                           "requirement": "The NormalizedIndicationMap carries, for each drug, a summarized usage description taken from the Indications and Usage section of its label in the FDA's openFDA drug/label dataset (the drug-label-*.json files, open.fda.gov), distinct from the indication, for downstream collections to carry.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [
@@ -18481,7 +18481,7 @@
                           "name": "Deterministic CMS join by standard RxNorm identity",
                           "requirement": "The map is built by one auditable inference, the FDA-label indication crosswalk, and nothing downstream of it is inferred. The NormalizedIndicationMap identifies each drug it associates to an indication by its standard RxNorm identifier, the identity that both the FDA drug label and the CMS Medicare drug data resolve to. A drug reported in the CMS Medicare data, including combination products and salt forms, resolves to the map by that shared identifier, so a provider's prescribing joins to its indications deterministically, by identity.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "depends_on": [],
                           "tests": {
                             "test": [

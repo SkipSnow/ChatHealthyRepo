@@ -2,58 +2,263 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyFdaProductToDiagnosisResolutionSchema.json",
   "title": "ChatHealthy FDA Product To Diagnosis Resolution",
-  "description": "One document per FDA drug product in the fdaProductToDiagnosisResolution collection (EPIC-010-F-007), ChatHealthy's FDA drug collection. 1:1 with the FDA file, keyed by set_id: the FDA SPL label record enriched in place (its native fields pass through, so additionalProperties is true) with its resolved RxNorm ingredient RXCUIs and, per indication, the ICD-10-CM 3- and 4-character diagnosis codes it is on-label indicated to treat. Prescription products only; OTC is excluded. Built claims-blind by FDADrugEnrichmentTool.",
+  "description": "ChatHealthy's FDA drug collection at the MOLECULE grain (EPIC-010-F-007, LLD v83 III.4.1): one document per molecule, _id == molecule_id, assembling the molecule's SPL labels. Each label folds in exactly once; set_ids carries the contributing labels' set_ids, and a label whose set_id is already present is disregarded as already processed. OTC-only labels are excluded from the built output (retained in staging). The molecule master and the enrich path join to this record by molecule_id -- a point lookup on _id.",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["set_id", "resolved_by", "indications", "run_id", "data_version"],
+  "additionalProperties": false,
+  "required": [
+    "_id",
+    "molecule_id",
+    "set_ids",
+    "molecule",
+    "indications",
+    "drug_class",
+    "brand_exact_keys",
+    "brand_keys",
+    "generic_keys",
+    "trust",
+    "run_id",
+    "data_version",
+    "provenance"
+  ],
   "properties": {
-    "set_id": { "type": "string", "description": "the FDA SPL set_id; the record key" },
-    "record_number": { "type": ["integer", "null"], "description": "sequential load index used for range work" },
-    "ingredient_rxcuis": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "resolved RxNorm ingredient RXCUIs (tty=IN); one for a single-ingredient drug, many for a combination"
-    },
-    "ingredient_names": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "RxNorm ingredient names positionally aligned with ingredient_rxcuis; empty string where a name is unavailable for the aligned RXCUI"
-    },
-    "resolved_by": {
+    "_id": {
       "type": "string",
-      "enum": ["tier1", "tier2", "tier3", "floor"],
-      "description": "the resolution tier that produced ingredient_rxcuis"
+      "description": "== molecule_id; the collection is keyed on the molecule."
     },
-    "resolution_confidence": { "type": ["number", "null"], "minimum": 0.0, "maximum": 1.0 },
-    "resolution_confidence_rationale": { "type": ["string", "null"] },
+    "molecule_id": {
+      "type": "string",
+      "description": "Proprietary molecule surrogate (LLD v83 III.3 decision #2). Never shown to a user."
+    },
+    "set_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The FDA SPL set_ids of the labels folded into this record -- the contributing record keys. A label folds in at most once. This array exists ONLY in this collection (operator ruling 2026-10-20)."
+    },
+    "molecule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clean_names",
+        "_molecule_sources"
+      ],
+      "properties": {
+        "clean_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Clean molecule name(s) unioned across the molecule's labels."
+        },
+        "rxcui": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "openfda.rxcui unioned across labels, when present."
+        },
+        "unii": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "openfda.unii unioned across labels, when present."
+        },
+        "substance_name": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "openfda.substance_name unioned across labels, when present."
+        },
+        "_molecule_sources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "provided",
+              "openfda_rxcui",
+              "openfda_substance_name",
+              "substance_name",
+              "generic_name",
+              "active_ingredient",
+              "spl_product_data_elements",
+              "description",
+              "llm_extraction",
+              "absent"
+            ]
+          },
+          "description": "Provenance of the clean molecule name(s), unioned across the folded labels."
+        }
+      }
+    },
     "indications": {
       "type": "array",
+      "description": "On-label indications unioned across the molecule's labels, deduplicated by normalized indication text, ICD-10 codes unioned by code and split to level3/level4.",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["indication", "confidence_rationale", "codes"],
+        "required": [
+          "raw_text",
+          "icd10",
+          "_crosswalk_provenance"
+        ],
         "properties": {
-          "indication": { "type": "string" },
-          "confidence_rationale": { "type": "string" },
-          "codes": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["icd10_code", "level", "confidence"],
-              "properties": {
-                "icd10_code": { "type": "string" },
-                "level": { "type": "integer", "enum": [3, 4] },
-                "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
-                "description": { "type": ["string", "null"], "description": "the ICD-10-CM short description for icd10_code, from the catalog; null when the code is not in the loaded catalog" }
+          "raw_text": {
+            "type": "string",
+            "description": "FDA indication wording (indications_and_usage, or package_label_principal_display_panel fallback)."
+          },
+          "icd10": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "level3": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "3-char ICD-10-CM codes (may be empty)."
+              },
+              "level4": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "4-char ICD-10-CM codes (may be empty). Level 5 not carried."
               }
             }
+          },
+          "_crosswalk_provenance": {
+            "type": "string",
+            "enum": [
+              "adopted_vocabulary",
+              "joined_coded_source",
+              "inference"
+            ]
+          },
+          "trust": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Model confidence for an INFERRED crosswalk (PROPOSED, EPIC-010-F-002): the weakest code confidence in the union; null when none is carried."
           }
         }
       }
     },
-    "usage_summary": { "type": ["string", "null"] },
-    "run_id": { "type": "string" },
-    "data_version": { "type": "integer", "minimum": 1 }
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summarized_usage": {
+          "type": "string",
+          "description": "Summarized usage, unioned across the folded labels."
+        }
+      }
+    },
+    "drug_class": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classes"
+      ],
+      "properties": {
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "OTC",
+              "RX",
+              "UNDETERMINED"
+            ]
+          },
+          "description": "SET across the molecule's labels: a molecule can carry both OTC and Rx labels. UNDETERMINED never defaulted."
+        }
+      }
+    },
+    "brand_exact_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Normalized exact brand keys (tier 1) unioned across labels; the CMS brand matches on these. Indexed (LLD v83 III.8)."
+    },
+    "brand_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Salt/form-normalized brand keys (tier 2) unioned across labels. Indexed."
+    },
+    "generic_keys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Normalized generic keys (tier 3) unioned across labels. Indexed."
+    },
+    "trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Aggregate of the folded labels' resolution confidence (model confidence where resolution was inferred).",
+      "properties": {
+        "max": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "min": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+        },
+        "median": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The middle value (statistical median)."
+        },
+        "avg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The sum divided by the count."
+        }
+      }
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "data_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_run_id",
+        "source_collection",
+        "built_at"
+      ],
+      "properties": {
+        "source_run_id": {
+          "type": "string"
+        },
+        "source_collection": {
+          "const": "StagingOpenFdaLabels_v_1"
+        },
+        "built_at": {
+          "type": "string"
+        }
+      }
+    }
   }
 }

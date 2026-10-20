@@ -2,55 +2,344 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProviderMedicareSchema.json",
   "title": "ChatHealthy ProviderMedicare",
-  "description": "One document per provider x molecule in the providerMedicarePartDQuantityRollUps collection (EPIC-010-F-007). The provider is the core object; each document is one Part D molecule that provider prescribed, with the provider's brand rows collapsed and usage summed. _id is \"<npi>:<molecule_id>\". indications is the normalized-indication search key (filled by enrich from the NormalizedIndicationMap); drug_class and identity are the molecule's FDA facts, joined by molecule_id. Part B procedures and organizational CCN/size are out of this collection's scope.",
+  "description": "The molecule MASTER (EPIC-010-F-007, LLD v83 III.4.2): ONE document per molecule in the providerMedicarePartDQuantityRollUps collection, _id == molecule_id. Embeds one child per CMS Part D record when the molecule has <100 records (state_aggregated=false); one child per billing/business state when it has >=100 (state_aggregated=true). FDA facts are taken from the molecule-keyed FDA collection by molecule_id. The child state is the prescriber's billing/business address state (LLD v83 III.3); applied_partitions is the exactly-once bookkeeping marker, not a source-key ledger.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["_id", "npi", "molecule_id", "record_count", "totals", "provenance"],
+  "required": [
+    "_id",
+    "molecule_id",
+    "fda",
+    "totals",
+    "total_cms_record_count",
+    "ge65_usage_suppressed_count",
+    "state_aggregated",
+    "children",
+    "applied_partitions",
+    "provenance"
+  ],
   "properties": {
-    "_id": { "type": "string", "description": "<npi>:<molecule_id>" },
-    "npi": { "type": "string", "pattern": "^[0-9]{10}$" },
-    "prescriber_state": { "type": "string", "description": "the provider's CMS prescriber state (one per provider)" },
-    "nucc_codes": { "type": "array", "items": { "type": "string" }, "description": "provider NUCC taxonomy codes from Provider_v_5; CMS Prscrbr_Type is not carried" },
-    "entity_type": { "type": "string", "enum": ["I", "O"] },
-    "molecule_id": { "type": "string", "description": "proprietary molecule surrogate; the join key to the FDA file and the NormalizedIndicationMap" },
-    "gnrc_name": { "type": ["string", "null"] },
-    "brands": { "type": "array", "items": { "type": "string" }, "description": "distinct brand names collapsed into the pair" },
-    "record_count": { "type": "integer", "description": "CMS Part D rows behind this provider x molecule; the conformance unit" },
+    "_id": {
+      "type": "string",
+      "description": "== molecule_id; the collection is keyed on the molecule."
+    },
+    "molecule_id": {
+      "type": "string",
+      "description": "Proprietary molecule surrogate. Never shown to a user."
+    },
+    "fda": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "indications",
+        "drug_class",
+        "trust"
+      ],
+      "description": "Molecule-level FDA facts, taken from the molecule's record in fdaProductToDiagnosisResolution by molecule_id.",
+      "properties": {
+        "indications": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Union of the molecule's labels' indications + ICD-10 (may be empty)."
+        },
+        "usage": {
+          "type": "string",
+          "description": "Summarized usage for the molecule."
+        },
+        "drug_class": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "OTC",
+              "RX",
+              "UNDETERMINED"
+            ]
+          },
+          "description": "SET: a molecule can carry both OTC and Rx labels."
+        },
+        "identity": {
+          "type": "object",
+          "description": "Union of rxcui/unii/substance_name across the molecule's labels."
+        },
+        "trust": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Aggregate of the molecule's FDA records' per-label trust. median = the middle value; avg = sum over count.",
+          "properties": {
+            "max": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "min": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "median": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "avg": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
     "totals": {
-      "type": "object", "additionalProperties": false,
-      "description": "all-ages usage summed across the provider's brand rows (additive)",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "$inc sum of ALL-AGES usage over the children (additive; all-ages usage is never suppressed).",
+      "required": [
+        "tot_clms",
+        "tot_30day_fills",
+        "tot_day_suply",
+        "tot_drug_cst"
+      ],
       "properties": {
-        "tot_clms": { "type": "number" }, "tot_30day_fills": { "type": "number" },
-        "tot_day_suply": { "type": "number" }, "tot_drug_cst": { "type": "number" }
+        "tot_clms": {
+          "type": "number"
+        },
+        "tot_30day_fills": {
+          "type": "number"
+        },
+        "tot_day_suply": {
+          "type": "number"
+        },
+        "tot_drug_cst": {
+          "type": "number"
+        }
       }
     },
-    "ge65": {
-      "type": "object", "additionalProperties": false,
-      "description": "65-and-over usage: the sum of visible rows plus a count of rows CMS suppressed (GE65 suppression is all-or-nothing)",
-      "properties": {
-        "tot_clms": { "type": "number" }, "tot_30day_fills": { "type": "number" },
-        "tot_day_suply": { "type": "number" }, "tot_drug_cst": { "type": "number" },
-        "usage_suppressed_count": { "type": "integer" }
+    "total_cms_record_count": {
+      "type": "integer",
+      "description": "Count of CMS Part D records for this molecule. Raw mode: equals the number of children; state-aggregate mode: equals the sum of the children's record_count. Basis of the conformance arithmetic (LLD v83 III.6)."
+    },
+    "ge65_usage_suppressed_count": {
+      "type": "integer",
+      "description": "Count of CMS records whose 65+ usage is suppressed (GE65_Sprsn_Flag is all-or-nothing; one count)."
+    },
+    "state_aggregated": {
+      "type": "boolean",
+      "description": "false = <100 CMS records, raw children; true = >=100, state-aggregate children. Decided globally by the mode pre-pass."
+    },
+    "applied_partitions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Exactly-once bookkeeping: the '<STATE>:<ENTITY>' partitions already applied to this master. A partition whose marker is present is disregarded on re-application (silent no-op). Initialized [] by the pre-pass."
+    },
+    "children": {
+      "type": "array",
+      "description": "RAW children (state_aggregated=false) or STATE-AGGREGATE children (state_aggregated=true).",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "title": "raw cms-record child",
+            "required": [
+              "npi",
+              "state",
+              "nucc_codes",
+              "brnd_name",
+              "gnrc_name"
+            ],
+            "properties": {
+              "npi": {
+                "type": "string",
+                "description": "raw.Prscrbr_NPI."
+              },
+              "state": {
+                "type": "string",
+                "description": "The prescriber's BILLING/BUSINESS state (Provider_v_5.business_address.state by NPI; LLD v83 III.3) -- the partition basis."
+              },
+              "cms_state": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "raw.Prscrbr_State_Abrvtn verbatim -- source data only, never the partition basis."
+              },
+              "nucc_codes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Provider NUCC taxonomy array from Provider_v_5 (by npi). CMS Prscrbr_Type not carried."
+              },
+              "brnd_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "gnrc_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tot_clms": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "tot_30day_fills": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "tot_day_suply": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "tot_drug_cst": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "tot_benes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "As given; null when CMS suppresses. Never summed."
+              },
+              "ge65_tot_clms": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ge65_tot_30day_fills": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ge65_tot_day_suply": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ge65_tot_drug_cst": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ge65_tot_benes": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Null when GE65_Bene_Sprsn_Flag set. Never summed."
+              },
+              "suppression_flags": {
+                "type": "object",
+                "description": "Bene_Sprsn_Flag, GE65_Sprsn_Flag, GE65_Bene_Sprsn_Flag verbatim."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "title": "state-aggregate child",
+            "required": [
+              "state",
+              "record_count"
+            ],
+            "properties": {
+              "state": {
+                "type": "string",
+                "description": "The billing/business state this aggregate covers (LLD v83 III.3)."
+              },
+              "record_count": {
+                "type": "integer",
+                "description": "CMS records collapsed into this state (sums to total_cms_record_count)."
+              },
+              "tot_clms": {
+                "type": "number"
+              },
+              "tot_30day_fills": {
+                "type": "number"
+              },
+              "tot_day_suply": {
+                "type": "number"
+              },
+              "tot_drug_cst": {
+                "type": "number"
+              },
+              "ge65_tot_clms": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Sum of VISIBLE GE65 usage (a floor; suppressed rows excluded)."
+              },
+              "ge65_tot_30day_fills": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ge65_tot_day_suply": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ge65_tot_drug_cst": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ge65_usage_suppressed_count": {
+                "type": "integer",
+                "description": "Records in this state whose GE65 usage was suppressed."
+              }
+            }
+          }
+        ]
       }
     },
-    "benes": {
-      "type": "object", "additionalProperties": false,
-      "description": "non-additive; carried only when a single unsuppressed row backs the pair, else null",
-      "properties": {
-        "tot_benes": { "type": ["integer", "null"] },
-        "ge65_tot_benes": { "type": ["integer", "null"] }
-      }
-    },
-    "indications": { "type": "array", "items": { "type": "string" }, "description": "normalized indication ids from the NormalizedIndicationMap; the (indications, npi) search key" },
-    "drug_class": { "type": ["array", "null"], "items": { "type": "string", "enum": ["OTC", "RX", "UNDETERMINED"] }, "description": "SET of the molecule's FDA label classes" },
-    "identity": { "type": "object", "description": "rxcui / unii / substance_name unioned across the molecule's FDA labels" },
     "provenance": {
-      "type": "object", "additionalProperties": false,
-      "required": ["source_run_id", "source_collection", "built_at"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_run_id",
+        "source_collection",
+        "built_at"
+      ],
       "properties": {
-        "source_run_id": { "type": "string" },
-        "source_collection": { "type": "string" },
-        "built_at": { "type": "string" }
+        "source_run_id": {
+          "type": "string"
+        },
+        "source_collection": {
+          "const": "StagingMedicarePartD_v_1"
+        },
+        "built_at": {
+          "type": "string"
+        }
       }
     }
   }

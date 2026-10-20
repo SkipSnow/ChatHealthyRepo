@@ -1,29 +1,30 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""build_fda_drug_collection (EPIC-010-F-007) -- build the fdaProductToDiagnosisResolution
-collection, ChatHealthy's FDA drug collection: one record per FDA product (set_id), carrying
-its resolved RxNorm ingredient RXCUIs and the ICD-10-CM diagnoses each indication treats.
+"""build_fda_label_resolution (EPIC-010-F-007, LLD v83 III.10) -- the per-label
+resolution fan-out, the first of the two formal FDA build steps (operator
+ruling 2026-10-20).
 
-Process-based fan-out (LLD I.3.4a). The step runs under process_pool parallelism: one worker
-PROCESS per record-number range. The concurrency is the number of worker processes (sized to
-the worker box), NOT threads -- each worker drains its range serially, calling
-FDADrugEnrichmentTool (one pydantic-ai agent, two single-concern calls). The ICD-10 catalog
-loads once per process and is reused across every range that process drains; OpenAI prompt
-caching, being server-side and organization-scoped, then serves every process after the
-first, so per-process catalog loading costs no extra cache misses beyond a handful.
+One worker PROCESS per record-number range (LLD I.3.4a; width from
+fan_out.medicare.build_fda_label_resolution). Each worker resolves its range's
+in-scope (non-OTC) labels exactly as before -- deterministic molecule recovery,
+the ICD-10 crosswalk, the gated LLM pass via FDADrugEnrichmentTool -- and
+writes each label's RESULT to the transient collection, idempotently ($set
+upsert keyed by set_id). It publishes NOTHING: the serial finalize step
+(finalize_fda_molecules) groups the results by molecule_id and writes the
+molecule documents, so every published write is single-writer and the fold is
+exactly-once by construction.
 
-The record-number ranges come from the index_fda_prescription_records prerequisite, which
-stamps fda_record_number on this run's PRESCRIPTION labels only (OTC excluded). This step
-reads its assigned range from that stamped set.
-
-Build-or-consume is the operator's per-run argument (BUILD_FDA_DRUG): off -> consume the
-published collection (a single verify partition, no mining); on -> each worker builds its
-range as a candidate for the operator-gated data release (EPIC-010-F-003).
+The record-number ranges come from the index_fda_prescription_records
+prerequisite, which stamps fda_record_number on this run's PRESCRIPTION labels
+only (OTC excluded). Build-or-consume is the operator's per-run argument
+(BUILD_FDA_DRUG): off -> consume the published collection (verified by the
+finalize step); on -> build.
 """
 
 from __future__ import annotations
 
+import datetime
 import os
 
 from chathealthy_lib.exceptions import ChatHealthyException
@@ -32,10 +33,12 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
 from pipeline.MedicareProviderEvaluationDataPipeline.fda_drug_enrichment_tool import (
     FDADrugEnrichmentTool)
-from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
-    molecule_id)
 
 _log = ChatHealthyLoggingService()
+
+# The transient per-label result collection (LLD v83 III.10): per-run scratch
+# on the staging database, dropped at quiesce. One document per set_id.
+TRANSIENT_COLLECTION = "TransientFdaLabelResolution"
 
 # The proven ICD-10-CM 3/4-char catalog shipped with the pipeline. It is the model's cached
 # static prefix, byte-identical to the catalog the benchmark proved.
@@ -46,10 +49,6 @@ _CATALOG_PATH = os.path.join(
 # Per-process tool cache: a worker process drains many record-range work_items; the catalog
 # loads once per process and is reused across every range the worker handles.
 _TOOL = None
-
-
-def _truthy(raw: str) -> bool:
-    return raw.strip().lower() in ("1", "true", "yes")
 
 
 def _drug_class(product_type) -> str:
@@ -123,8 +122,8 @@ def _shape_fda_record(raw: dict) -> dict:
       indication_text <- the indications_and_usage prose
     Already-present values are left untouched, so a pre-shaped record (the
     benchmark's own input) passes through unchanged. ``_molecule_source`` is a
-    transient shaping marker (leading underscore) read by run_step and not
-    persisted on the built record.
+    shaping marker (leading underscore) read by run_step and persisted to the
+    transient result as molecule_source for the finalize union.
     """
     shaped = dict(raw)
     openfda = raw.get("openfda") or {}
@@ -165,47 +164,27 @@ def run_step(ctx) -> dict:
     rt = PipelineRuntime(ctx)
     reg = rt.registry
     mongo = ctx.mongo_client
-    data_version = int(ctx.args.data_version)
 
-    tgt = reg.by_source_name("fda_drug")
-    target_coll = mongo[tgt.public_data_db][reg.public_data_collection_name("fda_drug")]
-
-    # Read the build-or-consume flag from the run's args, which round-trip to
-    # worker processes through the work-item snapshot. The old os.environ read
-    # only worked on the Controller: workers run on a separate VM and never
-    # inherited BUILD_FDA_DRUG, so every partition fell into consume mode and
-    # the build never happened.
     building = bool(ctx.args.build_fda_drug)
     if not building:
-        published = target_coll.count_documents({})
-        if published == 0:
-            raise ChatHealthyException(
-                mode="runtime_error",
-                component="build_fda_drug_collection",
-                message=("build_fda_drug_collection: the run did not ask to build the "
-                         "fdaProductToDiagnosisResolution collection and none is published "
-                         "to consume; fire with --build-fda-drug to build it"))
-        _log.LogPipeline(
-            "INFO", "build_fda_drug_collection: consume mode; published records=%d",
-            published)
-        return {"step": "build_fda_drug_collection", "rebuild": False, "consumed": published}
-
-    # The fda_molecule_id join index is provisioned declaratively by the
-    # medicare_fda_indexes package in deployment_architecture.json (indexes live
-    # in provisioning, not in-run).
+        # Consume mode: the finalize step verifies the published collection;
+        # nothing for the per-label fan-out to do.
+        return {"step": "build_fda_label_resolution", "rebuild": False}
 
     partition = (ctx.config or {}).get("partition") or {}
     rng = partition.get("record_range")
     if not rng:
         raise ChatHealthyException(
             mode="runtime_error",
-            component="build_fda_drug_collection",
-            message=("build_fda_drug_collection: a build runs under process_pool and each "
+            component="build_fda_label_resolution",
+            message=("build_fda_label_resolution: a build runs under process_pool and each "
                      "worker requires a record_range partition; none was supplied"))
     start, end = int(rng["start"]), int(rng["end"])
 
     ofda = reg.by_source_name("openfda_labels")
-    staging_coll = mongo[ofda.staging_db][reg.staging_collection_name("openfda_labels")]
+    staging_db = mongo[ofda.staging_db]
+    staging_coll = staging_db[reg.staging_collection_name("openfda_labels")]
+    transient_coll = staging_db[TRANSIENT_COLLECTION]
     records = [
         _shape_fda_record(doc.get("raw") or {})
         for doc in staging_coll.find(
@@ -213,21 +192,24 @@ def run_step(ctx) -> dict:
         ).sort("fda_record_number", 1)
     ]
     if not records:
-        return {"step": "build_fda_drug_collection", "record_range": [start, end],
-                "records_written": 0}
+        return {"step": "build_fda_label_resolution", "record_range": [start, end],
+                "labels_resolved": 0}
 
     # A per-record attribute problem is recorded as a finding and (when the
     # record cannot be built) skipped, so one bad label does not fail the whole
     # run. The molecule-from-generic fallback and the incomplete-record miss are
     # both FDA attribute failures and share one catch-all class on the report.
     buildable = []
+    sources_by_set_id: dict[str, str] = {}
     skipped = 0
     for rec in records:
         set_id = str(rec.get("set_id") or "").strip()
-        if rec.pop("_molecule_source", None) == "generic_name":
+        source = rec.pop("_molecule_source", None)
+        sources_by_set_id[set_id] = source or "absent"
+        if source == "generic_name":
             rt.record_discrepancy(
                 reason="FDA_all_other_Attribute_failures",
-                step="build_fda_drug_collection", artifact="fda",
+                step="build_fda_label_resolution", artifact="fda",
                 record_key=set_id,
                 detail={"kind": "molecule_from_generic_fallback",
                         "note": "molecule taken from openfda.generic_name; "
@@ -237,7 +219,7 @@ def run_step(ctx) -> dict:
         if missing:
             rt.record_discrepancy(
                 reason="FDA_all_other_Attribute_failures",
-                step="build_fda_drug_collection", artifact="fda",
+                step="build_fda_label_resolution", artifact="fda",
                 record_key=set_id,
                 detail={"kind": "record_incomplete", "missing": missing})
             skipped += 1
@@ -245,25 +227,25 @@ def run_step(ctx) -> dict:
         buildable.append(rec)
     if not buildable:
         _log.LogPipeline(
-            "INFO", "build_fda_drug_collection: range=[%d,%d) all %d record(s) "
-            "incomplete; skipped, nothing to build", start, end, skipped)
-        return {"step": "build_fda_drug_collection", "record_range": [start, end],
-                "records_written": 0, "records_skipped": skipped}
+            "INFO", "build_fda_label_resolution: range=[%d,%d) all %d record(s) "
+            "incomplete; skipped, nothing to resolve", start, end, skipped)
+        return {"step": "build_fda_label_resolution", "record_range": [start, end],
+                "labels_resolved": 0, "labels_skipped": skipped}
 
     tool = _get_tool()
 
     def _sink(record) -> None:
+        # One transient result per label, idempotent by set_id ($set upsert):
+        # a re-driven range overwrites its own results byte-identically. The
+        # published molecule documents are written ONLY by the serial finalize.
         doc = record.model_dump()
-        doc["_id"] = record.set_id            # set_id IS the _id (one record per label)
         doc["run_id"] = ctx.run_id
-        doc["data_version"] = data_version
-        # molecule_id is the join key the provider x molecule build and enrich use:
-        # minted from the FDA clean molecule name by the SAME normalization the CMS
-        # Gnrc_Name side uses, so the two sides share one id.
-        doc["molecule_id"] = molecule_id(doc.get("molecule"))
+        doc["molecule_source"] = sources_by_set_id.get(str(record.set_id), "absent")
         openfda = doc.get("openfda") or {}
-        doc["drug_class"] = {"class": _drug_class(openfda.get("product_type"))}
-        target_coll.replace_one({"_id": record.set_id}, doc, upsert=True)
+        doc["drug_class"] = _drug_class(openfda.get("product_type"))
+        doc["resolved_at"] = datetime.datetime.utcnow()
+        transient_coll.update_one(
+            {"_id": record.set_id}, {"$set": doc}, upsert=True)
 
     def _on_batch_error(keys, exc) -> None:
         # The model crosswalk failed for this batch; its records are skipped
@@ -271,7 +253,7 @@ def run_step(ctx) -> dict:
         # coverage loss is visible in the run report instead of silently dropped.
         rt.record_discrepancy(
             reason="FDA_all_other_Attribute_failures",
-            step="build_fda_drug_collection", artifact="fda",
+            step="build_fda_label_resolution", artifact="fda",
             record_key=str(getattr(keys[0], "set_id", "") or "") if keys else "",
             detail={"kind": "crosswalk_batch_skipped",
                     "skipped_count": len(keys),
@@ -281,11 +263,11 @@ def run_step(ctx) -> dict:
                            on_batch_error=_on_batch_error)
     coded = sum(1 for r in produced if any(ind.codes for ind in r.indications))
     _log.LogPipeline(
-        "INFO", "build_fda_drug_collection: range=[%d,%d) records=%d with_codes=%d skipped=%d",
+        "INFO", "build_fda_label_resolution: range=[%d,%d) labels=%d with_codes=%d skipped=%d",
         start, end, len(produced), coded, skipped)
-    return {"step": "build_fda_drug_collection", "record_range": [start, end],
-            "records_written": len(produced), "records_with_codes": coded,
-            "records_skipped": skipped}
+    return {"step": "build_fda_label_resolution", "record_range": [start, end],
+            "labels_resolved": len(produced), "labels_with_codes": coded,
+            "labels_skipped": skipped}
 
 
 def execute(ctx):

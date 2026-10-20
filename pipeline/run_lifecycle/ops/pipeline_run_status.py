@@ -89,7 +89,7 @@ def find_run(db, pipeline_name: str, run_id: str | None, since):
     return db["pipeline.runs"].find_one(query, sort=[("started_at", -1)])
 
 
-def render(db, run, names: list[str], now) -> str:
+def render(db, run, names: list[str], now, silent_after_s: int) -> str:
     rid = run["run_id"]
     started = aware(run.get("started_at"))
     scope = ",".join(run.get("state_scope") or run.get("states") or []) or "-"
@@ -118,14 +118,23 @@ def render(db, run, names: list[str], now) -> str:
             continue
         states = [r.get("status") or "unknown" for r in rows]
         done = sum(1 for s in states if s in DONE)
+        # failed is a REAL verdict (LLD v83 III.7): written only by the item's
+        # own worker, the controller's max-silence judgment (H10), or the
+        # operator. Silent (beat older than silent_after_s) is a diagnostic.
         failed = sum(1 for s in states if s in FAILED)
         active = sum(1 for s in states if s in ACTIVE)
-        if failed:
-            state = f"FAILED {failed}/{len(rows)}"
-        elif done == len(rows):
+        silent_cutoff = now - datetime.timedelta(seconds=silent_after_s)
+        silent = sum(
+            1 for r in rows
+            if (r.get("status") in ACTIVE and aware(r.get("heartbeat_at"))
+                and aware(r.get("heartbeat_at")) < silent_cutoff))
+        if done == len(rows):
             state = f"complete {done}/{len(rows)}"
+        elif failed:
+            state = f"FAILED {failed}/{len(rows)} ({done} done)"
         elif active or done:
-            state = f"running {done}/{len(rows)}"
+            extra = f" ({silent} silent)" if silent else ""
+            state = f"running {done}/{len(rows)}{extra}"
         else:
             state = f"queued 0/{len(rows)}"
         starts = [aware(r.get("claimed_at") or r.get("created_at")) for r in rows]
@@ -185,7 +194,10 @@ def _report_status(parser):
             time.sleep(args.watch)
             continue
 
-        sys.stdout.write(render(db, run, names, now) + "\n")
+        from pipeline.run_lifecycle.pipeline_config import load_pipeline_config  # noqa: PLC0415
+        cfg = load_pipeline_config(env_prefix=str(run.get("env") or "dev"))
+        silent_after_s = int(cfg["worker_liveness"]["silent_after_s"])
+        sys.stdout.write(render(db, run, names, now, silent_after_s) + "\n")
         sys.stdout.flush()
         status = str(run.get("status", "")).lower()
         if not args.watch:

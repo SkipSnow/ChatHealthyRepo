@@ -60,7 +60,7 @@ _CATALOG_ENV = "CH_ICD10_CATALOG_PATH"          # path to the ICD-10-CM catalog 
 _RXNAV_ENV = "CH_RXNAV_BASE_URL"                # optional override of the public API
 
 _RXNAV_DEFAULT_BASE = "https://rxnav.nlm.nih.gov/REST"
-_CROSSWALK_BATCH_SIZE = 50                      # the production batch size
+_CROSSWALK_BATCH_SIZE = 25                      # the production batch size (50 -> 25, operator ruling 2026-10-20)
 _APPROX_MAX_CANDIDATES = 20                     # bounded tier-3 candidate list
 _INSERT_THRESHOLD = 0.75                        # rxcui inserted into PROMPT 2 only above this
 _HTTP_TIMEOUT_SECONDS = 30.0

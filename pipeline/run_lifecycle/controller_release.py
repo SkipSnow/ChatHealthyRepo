@@ -312,3 +312,17 @@ def quiesce_mongo_state(run_id: str, final_status: str) -> None:
         except Exception as exc:
             _log.LogPipeline("ERROR", "quiesce: work_items flip FAILED run_id=%s err=%s",
                        run_id, str(exc)[:500])
+    # Purge this run's work_items (LLD v83 III.15, operator-ruled 2026-10-20):
+    # the coordination rows are run-scratch, not history. Post-mortems read the
+    # run record and Log_<env>; a finished run's checkPipelineStatus shows the
+    # run record only. Best-effort like every quiesce step.
+    try:
+        res = mongo["pipelineAdmin"]["pipeline.work_items"].delete_many(
+            {"run_id": run_id})
+        _log.LogPipeline("INFO",
+            "quiesce: work_items purged run_id=%s count=%d",
+            run_id, res.deleted_count,
+        )
+    except Exception as exc:
+        _log.LogPipeline("ERROR", "quiesce: work_items purge FAILED run_id=%s err=%s",
+                   run_id, str(exc)[:500])

@@ -49,10 +49,14 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _log = ChatHealthyLoggingService()
 
-# Worker heartbeat is written every 120s by pipeline_worker._HeartbeatThread.
-# Controller marks a Worker "crashed" if its WI status is still running AND
-# heartbeat_at is older than this threshold. 5 min = >= 2 missed heartbeats.
-_HEARTBEAT_STALE_S = 300
+# Worker liveness (LLD v83 III.15, operator-ruled 2026-10-20). The heartbeat
+# is written every 120s by pipeline_worker._HeartbeatThread. A running item
+# whose beat is older than worker_liveness.silent_after_s is SILENT -- a
+# diagnostic, logged, never a status change. Only past
+# worker_liveness.worker_max_silence_s does the Controller fail the item
+# (hard-fail H10) -- the verdict for a truly crashed or hung worker. Both
+# thresholds come from the per-env durable configuration and are REQUIRED:
+# a missing value is a hard fail (H7, no defaults).
 
 
 def _require_claimable(wi_coll, run_id: str, step: str, enqueued: int) -> int:
@@ -359,13 +363,16 @@ class BasePipelineOrchestrator:
             )
 
         # 3. Wait for terminal state on every work_item. Poll every 5s.
-        #    Crash detection is heartbeat-based (not p.poll()) so the
-        #    Controller has zero stdio/pid dependency on the Worker: Worker
-        #    heartbeats every 120s to WI.heartbeat_at (pipeline_worker.py
-        #    _HeartbeatThread). A running WI whose heartbeat_at is stale
-        #    beyond _HEARTBEAT_STALE_S is a crash. This lets Workers run
-        #    fully detached (start_new_session, DEVNULL stdio) without
-        #    losing crash detection.
+        #    Liveness is heartbeat-based (not p.poll()) so the Controller has
+        #    zero stdio/pid dependency on the Worker (LLD v83 III.15):
+        #    a beat older than silent_after_s is SILENT -- logged, diagnostic,
+        #    never a status change; a beat older than worker_max_silence_s is
+        #    the verdict for a dead/hung worker and fails the item (H10). The
+        #    step as a whole is bounded by its configured timeout_seconds
+        #    (H9); both thresholds and the timeout are required config (H7).
+        liveness = self._worker_liveness(ctx)
+        step_timeout_s = self._step_timeout_s(spec, ctx)
+        step_started = _dt.datetime.utcnow()
         deadline_polls = 0
         while True:
             open_count = wi_coll.count_documents({
@@ -374,21 +381,37 @@ class BasePipelineOrchestrator:
             })
             if open_count == 0:
                 break
-            # Heartbeat-based crash check: any 'running' WI whose heartbeat_at
-            # is older than _HEARTBEAT_STALE_S is a dead Worker. Mark failed.
-            stale_cutoff = _dt.datetime.utcnow() - _dt.timedelta(seconds=_HEARTBEAT_STALE_S)
-            crashed = list(wi_coll.find({
+            now = _dt.datetime.utcnow()
+            if (now - step_started).total_seconds() > step_timeout_s:
+                raise ChatHealthyException(
+                    mode="pipeline_step_timeout",
+                    message=(f"step {spec.name!r} exceeded its configured "
+                             f"timeout_seconds={step_timeout_s} with "
+                             f"{open_count} work item(s) still open (H9)"),
+                    component="BasePipelineOrchestrator",
+                    step=spec.name, timeout_seconds=step_timeout_s,
+                    open_items=open_count,
+                )
+            dead_cutoff = now - _dt.timedelta(seconds=liveness["worker_max_silence_s"])
+            dead = list(wi_coll.find({
                 "_id": {"$in": item_ids},
                 "status": "running",
-                "heartbeat_at": {"$lt": stale_cutoff},
+                "heartbeat_at": {"$lt": dead_cutoff},
             }, {"_id": 1, "partition": 1, "heartbeat_at": 1}))
-            if crashed:
-                self._surface_crashed_workers(wi_coll, spec, crashed)
+            if dead:
+                self._fail_max_silent_workers(wi_coll, spec, dead,
+                                              liveness["worker_max_silence_s"])
             deadline_polls += 1
             if deadline_polls % 24 == 0:  # every ~2 min
-                _log.LogPipeline("INFO", 
-                    "orchestrator waiting step=%s remaining=%d",
-                    spec.name, open_count,
+                silent_cutoff = now - _dt.timedelta(seconds=liveness["silent_after_s"])
+                silent = wi_coll.count_documents({
+                    "_id": {"$in": item_ids},
+                    "status": "running",
+                    "heartbeat_at": {"$lt": silent_cutoff},
+                })
+                _log.LogPipeline("INFO",
+                    "orchestrator waiting step=%s remaining=%d silent=%d",
+                    spec.name, open_count, silent,
                 )
             time.sleep(5)
 
@@ -400,24 +423,59 @@ class BasePipelineOrchestrator:
             spec, wi_coll, item_ids, partitions, max_parallel,
         )
 
-    def _surface_crashed_workers(self, wi_coll, spec, crashed) -> None:
-        """Mark WIs whose Worker heartbeat has gone stale as failed. Called
-        from the poll loop; sole side effect is a Mongo update + info log."""
-        ids = [c["_id"] for c in crashed]
+    def _worker_liveness(self, ctx: StepContext) -> dict:
+        """The worker_liveness block from the per-env durable configuration.
+        REQUIRED (H7): a missing or malformed block is a hard fail -- defaults
+        are hidden drift."""
+        liveness = (ctx.config or {}).get("worker_liveness")
+        if (not isinstance(liveness, dict)
+                or not isinstance(liveness.get("silent_after_s"), int)
+                or not isinstance(liveness.get("worker_max_silence_s"), int)):
+            raise ChatHealthyException(
+                mode="pipeline_config_missing_value",
+                message=("worker_liveness{silent_after_s, worker_max_silence_s} "
+                         "is required in the per-env pipeline configuration and "
+                         "is absent or malformed (H7: no defaults)"),
+                component="BasePipelineOrchestrator",
+            )
+        return liveness
+
+    def _step_timeout_s(self, spec: StepSpec, ctx: StepContext) -> int:
+        """This step's timeout_seconds from the durable configuration
+        (step_timeouts.<pipeline>.<step>). REQUIRED (H7/H9): no defaults."""
+        timeouts = ((ctx.config or {}).get("step_timeouts") or {}).get(
+            self.PIPELINE_NAME) or {}
+        value = timeouts.get(spec.name)
+        if not isinstance(value, int) or value <= 0:
+            raise ChatHealthyException(
+                mode="pipeline_config_missing_value",
+                message=(f"step_timeouts.{self.PIPELINE_NAME}.{spec.name} is "
+                         f"required in the pipeline configuration and is absent "
+                         f"or malformed (H7: no defaults; H9 enforces it)"),
+                component="BasePipelineOrchestrator",
+                step=spec.name,
+            )
+        return value
+
+    def _fail_max_silent_workers(self, wi_coll, spec, dead, max_silence_s: int) -> None:
+        """Fail WIs silent past worker_max_silence_s -- the H10 verdict for a
+        truly crashed or hung worker. Below that threshold a silent worker is
+        a diagnostic only and its item is never touched."""
+        ids = [c["_id"] for c in dead]
         now = _dt.datetime.utcnow()
         wi_coll.update_many(
             {"_id": {"$in": ids}, "status": "running"},
             {"$set": {
                 "status": "failed",
-                "output": {"error": "worker_heartbeat_stale",
-                           "stale_threshold_s": _HEARTBEAT_STALE_S},
+                "output": {"error": "worker_max_silence_exceeded",
+                           "worker_max_silence_s": max_silence_s},
                 "finished_at": now,
             }},
         )
-        _log.LogPipeline("INFO", 
-            "orchestrator crash-detected step=%s count=%d partitions=%s",
+        _log.LogPipeline("ERROR",
+            "orchestrator max-silence verdict step=%s count=%d partitions=%s",
             spec.name, len(ids),
-            [str(c.get("partition")) for c in crashed[:5]],
+            [str(c.get("partition")) for c in dead[:5]],
         )
 
     def _aggregate_worker_results(

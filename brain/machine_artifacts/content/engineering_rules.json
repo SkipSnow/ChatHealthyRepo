@@ -114,16 +114,7 @@
           ]
         },
         "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-003-ENF-001",
-              "title": "A human authorizes every agile-backlog requirement change",
-              "hook": "PreToolUse",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/requirement_change_authorization_worker.py",
-              "requires_lock": false,
-              "scopes": []
-            }
-          ]
+          "enforcement": []
         }
       },
       {

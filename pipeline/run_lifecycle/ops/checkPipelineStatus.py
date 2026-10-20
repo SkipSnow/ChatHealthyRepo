@@ -11,6 +11,9 @@ does not depend on the controller's :6969 listener being reachable.
 
 Prints the run state, the controller phase, the controller heartbeat age, and
 the per-step per-partition progress for every step the run's pipeline declares.
+A running partition whose heartbeat is older than silent_after_s is shown as
+SILENT, not failed (LLD v83 III.15). work_items are purged at quiesce, so a
+finished run shows its run record only.
 
 Usage:
     python pipeline/run_lifecycle/ops/checkPipelineStatus.py <run_id>
@@ -95,33 +98,64 @@ def check(run_id: str, out=sys.stdout.write) -> int:
         except Exception:  # noqa: BLE001
             pass
 
+    # silent_after_s (LLD v83 III.15): a running item with no beat for this
+    # long is SILENT -- a diagnostic, never a failure. Read from the per-env
+    # durable configuration; required, no defaults (H7).
+    from pipeline.run_lifecycle.pipeline_config import load_pipeline_config  # noqa: PLC0415
+    cfg = load_pipeline_config(env_prefix=str(run.get("env") or "dev"))
+    silent_after_s = int(cfg["worker_liveness"]["silent_after_s"])
+    silent_cutoff = now - datetime.timedelta(seconds=silent_after_s)
+
     by_step: dict[str, Counter] = {}
-    for wi in db["pipeline.work_items"].find({"run_id": run_id}, {"step": 1, "status": 1}):
-        by_step.setdefault(wi.get("step"), Counter())[str(wi.get("status") or "unknown")] += 1
+    silent_by_step: dict[str, int] = {}
+    for wi in db["pipeline.work_items"].find(
+            {"run_id": run_id}, {"step": 1, "status": 1, "heartbeat_at": 1}):
+        step_name = wi.get("step")
+        by_step.setdefault(step_name, Counter())[str(wi.get("status") or "unknown")] += 1
+        hb = wi.get("heartbeat_at")
+        if (str(wi.get("status")) in _ACTIVE and hb is not None
+                and hb < silent_cutoff):
+            silent_by_step[step_name] = silent_by_step.get(step_name, 0) + 1
 
     names = _step_names(run.get("pipeline_name"))
     for extra in sorted(set(by_step) - set(names) - {None}):
         names = names + [extra]
 
+    out(f"| {'step':38s} | {'state':10s} | {'progress':24s} |\n")
+    out(f"|{'-' * 40}|{'-' * 12}|{'-' * 26}|\n")
     for name in names:
         counts = by_step.get(name)
         if not counts:
-            out(f"    - {name:40s} not started\n")
+            out(f"| {name:38s} | {'not started':10s} | {'-':24s} |\n")
             continue
         total = sum(counts.values())
         done = sum(counts[s] for s in _DONE if s in counts)
+        # failed is a REAL verdict (LLD v83 III.7): written only by the item's
+        # own worker, the controller's worker_max_silence_s judgment (H10), or
+        # the operator. A running item whose heartbeat is older than
+        # silent_after_s is reported SILENT -- a diagnostic, never a failure.
         failed = sum(counts[s] for s in _FAILED if s in counts)
         active = sum(counts[s] for s in _ACTIVE if s in counts)
         pending = counts.get("pending", 0)
-        if failed:
-            state = f"FAILED failed={failed} done={done} total={total}"
-        elif done == total:
-            state = f"complete {done}/{total}"
-        elif active or done:
-            state = f"running={active} done={done} pending={pending} total={total}"
+        silent = silent_by_step.get(name, 0)
+        if done == total:
+            state, prog = "complete", f"{done}/{total}"
         else:
-            state = f"queued pending={pending} total={total}"
-        out(f"    - {name:40s} {state}\n")
+            state = "FAILED" if failed else (
+                "running" if (active or done) else "queued")
+            bits = []
+            if active:
+                bits.append(f"{active} running")
+            if silent:
+                bits.append(f"{silent} silent")
+            if done:
+                bits.append(f"{done} done")
+            if failed:
+                bits.append(f"{failed} failed")
+            if pending:
+                bits.append(f"{pending} pending")
+            prog = ", ".join(bits) + f" / {total}"
+        out(f"| {name:38s} | {state:10s} | {prog:24s} |\n")
 
     return 0 if status == "succeeded" else 1 if status in _TERMINAL else 2
 

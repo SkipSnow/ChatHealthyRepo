@@ -114,7 +114,7 @@ def _worker_host_cloud_init(run_id: str, pipeline_name: str, vm_name: str) -> st
     pe_client = _req("PIPELINEEDITOR_AZURE_CLIENT_ID")
     pe_secret = _req("PIPELINEEDITOR_AZURE_CLIENT_SECRET")
     # CH_FDA_ENRICHMENT_MODEL is required only by the Medicare pipeline's
-    # build_fda_drug_collection step, which runs on this Worker VM. Bind it for the
+    # build_fda_label_resolution step, which runs on this Worker VM. Bind it for the
     # Medicare pipeline only; every other vm-worker pipeline provisions exactly
     # as before and never newly requires the variable (backward compatible).
     indication_model_env = (

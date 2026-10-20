@@ -11,7 +11,7 @@ run-end release (pipeline.run_lifecycle.controller_release).
 Medicare-specific invocation: --build-fda-drug gates the rebuild of the
 fdaProductToDiagnosisResolution collection (default off -> consume the current
 published collection). The flag is exported as BUILD_FDA_DRUG so Worker
-subprocesses (which inherit os.environ) and the build_fda_drug_collection step
+subprocesses (which inherit os.environ) and the build_fda_label_resolution step
 see it.
 
 The finally emits exactly one Medicare discrepancy report per run, on success
@@ -425,8 +425,8 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
                              fatal_exception=None) -> None:
     """Emit the Medicare discrepancy report -- ALWAYS, on a perfect run OR an
     abend (EPIC-010-F-001-S-008). Medicare-specific: it counts the three
-    published collections this pipeline builds -- ProviderMedicare,
-    SpecialtyMedicare and the fdaProductToDiagnosisResolution collection -- so it
+    published collections this pipeline builds -- providerMedicarePartDQuantityRollUps,
+    specialtyMedicarePartDQuantityRollUps and fdaProductToDiagnosisResolution -- so it
     stays with the Medicare Controller, not the generic release. Best-effort so a Mongo or
     SparkPost outage never blocks the run's exit, and delivered even when the
     run-record store is unreachable (EPIC-010-F-001-S-008-REQ-B-006)."""
@@ -506,7 +506,7 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
         # cluster -- pipeline_mongo above reaches the metadata cluster, where the
         # run records live, and a data count through it returns a confident zero.
         # The registry owns the source-to-collection map, so the names are asked
-        # for, never built from an env var. ProviderMedicare is first, so it is
+        # for, never built from an env var. providerMedicarePartDQuantityRollUps is first, so it is
         # the report's primary (one document per NPI); every collection appears
         # in the report. A count that cannot be taken stays None and reads
         # Unknown.
@@ -558,7 +558,7 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
             # the report STILL delivers, with Unknown counts -- never silently
             # dropped by the emitter's target validator (the bug that ate it).
             _dv_s = dv if dv.isdigit() else "unknown"
-            collections = [{"collection": f"PipelinePublicHealthData.ProviderMedicare_v_{_dv_s}",
+            collections = [{"collection": f"PipelinePublicHealthData.providerMedicarePartDQuantityRollUps_v_{_dv_s}",
                             "rows_in_target": None, "total_rows": None}]
             _log.LogPipeline("WARNING", "medicare quiesce: no collection resolved; report "
                              "sends with Unknown counts target=%s run_id=%s",

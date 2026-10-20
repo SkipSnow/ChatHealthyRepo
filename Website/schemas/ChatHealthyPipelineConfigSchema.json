@@ -23,6 +23,17 @@
     },
     "fan_out": {
       "$ref": "#/$defs/FanOut"
+    },
+    "step_timeouts": {
+      "type": "object",
+      "description": "Per-pipeline, per-step timeout_seconds (LLD v83 III.10/III.7 H9). Values are REQUIRED by the reader for every step a pipeline declares; a missing value is a hard fail (H7: no defaults).",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
     }
   },
   "$defs": {
@@ -148,6 +159,25 @@
         },
         "metadata": {
           "$ref": "#/$defs/ConfigMetadata"
+        },
+        "worker_liveness": {
+          "type": "object",
+          "description": "Worker liveness thresholds (LLD v83 III.15): silent_after_s -- a running item with no beat for this long is reported SILENT (diagnostic); worker_max_silence_s -- past this the controller fails the item (hard-fail H10). Required by the reader; no defaults (H7).",
+          "additionalProperties": false,
+          "required": [
+            "silent_after_s",
+            "worker_max_silence_s"
+          ],
+          "properties": {
+            "silent_after_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "worker_max_silence_s": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
         }
       }
     },

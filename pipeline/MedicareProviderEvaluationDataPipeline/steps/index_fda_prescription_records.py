@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 """index_fda_prescription_records (EPIC-010-F-007) -- stamp a sequential fda_record_number
-on this run's PRESCRIPTION openFDA staging labels so build_fda_drug_collection can
+on this run's PRESCRIPTION openFDA staging labels so build_fda_label_resolution can
 range-partition the FDA work across worker PROCESSES (LLD I.3.4a).
 
 A label is in scope when it carries indications_and_usage prose and is NOT OTC

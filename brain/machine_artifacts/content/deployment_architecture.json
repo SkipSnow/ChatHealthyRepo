@@ -5519,25 +5519,40 @@
               }
             },
             {
-              "package_id": "medicare_providermedicare_indexes",
+              "package_id": "medicare_staging_indexes",
               "kind": "mongo_indexes",
               "config": {
                 "cluster": "ChatHealthyDataPipelines",
                 "identity": "pipelineEditor",
-                "db": "PipelinePublicHealthData",
-                "collection": "ProviderMedicare",
+                "db": "PublicStaging",
+                "collection": "StagingMedicarePartD",
                 "version_source": "run_data_version",
                 "indexes": [
                   {
-                    "name": "indication_provider_molecule_quantities",
+                    "name": "run_partition_state",
                     "keys": [
-                      ["indications", 1],
-                      ["npi", 1],
-                      ["molecule_id", 1],
-                      ["totals.tot_clms", 1],
-                      ["totals.tot_30day_fills", 1],
-                      ["totals.tot_day_suply", 1],
-                      ["totals.tot_drug_cst", 1]
+                      ["run_id", 1],
+                      ["partition_state", 1]
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "package_id": "medicare_partb_staging_indexes",
+              "kind": "mongo_indexes",
+              "config": {
+                "cluster": "ChatHealthyDataPipelines",
+                "identity": "pipelineEditor",
+                "db": "PublicStaging",
+                "collection": "StagingMedicarePartB",
+                "version_source": "run_data_version",
+                "indexes": [
+                  {
+                    "name": "run_rendering_state",
+                    "keys": [
+                      ["run_id", 1],
+                      ["raw.Rndrng_Prvdr_State_Abrvtn", 1]
                     ]
                   }
                 ]
@@ -5554,9 +5569,21 @@
                 "version_source": "run_data_version",
                 "indexes": [
                   {
-                    "name": "fda_molecule_id",
+                    "name": "fda_brand_exact_keys",
                     "keys": [
-                      ["molecule_id", 1]
+                      ["brand_exact_keys", 1]
+                    ]
+                  },
+                  {
+                    "name": "fda_brand_keys",
+                    "keys": [
+                      ["brand_keys", 1]
+                    ]
+                  },
+                  {
+                    "name": "fda_generic_keys",
+                    "keys": [
+                      ["generic_keys", 1]
                     ]
                   }
                 ]

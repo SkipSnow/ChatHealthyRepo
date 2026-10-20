@@ -2,58 +2,450 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthySpecialtyMedicareSchema.json",
   "title": "ChatHealthy SpecialtyMedicare",
-  "description": "One document per NUCC specialty code in the specialtyMedicarePartDQuantityRollUps collection (EPIC-010-F-007-S-009). For each molecule the specialty prescribes it carries the specialty_total (this NUCC's attributed usage), the de-duplicated molecule_real_total (across all specialties, each provider once), and the per-measure means of each -- specialty_mean and molecule_real_mean -- which are the norms a provider is scored against. provider_count is read from Provider_v_5. The per-specialty embedding is the vector FindCare's semantic search uses.",
+  "description": "ONE document per NUCC specialty code in the specialtyMedicarePartDQuantityRollUps collection (EPIC-010-F-007-S-009, LLD v83 III.4.3). _id == nucc_code. A provider with multiple NUCC codes is attributed to EACH, so specialty totals overlap; molecule_real_total is the de-duplicated molecule total for reconciliation. Per molecule, the max/min/median/avg statistics of every quantitative measure over the per-provider totals (operator ruling 2026-10-20): median = the middle value; avg = the sum divided by the count; min excludes zeros. Computed in the rollup step's final pass.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["_id", "nucc_code", "molecules", "provider_count", "provenance"],
+  "required": [
+    "_id",
+    "nucc_code",
+    "molecules",
+    "provider_count",
+    "provenance"
+  ],
   "properties": {
-    "_id": { "type": "string", "description": "NUCC code" },
-    "nucc_code": { "type": "string" },
-    "provider_count": { "type": "integer", "description": "providers carrying this NUCC in any taxonomy slot (Provider_v_5)" },
-    "embedding": { "type": "array", "items": { "type": "number" }, "description": "specialty embedding copied from the SMD collection (FindCare's semantic-search vector)" },
-    "embedding_model": { "type": "string" },
+    "_id": {
+      "type": "string",
+      "description": "== nucc_code."
+    },
+    "nucc_code": {
+      "type": "string",
+      "description": "NUCC code. From the provider NUCC array; never Prscrbr_Type."
+    },
     "molecules": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["molecule_id", "specialty_total", "specialty_mean", "molecule_real_total", "molecule_real_mean", "prescriber_count", "real_prescriber_count"],
+        "required": [
+          "molecule_id",
+          "specialty_total",
+          "specialty_stats",
+          "molecule_real_total",
+          "molecule_real_stats",
+          "prescriber_count"
+        ],
         "properties": {
-          "molecule_id": { "type": "string" },
-          "specialty_total": { "$ref": "#/$defs/measures" },
-          "specialty_mean": { "$ref": "#/$defs/meanMeasures" },
-          "molecule_real_total": { "$ref": "#/$defs/measures" },
-          "molecule_real_mean": { "$ref": "#/$defs/meanMeasures" },
-          "prescriber_count": { "type": "integer", "description": "distinct providers of this NUCC prescribing this molecule" },
-          "real_prescriber_count": { "type": "integer", "description": "distinct providers prescribing this molecule across all specialties (the molecule_real_mean denominator)" }
+          "molecule_id": {
+            "type": "string"
+          },
+          "specialty_total": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "This NUCC's attributed all-ages usage of the molecule.",
+            "properties": {
+              "tot_clms": {
+                "type": "number"
+              },
+              "tot_30day_fills": {
+                "type": "number"
+              },
+              "tot_day_suply": {
+                "type": "number"
+              },
+              "tot_drug_cst": {
+                "type": "number"
+              }
+            }
+          },
+          "specialty_stats": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Per quantitative measure: max/min/median/avg over the PER-PROVIDER totals of this NUCC's prescribers of this molecule -- the norm a provider of this specialty is scored against.",
+            "required": [
+              "tot_clms",
+              "tot_30day_fills",
+              "tot_day_suply",
+              "tot_drug_cst"
+            ],
+            "properties": {
+              "tot_clms": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              },
+              "tot_30day_fills": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              },
+              "tot_day_suply": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              },
+              "tot_drug_cst": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              }
+            }
+          },
+          "molecule_real_total": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "The molecule's de-duplicated total across ALL specialties (each provider once). Sum(specialty_total over NUCCs) >= molecule_real_total; the gap is the cross-specialty overlap.",
+            "properties": {
+              "tot_clms": {
+                "type": "number"
+              },
+              "tot_30day_fills": {
+                "type": "number"
+              },
+              "tot_day_suply": {
+                "type": "number"
+              },
+              "tot_drug_cst": {
+                "type": "number"
+              }
+            }
+          },
+          "molecule_real_stats": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Per quantitative measure: max/min/median/avg over the per-provider totals of ALL prescribers of this molecule (each provider once, across specialties).",
+            "required": [
+              "tot_clms",
+              "tot_30day_fills",
+              "tot_day_suply",
+              "tot_drug_cst"
+            ],
+            "properties": {
+              "tot_clms": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              },
+              "tot_30day_fills": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              },
+              "tot_day_suply": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              },
+              "tot_drug_cst": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "max",
+                  "min",
+                  "median",
+                  "avg"
+                ],
+                "properties": {
+                  "max": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "min": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                  },
+                  "median": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The middle value (statistical median)."
+                  },
+                  "avg": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "The sum divided by the count."
+                  }
+                }
+              }
+            }
+          },
+          "prescriber_count": {
+            "type": "integer",
+            "description": "Distinct providers of this NUCC prescribing this molecule."
+          }
         }
       }
     },
-    "provenance": {
-      "type": "object", "additionalProperties": false,
-      "required": ["aggregated_from", "run_id", "built_at"],
-      "properties": {
-        "aggregated_from": { "type": "array", "items": { "type": "string" } },
-        "run_id": { "type": "string" },
-        "built_at": { "type": "string" }
-      }
-    }
-  },
-  "$defs": {
-    "measures": {
-      "type": "object", "additionalProperties": false,
-      "description": "summed usage for the four quantitative measures",
-      "properties": {
-        "tot_clms": { "type": "number" }, "tot_30day_fills": { "type": "number" },
-        "tot_day_suply": { "type": "number" }, "tot_drug_cst": { "type": "number" }
-      }
+    "provider_count": {
+      "type": "integer",
+      "description": "Providers carrying this NUCC in any taxonomy slot (Provider_v_5)."
     },
-    "meanMeasures": {
-      "type": "object", "additionalProperties": false,
-      "description": "per-prescriber mean of each quantitative measure (the norm)",
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aggregated_from",
+        "run_id",
+        "built_at"
+      ],
       "properties": {
-        "tot_clms": { "type": ["number", "null"] }, "tot_30day_fills": { "type": ["number", "null"] },
-        "tot_day_suply": { "type": ["number", "null"] }, "tot_drug_cst": { "type": ["number", "null"] }
+        "aggregated_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "built_at": {
+          "type": "string"
+        }
       }
     }
   }

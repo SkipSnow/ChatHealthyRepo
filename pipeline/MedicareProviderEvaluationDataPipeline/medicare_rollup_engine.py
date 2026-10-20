@@ -1,119 +1,94 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""SpecialtyMedicare rollup engine (EPIC-010-F-007-S-009).
+"""SpecialtyMedicare rollup engine (EPIC-010-F-007, LLD v83 III.10/III.4.3).
 
-Rolls the flat provider x molecule collection up to the NUCC grain: for each
-specialty, per molecule, the specialty_total (this NUCC's attributed usage) and
-the de-duplicated molecule_real_total (the molecule's usage across all
-specialties, each provider once) for reconciliation, plus prescriber_count.
-provider_count is read from Provider_v_5 (every provider carrying the NUCC in
-any taxonomy slot). The per-specialty embedding FindCare's semantic search uses
-is copied from the SMD collection the provider pipeline already built.
-
-The per-drug norms (means/averages) the evaluation compares a provider against
-are computed at query time off the provider collection's (indications, npi,
-molecule_id, quantities) covering index, not materialized here.
+Staging-sourced and serial: state-aggregated masters carry no per-NPI detail,
+so the NUCC rollup streams StagingMedicarePartD directly, accumulates
+per-(provider, molecule) all-ages totals, resolves NPI -> NUCC via chunked
+Provider_v_5 reads, and writes one document per NUCC code as a deterministic
+full-document upsert (single-writer; the collection was cleared by the
+pre-pass, decision #1). Per (NUCC, molecule): specialty_total vs the
+de-duplicated molecule_real_total, prescriber_count, and the operator-ruled
+statistics (R1 2026-10-20) -- max / min (zeros excluded) / median (the middle
+value) / avg (sum over count) of every quantitative measure over the
+per-provider totals, computed here as the rollup's final pass.
+provider_count comes from Provider_v_5 (taxonomies.code, indexed).
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import datetime
 from typing import Any
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
-from pymongo import UpdateOne
+from pymongo import ReplaceOne
 
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
-    _ROLLUP_USAGE,
-    _as_int,
-    rollup_specialty_flat,
+    PARTD_COLS,
+    accumulate_provider_molecule_totals,
+    rollup_specialty_v83,
 )
 
 _log = ChatHealthyLoggingService()
 
 
-def _specialty_embedding(smd_coll, nucc: str) -> dict:
-    """Copy the specialty embedding the SMD collection already carries for this
-    NUCC (the same vector FindCare's semantic search uses), rather than
-    re-embedding."""
-    if smd_coll is None:
-        return {}
-    doc = smd_coll.find_one({"_id": nucc}) or smd_coll.find_one({"nucc_code": nucc}) or {}
-    emb = doc.get("embedding")
-    if not emb:
-        return {}
-    out = {"embedding": emb}
-    if doc.get("embedding_model"):
-        out["embedding_model"] = doc["embedding_model"]
+def _nucc_map(provider_spine_coll, npis: list[str], chunk: int = 5000) -> dict[str, list[str]]:
+    """npi -> distinct NUCC codes from the Provider spine's taxonomies."""
+    out: dict[str, list[str]] = {}
+    for i in range(0, len(npis), chunk):
+        for doc in provider_spine_coll.find(
+                {"npi": {"$in": npis[i:i + chunk]}},
+                {"npi": 1, "taxonomies.code": 1}):
+            npi = str(doc.get("npi") or "").strip()
+            codes: list[str] = []
+            for tax in doc.get("taxonomies") or []:
+                code = (tax or {}).get("code") if isinstance(tax, dict) else None
+                if code and code not in codes:
+                    codes.append(code)
+            if npi:
+                out[npi] = codes
     return out
 
 
 def rollup_specialtymedicare(
     *,
     run_id: str,
-    data_version: int,
-    providermedicare_coll,
+    partd_coll,
     provider_spine_coll,
     target_coll,
-    smd_coll=None,
-    nucc_codes: set[str] | None = None,
-    batch_size: int = 500,
+    batch_size: int = 200,
 ) -> dict[str, Any]:
-    """Aggregate the flat provider x molecule collection into SpecialtyMedicare
-    per NUCC. Reads every document for the run (molecule_real_total is a
-    cross-specialty de-dup, so it needs the whole set) and emits the target
-    NUCCs -- all of them in the single-partition placeholder, else the fan-out's
-    nucc_codes."""
-    agg = rollup_specialty_flat(
-        providermedicare_coll.find({"provenance.source_run_id": run_id}))
-    spec, real, seen_nuccs = agg["spec"], agg["real"], agg["nuccs"]
+    """Build specialtyMedicarePartDQuantityRollUps for the run (serial)."""
+    projection = {f"raw.{PARTD_COLS[k]}": 1 for k in
+                  ("npi", "generic", "total_claims", "total_30day_fills",
+                   "days_supply", "total_drug_cost")}
+    rows = (doc.get("raw") or {}
+            for doc in partd_coll.find({"run_id": run_id}, projection))
+    acc = accumulate_provider_molecule_totals(rows)
 
-    by_nucc: dict[str, list] = {}
-    for (nucc, mid), bucket in spec.items():
-        by_nucc.setdefault(nucc, []).append((mid, bucket))
+    npis = sorted({npi for npi, _ in acc})
+    nucc_by_npi = _nucc_map(provider_spine_coll, npis)
+    by_nucc = rollup_specialty_v83(acc, nucc_by_npi)
 
-    emit = seen_nuccs if not nucc_codes else (seen_nuccs & set(nucc_codes))
-    built_at = datetime.now(timezone.utc).isoformat()
-    provenance = {
-        "aggregated_from": [providermedicare_coll.name],
-        "run_id": run_id,
-        "built_at": built_at,
-    }
-
-    ops: list[UpdateOne] = []
+    built_at = datetime.datetime.utcnow().isoformat()
+    ops: list[ReplaceOne] = []
     written = 0
-    for nucc in emit:
-        molecules = []
-        for mid, bucket in by_nucc.get(nucc, []):
-            r = real.get(mid) or {}
-            pc = len(bucket["providers"])
-            rpc = len(r.get("providers") or [])
-            molecules.append({
-                "molecule_id": mid,
-                "specialty_total": {k: _as_int(bucket[k]) for k in _ROLLUP_USAGE},
-                # Per-measure mean across this specialty's prescribers of the
-                # molecule -- the within-specialty norm a provider is scored on.
-                "specialty_mean": {k: round(bucket[k] / pc, 4) if pc else None
-                                   for k in _ROLLUP_USAGE},
-                "molecule_real_total": {k: _as_int(r.get(k, 0)) for k in _ROLLUP_USAGE},
-                # Per-measure mean across ALL prescribers of the molecule (each
-                # provider once) -- the overall norm.
-                "molecule_real_mean": {k: round(r.get(k, 0) / rpc, 4) if rpc else None
-                                       for k in _ROLLUP_USAGE},
-                "prescriber_count": pc,
-                "real_prescriber_count": rpc,
-            })
-        provider_count = provider_spine_coll.count_documents({"taxonomies.code": nucc})
-        doc_out = {
+    for nucc in sorted(by_nucc):
+        molecules = [by_nucc[nucc][mid] for mid in sorted(by_nucc[nucc])]
+        doc = {
             "_id": nucc,
             "nucc_code": nucc,
             "molecules": molecules,
-            "provider_count": provider_count,
-            "provenance": provenance,
-            **_specialty_embedding(smd_coll, nucc),
+            "provider_count": provider_spine_coll.count_documents(
+                {"taxonomies.code": nucc}),
+            "provenance": {
+                "aggregated_from": ["StagingMedicarePartD_v_1", "Provider_v_5"],
+                "run_id": run_id,
+                "built_at": built_at,
+            },
         }
-        ops.append(UpdateOne({"_id": nucc}, {"$set": doc_out}, upsert=True))
+        ops.append(ReplaceOne({"_id": nucc}, doc, upsert=True))
         if len(ops) >= batch_size:
             target_coll.bulk_write(ops, ordered=False)
             written += len(ops)
@@ -122,6 +97,9 @@ def rollup_specialtymedicare(
         target_coll.bulk_write(ops, ordered=False)
         written += len(ops)
 
-    _log.LogPipeline("INFO", "rollup_specialtymedicare: wrote %d NUCC docs run_id=%s",
-                     written, run_id)
-    return {"specialtymedicare_written": written, "nucc_count": len(emit)}
+    _log.LogPipeline(
+        "INFO",
+        "rollup_specialtymedicare: pairs=%d npis=%d nuccs=%d written=%d run_id=%s",
+        len(acc), len(npis), len(by_nucc), written, run_id)
+    return {"provider_molecule_pairs": len(acc), "distinct_npis": len(npis),
+            "nucc_docs_written": written}

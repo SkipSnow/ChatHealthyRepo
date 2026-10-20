@@ -34,6 +34,7 @@ import os
 import socket
 import sys
 import threading
+import zlib
 import time
 import traceback
 
@@ -45,6 +46,17 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 _log = ChatHealthyLoggingService()
 
 HEARTBEAT_INTERVAL_S = 120     # v32 §4.3.4
+# Coordination-client profile (LLD v83 III.15): small, frequent writes that
+# must FAIL FAST rather than hang (a hung heartbeat write silenced live
+# workers for 30-43 minutes in run 09074ab6), and a bounded connection
+# footprint (~2 per worker) so the fleet's total is known by construction.
+# The DataPipelines work client keeps the library defaults: its aggregations
+# legitimately run long.
+_COORD_CLIENT_OPTIONS = {
+    "socketTimeoutMS": 30000,
+    "connectTimeoutMS": 10000,
+    "maxPoolSize": 2,
+}
 # The coordination substrate the Controller actually writes to. It enqueues
 # every work item with ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"], and this read
 # the database "chathealthypipelines" through get_mongo() -- a different
@@ -88,7 +100,8 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
     # metrics, completed_steps) from the live pipeline.runs doc so per-step
     # decisions that depend on earlier steps' state work identically to
     # inline execution. Coord (pipeline.runs) lives on the pipeline cluster.
-    coord = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    coord = ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyFrontEnd", client_options=_COORD_CLIENT_OPTIONS)
     live = coord["pipelineAdmin"]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
     if live:
         manifest.source_versions = live.get("source_versions") or {}
@@ -225,6 +238,17 @@ class _HeartbeatThread(threading.Thread):
         self._stop.set()
 
     def run(self):
+        # Phase offset (LLD v83 III.15): each worker's beats land at a
+        # deterministic offset within the interval -- crc32 of the item id,
+        # never hash(), which is salted per process -- so a fleet's beats
+        # spread uniformly instead of arriving in claim-time waves.
+        offset = zlib.crc32(str(self._item_id).encode("utf-8")) % HEARTBEAT_INTERVAL_S
+        if self._stop.wait(offset):
+            return
+        try:
+            _write_heartbeat(self._mongo, self._item_id)
+        except Exception as exc:  # noqa: BLE001
+            _log.LogPipeline("WARNING", "heartbeat write failed: %s", exc)
         while not self._stop.wait(HEARTBEAT_INTERVAL_S):
             try:
                 _write_heartbeat(self._mongo, self._item_id)
@@ -337,7 +361,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # work_items live where the Controller enqueues them, which is the
     # front cluster. Reading them anywhere else claims nothing.
-    coord = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    coord = ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyFrontEnd", client_options=_COORD_CLIENT_OPTIONS)
     worker_pid = os.getpid()
 
     _log.LogPipeline("INFO",

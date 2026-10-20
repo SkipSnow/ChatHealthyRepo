@@ -1,27 +1,19 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""enrich_drugs engine (EPIC-010-F-007) -- attach molecule FDA facts.
+"""enrich_drugs engine (EPIC-010-F-007, LLD v83 III.10) -- attach each molecule
+MASTER's fda block from its molecule-keyed FDA record.
 
-In the provider-core model each document is one provider x molecule and already
-carries molecule_id (minted by the base build from the CMS Gnrc_Name). This step
-attaches the molecule's FDA facts by querying the FDA file (fdaProductToDiagnosis-
-Resolution) for that molecule's labels (by molecule_id) and aggregating them:
-  - drug_class : the SET of classes across the molecule's labels (a molecule can
-                 carry both OTC and Rx labels).
-  - identity   : rxcui / unii / substance_name unioned across the labels.
-No brand resolution happens here any more -- the base build grouped CMS rows to
-the molecule directly, so the join is molecule_id -> molecule_id, not brand.
+The FDA collection and the master share the key (_id = molecule_id, LLD v83
+III.3 decision #7), so the attach is a point lookup per master: copy the FDA
+record's assembled facts -- indications, drug_class SET, identity (rxcui/unii/
+substance_name union), usage, trust aggregate -- onto the master's fda block.
+Serial: ~1,700 masters, one pass, single-writer. A master with no FDA record
+keeps its stub fda block and is recorded as a finding (non-fatal).
 
-Fanned by provider_state; a per-worker cache keyed by molecule_id avoids
-re-querying a molecule the state prescribes many times. Memory-bounded: the FDA
-file is never loaded whole; only a molecule's handful of labels are read on
-first use.
-
-The normalized indication SET that the (indications, npi, ...) search index keys
-on is attached from the NormalizedIndicationMap (EPIC-010-F-007-S-008) by
-molecule_id; that collection is its own build and is NOT read here. Until it
-lands the indication set stays as the base build left it (empty).
+The normalized indication SET for the evaluation search is attached from the
+NormalizedIndicationMap (EPIC-010-F-007-S-008, deferred); until it lands, the
+master's fda.indications carries the FDA-label indications only.
 """
 
 from __future__ import annotations
@@ -34,91 +26,72 @@ from pymongo import UpdateOne
 
 _log = ChatHealthyLoggingService()
 
-# Only the fields the molecule-facts aggregation needs are projected off each
-# matched FDA label record -- never the whole document.
-_FDA_PROJECTION = {"drug_class": 1, "openfda": 1}
 _IDENTITY_FIELDS = ("rxcui", "unii", "substance_name")
 
 
-def _aggregate_molecule_facts(records: list[dict]) -> dict:
-    """Aggregate one molecule's FDA label records into the facts carried on every
-    provider x molecule document for that molecule: the drug_class SET and the
-    unioned identity. First-seen order, de-duplicated."""
-    classes: list[str] = []
-    cls_seen: set = set()
-    identity: dict[str, list[str]] = {k: [] for k in _IDENTITY_FIELDS}
-    id_seen: dict[str, set] = {k: set() for k in _IDENTITY_FIELDS}
-    for doc in records:
-        cls = str((doc.get("drug_class") or {}).get("class") or "").strip()
-        if cls and cls not in cls_seen:
-            cls_seen.add(cls)
-            classes.append(cls)
-        openfda = doc.get("openfda") or {}
-        for field in _IDENTITY_FIELDS:
-            vals = openfda.get(field) or []
-            if isinstance(vals, str):
-                vals = [vals]
-            for value in vals:
-                text = str(value).strip()
-                if text and text not in id_seen[field]:
-                    id_seen[field].add(text)
-                    identity[field].append(text)
-    return {"drug_class": classes, "identity": identity}
+def fda_block_from(fda_doc: dict) -> dict:
+    """The master's fda block from the molecule's FDA record (LLD v83
+    III.4.2): indications as assembled, drug_class as the SET, identity as the
+    unioned rxcui/unii/substance_name, usage, and the trust aggregate."""
+    molecule = fda_doc.get("molecule") or {}
+    block: dict[str, Any] = {
+        "indications": fda_doc.get("indications") or [],
+        "drug_class": list((fda_doc.get("drug_class") or {}).get("classes") or []),
+        "identity": {k: list(molecule.get(k) or []) for k in _IDENTITY_FIELDS},
+        "trust": dict(fda_doc.get("trust") or
+                      {"max": None, "min": None, "median": None, "avg": None}),
+    }
+    usage = (fda_doc.get("usage") or {}).get("summarized_usage")
+    if usage:
+        block["usage"] = usage
+    return block
 
 
-def enrich_drugs(
+def enrich_drugs_for_run(
     *,
-    state: str,
     run_id: str,
-    providermedicare_coll,
+    masters_coll,
     fda_drug_coll,
-    runtime,
-    batch_size: int = 1000,
+    record_discrepancy=None,
+    batch_size: int = 500,
 ) -> dict[str, Any]:
+    """Attach every master's fda block by _id point lookup (serial pass)."""
     if fda_drug_coll.estimated_document_count() == 0:
         raise ChatHealthyException(
             mode="runtime_error",
             component="enrich_drugs",
-            message=("enrich_drugs: the fdaProductToDiagnosisResolution collection is empty; "
-                     "its prerequisite build_fda_drug_collection produced no records to consume"),
-        )
-
-    cache: dict[str, dict] = {}
-
-    def facts(molecule_id: str) -> dict:
-        if molecule_id in cache:
-            return cache[molecule_id]
-        records = list(fda_drug_coll.find({"molecule_id": molecule_id}, _FDA_PROJECTION))
-        resolved = _aggregate_molecule_facts(records)
-        cache[molecule_id] = resolved
-        return resolved
+            message=("enrich_drugs: the FDA molecule collection is empty; "
+                     "its prerequisite finalize_fda_molecules produced no "
+                     "records to consume"))
 
     ops: list[UpdateOne] = []
-    written = 0
-    no_fda_molecule = 0
-    for doc in providermedicare_coll.find(
-            {"provenance.source_run_id": run_id, "prescriber_state": state}):
-        mid = doc.get("molecule_id")
-        resolved = facts(mid) if mid else {"drug_class": [], "identity": {}}
-        if not resolved["drug_class"]:
-            no_fda_molecule += 1
-        ops.append(UpdateOne(
-            {"_id": doc["_id"]},
-            {"$set": {"drug_class": resolved["drug_class"], "identity": resolved["identity"]}}))
+    enriched = 0
+    without_fda = 0
+    for master in masters_coll.find({}, {"_id": 1}):
+        mid = master["_id"]
+        fda_doc = fda_drug_coll.find_one({"_id": mid})
+        if fda_doc is None:
+            without_fda += 1
+            if record_discrepancy is not None:
+                record_discrepancy(
+                    reason="FDA_all_other_Attribute_failures",
+                    step="enrich_drugs", artifact="providermedicare",
+                    record_key=str(mid),
+                    detail={"kind": "molecule_without_fda_record",
+                            "note": "no FDA molecule record; the master keeps "
+                                    "its stub fda block"})
+            continue
+        ops.append(UpdateOne({"_id": mid},
+                             {"$set": {"fda": fda_block_from(fda_doc)}}))
         if len(ops) >= batch_size:
-            providermedicare_coll.bulk_write(ops, ordered=False)
-            written += len(ops)
+            masters_coll.bulk_write(ops, ordered=False)
+            enriched += len(ops)
             ops = []
     if ops:
-        providermedicare_coll.bulk_write(ops, ordered=False)
-        written += len(ops)
+        masters_coll.bulk_write(ops, ordered=False)
+        enriched += len(ops)
 
     _log.LogPipeline(
-        "INFO", "enrich_drugs[%s]: updated=%d no_fda_molecule=%d",
-        state, written, no_fda_molecule,
-    )
-    return {
-        "state": state,
-        "providermedicare_updated": written,
-        "no_fda_molecule": no_fda_molecule,
-    }
+        "INFO", "enrich_drugs: masters_enriched=%d without_fda=%d run_id=%s",
+        enriched, without_fda, run_id)
+    return {"masters_enriched": enriched, "masters_without_fda": without_fda}

@@ -20,7 +20,6 @@ single source of truth for the engines that import them.
 from __future__ import annotations
 
 import hashlib
-from collections import defaultdict
 from typing import Any, Callable, Iterable
 
 # --- CMS Part D "Prescribers by Provider and Drug" ---------------------------
@@ -80,102 +79,6 @@ def _npi(raw: dict, col: str) -> str:
     return str(raw.get(col) or "").strip()
 
 
-def _sum_opt(a: Any, b: Any) -> int | float | None:
-    """Sum two optional numerics; None only when BOTH are absent."""
-    na, nb = _num(a), _num(b)
-    if na is None and nb is None:
-        return None
-    total = (na or 0) + (nb or 0)
-    return int(total) if float(total).is_integer() else total
-
-
-def aggregate_procedures(partb_rows: Iterable[dict]) -> dict[str, list[dict]]:
-    """Part B rows -> one procedure per (NPI, HCPCS), grouped by NPI.
-
-    The facility / non-facility place-of-service split (Place_Of_Srvc F vs O) is
-    COLLAPSED into a single procedure per HCPCS. Tot_Srvcs and Tot_Benes are
-    SUMMED across the two places of service. The dollar amounts
-    (Avg_Sbmtd_Chrg / Avg_Mdcr_Alowd_Amt / Avg_Mdcr_Pymt_Amt) are carried
-    SEPARATELY as facility_* and nonfacility_* (lossless -- the two fee
-    schedules are genuinely different and must not be averaged).
-    """
-    C = PARTB_COLS
-    # (npi, hcpcs) -> accumulating procedure
-    by_key: dict[tuple[str, str], dict] = {}
-    order: dict[str, list[str]] = defaultdict(list)  # npi -> hcpcs in first-seen order
-    for raw in partb_rows:
-        npi = _npi(raw, C["npi"])
-        hcpcs = str(raw.get(C["hcpcs"]) or "").strip()
-        if not npi or not hcpcs:
-            continue
-        key = (npi, hcpcs)
-        proc = by_key.get(key)
-        if proc is None:
-            proc = {
-                "hcpcs": hcpcs,
-                "descriptor": raw.get(C["descriptor"]),
-                "hcpcs_level2": None,
-                "label": None,
-                "service_count": None,
-                "beneficiary_count": None,
-                "facility_submitted_amount": None,
-                "facility_allowed_amount": None,
-                "facility_paid_amount": None,
-                "nonfacility_submitted_amount": None,
-                "nonfacility_allowed_amount": None,
-                "nonfacility_paid_amount": None,
-                "allowed_icd10": [],
-                "justification_kind": "",
-                "justification_source": "",
-            }
-            by_key[key] = proc
-            order[npi].append(hcpcs)
-        if not proc["descriptor"] and raw.get(C["descriptor"]):
-            proc["descriptor"] = raw.get(C["descriptor"])
-        proc["service_count"] = _sum_opt(proc["service_count"], raw.get(C["service_count"]))
-        proc["beneficiary_count"] = _sum_opt(proc["beneficiary_count"], raw.get(C["beneficiary_count"]))
-        pos = str(raw.get(C["place_of_service"]) or "").strip().upper()
-        prefix = "facility" if pos == "F" else "nonfacility"
-        proc[f"{prefix}_submitted_amount"] = _num(raw.get(C["submitted_amount"]))
-        proc[f"{prefix}_allowed_amount"] = _num(raw.get(C["allowed_amount"]))
-        proc[f"{prefix}_paid_amount"] = _num(raw.get(C["paid_amount"]))
-
-    out: dict[str, list[dict]] = {}
-    for npi, hcpcs_list in order.items():
-        out[npi] = [by_key[(npi, hc)] for hc in hcpcs_list]
-    return out
-
-
-def collect_drugs(partd_rows: Iterable[dict]) -> dict[str, list[dict]]:
-    """Part D rows -> raw drug entries grouped by NPI, one entry per source row.
-
-    The base build keeps drug rows RAW (one per brand/generic row). The brand
-    re-grain (the provider's rows -> one entry per NORMALIZED brand, joined to the
-    FDA drug collection for molecule/rxcui-set/indications) happens in the enrich
-    pass -- see compose_drugs_by_brand. The raw entry already carries the empty
-    molecule/rxcuis/indications slots so the base-written document conforms to
-    ChatHealthyProviderMedicareSchema before enrichment fills them.
-    """
-    C = PARTD_COLS
-    out: dict[str, list[dict]] = defaultdict(list)
-    for raw in partd_rows:
-        npi = _npi(raw, C["npi"])
-        if not npi:
-            continue
-        out[npi].append({
-            "brand": raw.get(C["brand"]),
-            "generic": raw.get(C["generic"]),
-            "total_claims": _num(raw.get(C["total_claims"])),
-            "days_supply": _num(raw.get(C["days_supply"])),
-            "beneficiary_count": _num(raw.get(C["beneficiary_count"])),
-            "total_drug_cost": _num(raw.get(C["total_drug_cost"])),
-            "molecule": None,
-            "rxcuis": [],
-            "indications": [],
-        })
-    return dict(out)
-
-
 def _sprsn(raw: dict, col: str) -> bool:
     """A CMS suppression flag is present (non-empty) only when the value is
     suppressed; absent/blank means visible. (Marker string confirmed against a
@@ -226,97 +129,10 @@ def child_ge65_suppressed(child: dict) -> bool:
     return bool(str((child.get("suppression_flags") or {}).get("GE65_Sprsn_Flag") or "").strip())
 
 
-_ALLAGES_USAGE = ("tot_clms", "tot_30day_fills", "tot_day_suply", "tot_drug_cst")
-_GE65_TO_PLAIN = {
-    "ge65_tot_clms": "tot_clms",
-    "ge65_tot_30day_fills": "tot_30day_fills",
-    "ge65_tot_day_suply": "tot_day_suply",
-    "ge65_tot_drug_cst": "tot_drug_cst",
-}
 
 
 def _as_int(v: Any) -> int | float:
     return int(v) if isinstance(v, float) and v.is_integer() else v
-
-
-def aggregate_provider_molecule(rows: Iterable[dict]) -> dict:
-    """Aggregate ONE provider's CMS Part D rows for ONE molecule into the flat
-    (provider x molecule) record's quantity block (EPIC-010-F-007, provider-core
-    model). The provider is the core object; this is one molecule under it.
-
-    Usage (claims / 30-day fills / day-supply / cost) is ADDITIVE -> summed over
-    the provider's brand rows for the molecule. GE65 usage sums the VISIBLE rows
-    only; usage_suppressed_count tallies the rows CMS suppressed (GE65_Sprsn_Flag
-    is all-or-nothing). Beneficiaries are NON-ADDITIVE (summing double-counts
-    patients across brands) -> carried only when a single unsuppressed row backs
-    the pair, else null. brands is the distinct brand set; record_count is the
-    CMS rows behind the pair (the conformance unit)."""
-    children = [partd_child(r) for r in rows]
-    totals = {k: 0 for k in _ALLAGES_USAGE}
-    ge65 = {v: 0 for v in _GE65_TO_PLAIN.values()}
-    ge65_suppressed = 0
-    brands: list[str] = []
-    seen: set = set()
-    for c in children:
-        for k in _ALLAGES_USAGE:
-            if c[k] is not None:
-                totals[k] += c[k]
-        if child_ge65_suppressed(c):
-            ge65_suppressed += 1
-        else:
-            for src, dst in _GE65_TO_PLAIN.items():
-                if c[src] is not None:
-                    ge65[dst] += c[src]
-        brand = str(c["brnd_name"] or "").strip()
-        if brand and brand not in seen:
-            seen.add(brand)
-            brands.append(brand)
-    if len(children) == 1:
-        tot_benes = children[0]["tot_benes"]
-        ge65_tot_benes = children[0]["ge65_tot_benes"]
-    else:
-        tot_benes = None
-        ge65_tot_benes = None
-    return {
-        "state": next((c["state"] for c in children if c["state"]), ""),
-        "gnrc_name": children[0]["gnrc_name"] if children else None,
-        "brands": brands,
-        "record_count": len(children),
-        "totals": {k: _as_int(v) for k, v in totals.items()},
-        "ge65": {**{k: _as_int(v) for k, v in ge65.items()},
-                 "usage_suppressed_count": ge65_suppressed},
-        "benes": {"tot_benes": tot_benes, "ge65_tot_benes": ge65_tot_benes},
-    }
-
-
-def distinct_billed_npis(
-    partb_rows: Iterable[dict], partd_rows: Iterable[dict]
-) -> set[str]:
-    """The distinct set of billed (Part B) + prescribing (Part D) NPIs."""
-    npis: set[str] = set()
-    for raw in partb_rows:
-        npi = _npi(raw, PARTB_COLS["npi"])
-        if npi:
-            npis.add(npi)
-    for raw in partd_rows:
-        npi = _npi(raw, PARTD_COLS["npi"])
-        if npi:
-            npis.add(npi)
-    return npis
-
-
-def npis_not_found(
-    billed_npis: Iterable[str], provider_npis: Iterable[str]
-) -> list[str]:
-    """Distinct billed/prescribing NPIs absent from the Provider collection.
-
-    De-duped by construction: a single NPI spanning many drug/procedure/source
-    rows contributes exactly one entry, because the input is a set difference.
-    Returns a sorted list so the finding order is deterministic.
-    """
-    return sorted(set(billed_npis) - set(provider_npis))
-
-
 # --- v1 drug-collection composition (brand join) -----------------------------
 # A drug is identified in Part D ONLY by brand + generic name -- the CMS "by
 # Provider and Drug" rows carry no rxcui/NDC. The composition therefore joins on
@@ -404,16 +220,6 @@ def _norm_indication_text(text: Any) -> str:
 # brand_name is the join key's own source and is deliberately not carried as a
 # payload field. openfda.rxcui is the full clinical-drug rxcui list, kept distinct
 # from the ingredient-level `rxcuis`, under the flat key `clinical_rxcui`.
-_OPENFDA_FLAT_FIELDS = {
-    "generic_name": "generic_name",
-    "substance_name": "substance_name",
-    "product_type": "product_type",
-    "rxcui": "clinical_rxcui",
-    "product_ndc": "product_ndc",
-    "application_number": "application_number",
-    "spl_id": "spl_id",
-    "spl_set_id": "spl_set_id",
-}
 
 
 def _extend_unique(dest: list, seen: set, values: Any) -> None:
@@ -500,325 +306,212 @@ def normalized_brand_keys(names: Any) -> list[str]:
     indexed equality on an already-normalized key (both sides normalized identically
     by brand_join_key)."""
     return _dedup_normalized(names, brand_join_key)
+# --- v83 molecule-grain FDA union (LLD v83 III.4.1) ---------------------------
+# One record per molecule, assembling the molecule's per-label resolution
+# results. Pure function: input is the label-result dicts the resolution step
+# wrote to the transient collection (one per set_id), output is the published
+# molecule document minus _id/provenance (the finalize step stamps those).
+# Every label folds in exactly once by construction -- the caller groups by
+# molecule_id, so set_ids is simply the group's labels.
+
+_FDA_CLASS_ORDER = ("RX", "OTC", "UNDETERMINED")
 
 
-def aggregate_fda_records(fda_records: Iterable[dict]) -> dict | None:
-    """Aggregate ONE brand's FDA label records (as returned by an indexed per-brand
-    query) into a single brand entry, carrying the FULL FDA payload as FLAT keys.
-
-    Input: the fdaProductToDiagnosisResolution records matched for one brand
-    (already Rx-only -- OTC excluded upstream), each carrying openfda.brand_name /
-    openfda.generic_name (lists), molecule (scalar), ingredient_rxcuis /
-    ingredient_names (aligned lists), usage_summary (scalar), the openfda sub-fields,
-    and indications (list of
-    {indication, confidence_rationale, codes:[{icd10_code, level, confidence, description}]}).
-
-    Returns one FLAT entry {brand, molecule, rxcuis, ingredient_names (aligned with
-    rxcuis, both deduped by rxcui), usage_summary, the flat openfda lists
-    (generic_name, substance_name, product_type, clinical_rxcui, product_ndc,
-    application_number, spl_id, spl_set_id), indications (FULL objects unioned across
-    the records, deduped by normalized text, codes[] unioned by icd10_code)}, or
-    None when no records were supplied. `brand` is the canonical FDA brand_name,
-    chosen deterministically as the first normalized openfda.brand_name by sort.
-    """
-    entry: dict[str, Any] = {
-        "brand": None,
-        "molecule": None,
-        "rxcuis": [],
-        "ingredient_names": [],
-        "usage_summary": None,
-        "indications": [],
+def _stats_over(values: list) -> dict:
+    """max/min/median/avg over numeric values (operator-pinned terms,
+    2026-10-20): median = the middle value; avg = the sum divided by the
+    count; MIN excludes zeros -- a 0 is not a min. All four null when no
+    value qualifies."""
+    import statistics
+    nums = [float(v) for v in values if isinstance(v, (int, float))]
+    nonzero = [v for v in nums if v > 0]
+    return {
+        "max": max(nums) if nums else None,
+        "min": min(nonzero) if nonzero else None,
+        "median": statistics.median(nums) if nums else None,
+        "avg": (sum(nums) / len(nums)) if nums else None,
     }
-    for flat in _OPENFDA_FLAT_FIELDS.values():
-        entry[flat] = []
-    rx_seen: set = set()
-    of_seen = {flat: set() for flat in _OPENFDA_FLAT_FIELDS.values()}
+
+
+def fda_molecule_union(label_results: list[dict]) -> dict:
+    """Union one molecule's per-label resolution results into the molecule
+    document body (LLD v83 III.4.1).
+
+    Each label result carries: set_id, molecule (clean name string),
+    molecule_source, openfda (raw sub-document), indications
+    [{indication, confidence_rationale, codes:[{icd10_code, level,
+    confidence, description}]}], usage_summary, resolution_confidence.
+
+    Unions: set_ids (the contributing record keys); molecule.clean_names and
+    _molecule_sources; molecule.rxcui/unii/substance_name from openfda;
+    indications deduped by normalized text with ICD-10 codes unioned by code
+    and split to level3/level4; drug_class as the SET of label classes;
+    brand_exact_keys/brand_keys/generic_keys from openfda names; trust
+    aggregated max/min/median/avg over the labels' resolution_confidence."""
+    set_ids: list[str] = []
+    clean_names: list[str] = []
+    sources: list[str] = []
+    rxcui: list[str] = []
+    unii: list[str] = []
+    substance: list[str] = []
+    classes: list[str] = []
+    brand_names: list = []
+    generic_names: list = []
+    usage_parts: list[str] = []
+    confidences: list = []
+    seen = {k: set() for k in
+            ("set_id", "clean", "source", "rxcui", "unii", "substance",
+             "class", "usage")}
     ind_store: dict = {}
     ind_order: list = []
-    brand_names: list[str] = []
-    brand_seen: set = set()
-    any_record = False
-    for doc in fda_records:
-        any_record = True
-        openfda = doc.get("openfda") or {}
-        for brand in openfda.get("brand_name") or []:
-            nb = normalize_brand(brand)
-            if nb and nb not in brand_seen:
-                brand_seen.add(nb)
-                brand_names.append(nb)
-        molecule = str(doc.get("molecule") or "").strip() or None
-        if entry["molecule"] is None and molecule:
-            entry["molecule"] = molecule
-        usage_summary = str(doc.get("usage_summary") or "").strip() or None
-        if entry["usage_summary"] is None and usage_summary:
-            entry["usage_summary"] = usage_summary
-        # rxcui-set and its names, paired and deduped by rxcui so the two lists
-        # stay aligned.
-        ing_rxcuis = doc.get("ingredient_rxcuis") or []
-        ing_names = doc.get("ingredient_names") or []
-        for position, raw_rx in enumerate(ing_rxcuis):
-            rx = str(raw_rx).strip()
-            if not rx or rx in rx_seen:
-                continue
-            rx_seen.add(rx)
-            entry["rxcuis"].append(rx)
-            name = str(ing_names[position]).strip() if position < len(ing_names) else ""
-            entry["ingredient_names"].append(name)
-        for src_field, flat in _OPENFDA_FLAT_FIELDS.items():
-            _extend_unique(entry[flat], of_seen[flat], openfda.get(src_field))
-        for ind in doc.get("indications") or []:
+
+    for lr in label_results:
+        sid = str(lr.get("set_id") or "").strip()
+        if sid and sid not in seen["set_id"]:
+            seen["set_id"].add(sid)
+            set_ids.append(sid)
+        name = str(lr.get("molecule") or "").strip()
+        if name and name not in seen["clean"]:
+            seen["clean"].add(name)
+            clean_names.append(name)
+        src = str(lr.get("molecule_source") or "").strip()
+        if src and src not in seen["source"]:
+            seen["source"].add(src)
+            sources.append(src)
+        openfda = lr.get("openfda") or {}
+        for field, dest, key in (("rxcui", rxcui, "rxcui"),
+                                 ("unii", unii, "unii"),
+                                 ("substance_name", substance, "substance")):
+            _extend_unique(dest, seen[key], openfda.get(field))
+        brand_names.extend(openfda.get("brand_name") or [])
+        generic_names.extend(openfda.get("generic_name") or [])
+        cls = str(lr.get("drug_class") or "").strip().upper()
+        if cls and cls not in seen["class"]:
+            seen["class"].add(cls)
+            classes.append(cls)
+        usage = str(lr.get("usage_summary") or "").strip()
+        if usage and usage not in seen["usage"]:
+            seen["usage"].add(usage)
+            usage_parts.append(usage)
+        if isinstance(lr.get("resolution_confidence"), (int, float)):
+            confidences.append(lr["resolution_confidence"])
+        for ind in lr.get("indications") or []:
             _merge_indication(ind_store, ind_order, ind)
-    if not any_record:
-        return None
-    entry["brand"] = sorted(brand_names)[0] if brand_names else None
-    entry["indications"] = [
-        {k: v for k, v in ind_store[norm].items() if k != "_code_keys"}
-        for norm in ind_order
-    ]
-    return entry
+
+    indications = []
+    for norm in ind_order:
+        entry = ind_store[norm]
+        level3 = sorted({c["icd10_code"] for c in entry["codes"]
+                         if c.get("level") == 3})
+        level4 = sorted({c["icd10_code"] for c in entry["codes"]
+                         if c.get("level") == 4})
+        code_confs = [c.get("confidence") for c in entry["codes"]
+                      if isinstance(c.get("confidence"), (int, float))]
+        indications.append({
+            "raw_text": entry["indication"],
+            "icd10": {"level3": level3, "level4": level4},
+            # The crosswalk is the model's: inference. The trust carried is
+            # the weakest code confidence in the union -- the crosswalk's own
+            # floor -- or null when the union carries no confidence.
+            "_crosswalk_provenance": "inference",
+            "trust": min(code_confs) if code_confs else None,
+        })
+
+    doc = {
+        "set_ids": set_ids,
+        "molecule": {
+            "clean_names": clean_names,
+            "rxcui": rxcui,
+            "unii": unii,
+            "substance_name": substance,
+            "_molecule_sources": sources,
+        },
+        "indications": indications,
+        "drug_class": {"classes": [c for c in _FDA_CLASS_ORDER if c in classes]},
+        "brand_exact_keys": normalized_brand_exact_keys(brand_names),
+        "brand_keys": normalized_brand_keys(brand_names),
+        "generic_keys": normalized_brand_keys(generic_names),
+        "trust": _stats_over(confidences),
+    }
+    if usage_parts:
+        doc["usage"] = {"summarized_usage": "\n".join(usage_parts)}
+    return doc
 
 
-def compose_drugs_by_brand(
-    raw_drugs: Iterable[dict], resolve: Callable[[Any], tuple]
-) -> tuple[list[dict], list[dict]]:
-    """Compose one provider's raw Part D drug rows into the v1 drug collection.
+# --- v83 staging-sourced specialty rollup (LLD v83 III.4.3, III.10) -----------
+# State-aggregated masters carry no per-NPI detail, so the NUCC rollup is
+# computed from staging directly: accumulate per-(provider, molecule) totals,
+# then roll to (nucc, molecule) with the operator-ruled statistics
+# (max / min>0 / median / avg over the per-provider totals, R1 2026-10-20).
 
-    CMS-driven and memory-bounded: for each raw row, `resolve(cms_brand)` returns
-    the FDA payload (whose `brand` is the canonical brand) or None -- the caller
-    supplies a resolver that queries the indexed FDA collection (brand key first,
-    then generic key) and caches by distinct brand, so neither the FDA collection nor
-    anything sized by the ~20MM CMS rows is held in memory. Rows are then grouped by
-    the FINAL CANONICAL brand (the FDA brand_name adopted on either leg), SUMMING
-    Tot_Clms / Tot_Day_Suply / Tot_Benes / Tot_Drug_Cst across every row that
-    resolves to it -- so a branded fill and a generic fill of the same drug merge
-    into one entry (no duplicate canonical brand).
+_ROLLUP_MEASURES = ("tot_clms", "tot_30day_fills", "tot_day_suply", "tot_drug_cst")
 
-    A row whose brand resolves to NEITHER leg is DISCARDED (the composed drug
-    collection holds only drugs mappable to the FDA record); discards are grouped by
-    the raw CMS brand key, summing their claims, for the caller to surface as a
-    finding.
 
-    Each kept entry carries the FULL FDA payload as FLAT keys (molecule, rxcui-set +
-    ingredient names, usage_summary, the flat openfda lists, and the full indication
-    objects with their ICD-10 codes), plus the CMS `generic`, the summed volumes, and
-    `match_provenance` (which resolution tier matched: brand_name | brand_key |
-    generic_name), carried from the resolver's payload.
-
-    Returns (kept, discarded). Each kept entry conforms to the schema's drug-entry
-    shape; each discarded entry carries {brand, brand_join_key, total_claims}.
-
-    NOTE: the inner-join discard is correct ONLY against the COMPLETE FDA
-    collection (a full-partition FDA rebuild); against a partial FDA build most
-    brands would find no match and be discarded, so this step presumes the full FDA
-    rebuild has run.
-    """
-    groups: dict[Any, dict] = {}
-    group_order: list = []
-    group_entry: dict[Any, dict] = {}
-    discards: dict[str, dict] = {}
-    discard_order: list = []
-    for d in raw_drugs:
-        fda_entry = resolve(d.get("brand"))
-        canonical = fda_entry.get("brand") if fda_entry else None
-        if fda_entry is None or not canonical:
-            rk = brand_join_key(d.get("brand"))
-            disc = discards.get(rk)
-            if disc is None:
-                disc = {
-                    "brand": normalize_brand(d.get("brand")),
-                    "brand_join_key": rk,
-                    "total_claims": None,
-                }
-                discards[rk] = disc
-                discard_order.append(rk)
-            disc["total_claims"] = _sum_opt(disc["total_claims"], d.get("total_claims"))
+def accumulate_provider_molecule_totals(rows: Iterable[dict]) -> dict:
+    """Phase 1: stream raw CMS Part D rows into per-(npi, molecule_id) all-ages
+    totals. Rows without an NPI or a mintable molecule are skipped (the
+    no-molecule bucket is measured by the pre-pass)."""
+    C = PARTD_COLS
+    acc: dict[tuple[str, str], dict] = {}
+    for raw in rows:
+        npi = _npi(raw, C["npi"])
+        mid = molecule_id(raw.get(C["generic"]))
+        if not npi or not mid:
             continue
-        cur = groups.get(canonical)
-        if cur is None:
-            cur = {
-                "brand": canonical,
-                "generic": d.get("generic"),
-                "total_claims": None,
-                "days_supply": None,
-                "beneficiary_count": None,
-                "total_drug_cost": None,
-            }
-            groups[canonical] = cur
-            group_order.append(canonical)
-            group_entry[canonical] = fda_entry
-        if not cur.get("generic") and d.get("generic"):
-            cur["generic"] = d.get("generic")
-        cur["total_claims"] = _sum_opt(cur["total_claims"], d.get("total_claims"))
-        cur["days_supply"] = _sum_opt(cur["days_supply"], d.get("days_supply"))
-        cur["beneficiary_count"] = _sum_opt(cur["beneficiary_count"], d.get("beneficiary_count"))
-        cur["total_drug_cost"] = _sum_opt(cur["total_drug_cost"], d.get("total_drug_cost"))
-
-    kept: list[dict] = []
-    for canonical in group_order:
-        cur = groups[canonical]
-        fda = group_entry[canonical]
-        cur["match_provenance"] = fda.get("match_provenance")
-        cur["molecule"] = fda.get("molecule")
-        cur["rxcuis"] = list(fda.get("rxcuis") or [])
-        cur["ingredient_names"] = list(fda.get("ingredient_names") or [])
-        cur["usage_summary"] = fda.get("usage_summary")
-        for flat in _OPENFDA_FLAT_FIELDS.values():
-            cur[flat] = list(fda.get(flat) or [])
-        cur["indications"] = [
-            {
-                "indication": ind.get("indication"),
-                "confidence_rationale": ind.get("confidence_rationale"),
-                "codes": [dict(code) for code in ind.get("codes") or []],
-            }
-            for ind in fda.get("indications") or []
-        ]
-        kept.append(cur)
-    discarded = [discards[rk] for rk in discard_order]
-    return kept, discarded
+        bucket = acc.get((npi, mid))
+        if bucket is None:
+            bucket = {k: 0 for k in _ROLLUP_MEASURES}
+            acc[(npi, mid)] = bucket
+        for field, col in (("tot_clms", C["total_claims"]),
+                           ("tot_30day_fills", C["total_30day_fills"]),
+                           ("tot_day_suply", C["days_supply"]),
+                           ("tot_drug_cst", C["total_drug_cost"])):
+            val = _num(raw.get(col))
+            if val is not None:
+                bucket[field] += val
+    return acc
 
 
-_ROLLUP_USAGE = ("tot_clms", "tot_30day_fills", "tot_day_suply", "tot_drug_cst")
+def rollup_specialty_v83(acc: dict, nucc_by_npi: dict) -> dict:
+    """Phase 2: roll the per-(npi, molecule) totals to the NUCC grain.
 
+    Returns {nucc: {molecule_id: {specialty_total, specialty_stats,
+    molecule_real_total, molecule_real_stats, prescriber_count}}}. A provider
+    with multiple NUCC codes is attributed to EACH (overlapping specialty
+    totals); the real side counts each provider once across specialties.
+    Stats per measure: max / min (zeros excluded -- a 0 is not a min) /
+    median (the middle value) / avg (sum over count)."""
+    # real (de-duplicated) side: per molecule, the per-provider totals
+    real_values: dict[str, dict[str, list]] = {}
+    real_totals: dict[str, dict] = {}
+    for (npi, mid), totals in acc.items():
+        rv = real_values.setdefault(mid, {k: [] for k in _ROLLUP_MEASURES})
+        rt_ = real_totals.setdefault(mid, {k: 0 for k in _ROLLUP_MEASURES})
+        for k in _ROLLUP_MEASURES:
+            rv[k].append(totals[k])
+            rt_[k] += totals[k]
+    real_stats = {mid: {k: _stats_over(vals[k]) for k in _ROLLUP_MEASURES}
+                  for mid, vals in real_values.items()}
+    real_counts = {mid: len(vals[_ROLLUP_MEASURES[0]])
+                   for mid, vals in real_values.items()}
 
-def rollup_specialty_flat(docs: Iterable[dict]) -> dict:
-    """Roll flat provider x molecule documents up to the specialty (NUCC) grain
-    (EPIC-010-F-007-S-009). A provider is attributed to EACH of its nucc_codes,
-    so per-specialty totals overlap across specialties; molecule_real_total is
-    the de-duplicated total per molecule (each provider counted once). Returns
-    the per-(nucc, molecule) specialty aggregate, the global per-molecule real
-    total, and the set of NUCC codes seen. Pure; the engine writes the documents
-    and reads provider_count from Provider_v_5."""
-    spec: dict[tuple[str, str], dict] = {}
-    real: dict[str, dict] = {}
-    nuccs: set[str] = set()
-
-    def _bucket(store, key):
-        b = store.get(key)
-        if b is None:
-            b = {**{k: 0 for k in _ROLLUP_USAGE}, "providers": set()}
-            store[key] = b
-        return b
-
-    for d in docs:
-        mid = d.get("molecule_id")
-        npi = d.get("npi")
-        if not mid:
-            continue
-        totals = d.get("totals") or {}
-        r = _bucket(real, mid)
-        if npi not in r["providers"]:
-            r["providers"].add(npi)
-            for k in _ROLLUP_USAGE:
-                r[k] += (totals.get(k) or 0)
-        for nucc in d.get("nucc_codes") or []:
-            nuccs.add(nucc)
-            s = _bucket(spec, (nucc, mid))
-            s["providers"].add(npi)
-            for k in _ROLLUP_USAGE:
-                s[k] += (totals.get(k) or 0)
-    return {"spec": spec, "real": real, "nuccs": nuccs}
-
-
-def rollup_specialty(
-    provider_docs: Iterable[dict], nucc_codes: set[str] | None = None
-) -> dict[str, dict]:
-    """Pure core of the SpecialtyMedicare rollup over built ProviderMedicare docs.
-
-    For each NUCC a provider carries (every code in its specialty[]), aggregate:
-      * procedures -- one per (HCPCS, NUCC): provider set, summed service/
-        beneficiary counts, summed allowed amount (facility + non-facility).
-      * drugs -- one per (RXCUI, NUCC): provider set, summed claims/benes/cost,
-        and the per-provider day-supply list (the input to the benchmark stats).
-      * indications -- one per (indication_id, NUCC): per-provider day-supply.
-
-    Returns per NUCC an intermediate aggregate; the engine turns the day-supply
-    lists into mean/median/quintiles and writes the documents. Sets are returned
-    so the engine can take their lengths for provider_count.
-    """
-    out: dict[str, dict] = {}
-
-    def _nucc(code: str) -> dict:
-        node = out.get(code)
-        if node is None:
-            node = {
-                "procedures": {},        # hcpcs -> agg
-                "drugs": {},             # drug-key -> agg
-                "indications": {},       # iid -> {"days_supply_list": [...]}
-                "indications_served": set(),
-                "seen_providers": set(),
-            }
-            out[code] = node
-        return node
-
-    for doc in provider_docs:
-        npi = doc.get("_id") or doc.get("npi")
-        for code in doc.get("specialty") or []:
-            if nucc_codes is not None and code not in nucc_codes:
-                continue
-            node = _nucc(code)
-            node["seen_providers"].add(npi)
-
-            # drugs -> one per (RXCUI, NUCC); day supply summed per provider
-            prov_drug_ds: dict[str, float] = defaultdict(float)
-            for d in doc.get("drugs") or []:
-                key = d.get("rxcui") or d.get("generic") or d.get("brand")
-                if not key:
-                    continue
-                agg = node["drugs"].setdefault(key, {
-                    "rxcui": d.get("rxcui"),
-                    "molecule": d.get("molecule"),
-                    "generic": d.get("generic"),
-                    "provider_npis": set(),
-                    "total_claims": 0,
-                    "beneficiary_count": 0,
-                    "total_cost": 0.0,
-                    "days_supply_list": [],
-                })
-                agg["provider_npis"].add(npi)
-                agg["total_claims"] += int(_num(d.get("total_claims")) or 0)
-                agg["beneficiary_count"] += int(_num(d.get("beneficiary_count")) or 0)
-                agg["total_cost"] += float(_num(d.get("total_drug_cost")) or 0.0)
-                if not agg.get("rxcui") and d.get("rxcui"):
-                    agg["rxcui"] = d.get("rxcui")
-                if not agg.get("molecule") and d.get("molecule"):
-                    agg["molecule"] = d.get("molecule")
-                ds = _num(d.get("days_supply"))
-                if ds is not None:
-                    prov_drug_ds[key] += ds
-            for key, ds in prov_drug_ds.items():
-                node["drugs"][key]["days_supply_list"].append(ds)
-
-            # indications -> one per (indication_id, NUCC); day supply per provider
-            prov_ind_ds: dict[str, float] = defaultdict(float)
-            for ind in doc.get("indications") or []:
-                iid = ind.get("indication_id")
-                if not iid:
-                    continue
-                node["indications_served"].add(iid)
-                ds = _num(ind.get("days_supply"))
-                if ds is not None:
-                    prov_ind_ds[iid] += ds
-            for iid, ds in prov_ind_ds.items():
-                node["indications"].setdefault(iid, {"days_supply_list": []})
-                node["indications"][iid]["days_supply_list"].append(ds)
-
-            # procedures -> one per (HCPCS, NUCC)
-            for p in doc.get("procedures") or []:
-                hc = p.get("hcpcs")
-                if not hc:
-                    continue
-                agg = node["procedures"].setdefault(hc, {
-                    "hcpcs": hc,
-                    "provider_npis": set(),
-                    "service_count": 0,
-                    "beneficiary_count": 0,
-                    "allowed_amount": 0.0,
-                })
-                agg["provider_npis"].add(npi)
-                agg["service_count"] += int(_num(p.get("service_count")) or 0)
-                agg["beneficiary_count"] += int(_num(p.get("beneficiary_count")) or 0)
-                allowed = (float(_num(p.get("facility_allowed_amount")) or 0.0)
-                           + float(_num(p.get("nonfacility_allowed_amount")) or 0.0))
-                agg["allowed_amount"] += allowed
-
+    # specialty-attributed side
+    out: dict[str, dict[str, dict]] = {}
+    spec_values: dict[tuple[str, str], dict[str, list]] = {}
+    for (npi, mid), totals in acc.items():
+        for nucc in nucc_by_npi.get(npi, []):
+            sv = spec_values.setdefault((nucc, mid), {k: [] for k in _ROLLUP_MEASURES})
+            for k in _ROLLUP_MEASURES:
+                sv[k].append(totals[k])
+    for (nucc, mid), vals in spec_values.items():
+        entry = {
+            "molecule_id": mid,
+            "specialty_total": {k: _as_int(sum(vals[k])) for k in _ROLLUP_MEASURES},
+            "specialty_stats": {k: _stats_over(vals[k]) for k in _ROLLUP_MEASURES},
+            "molecule_real_total": {k: _as_int(real_totals[mid][k])
+                                    for k in _ROLLUP_MEASURES},
+            "molecule_real_stats": real_stats[mid],
+            "prescriber_count": len(vals[_ROLLUP_MEASURES[0]]),
+        }
+        out.setdefault(nucc, {})[mid] = entry
     return out

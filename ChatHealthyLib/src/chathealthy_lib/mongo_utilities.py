@@ -939,7 +939,8 @@ class ChatHealthyMongoUtilities:
                            _VAULT_NO_CACHE_PREFIX).lower() not in ("1", "true", "yes")
 
     def getConnection(self, identity: str, cluster: str,
-                      host: str = "") -> TimedClient:
+                      host: str = "",
+                      client_options: dict | None = None) -> TimedClient:
         """Connect to a logical target as an identity, over mTLS.
 
         Args:
@@ -948,6 +949,14 @@ class ChatHealthyMongoUtilities:
             cluster: WHERE. An Atlas cluster name. The host it resolves to
                 is read from CH_MONGO_HOST_<CLUSTER>, which the deploy sets;
                 this library knows no cluster by name.
+            client_options: optional pymongo client options the CALLER needs
+                for its usage profile (e.g. socketTimeoutMS / connectTimeoutMS
+                / maxPoolSize for a coordination client whose writes must fail
+                fast and whose connection count must be bounded). They never
+                touch auth: tls, the certificate, and the auth mechanism are
+                this utility's and cannot be overridden. A client built with
+                options is not served from, nor placed into, the shared cache
+                -- its profile is the caller's own.
 
         There is no connection string and no password. The certificate IS the
         credential: the server matches its subject DN against a $external user
@@ -976,7 +985,17 @@ class ChatHealthyMongoUtilities:
                 component="ChatHealthyMongoUtilities",
             )
 
-        if self._is_cacheable(cluster, identity):
+        if client_options:
+            for _k in ("tls", "tlsCertificateKeyFile", "tlsCAFile", "authSource",
+                       "authMechanism"):
+                if _k in client_options:
+                    raise ChatHealthyException(
+                        mode="security_violation",
+                        message=f"client_options may not override auth/tls option {_k!r}",
+                        component="ChatHealthyMongoUtilities",
+                    )
+
+        if not client_options and self._is_cacheable(cluster, identity):
             cached = _CLIENT_CACHE.get((identity, cluster, self._manage_versions))
             if cached is not None:
                 return cached
@@ -1027,6 +1046,7 @@ class ChatHealthyMongoUtilities:
                     tlsCertificateKeyFile=cert_path,
                     tlsCAFile=certifi.where(),
                     serverSelectionTimeoutMS=10000,
+                    **(client_options or {}),
                 )
                 client.admin.command("ping")
                 break
@@ -1045,7 +1065,7 @@ class ChatHealthyMongoUtilities:
                 time.sleep(_CONNECT_BACKOFF_SECONDS * attempt)
 
         timed = TimedClient(client, self._manage_versions)
-        if self._is_cacheable(cluster, identity):
+        if not client_options and self._is_cacheable(cluster, identity):
             # The mode is part of the key. Two handles to one cluster that
             # resolve names differently are not the same handle, and serving
             # a cached one across modes would hand a migration the

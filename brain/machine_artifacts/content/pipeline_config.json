@@ -6,14 +6,30 @@
         "partition_source": {
           "type": "config_list",
           "values": [
-            { "source": "medicare_partb" },
-            { "source": "medicare_partd" },
-            { "source": "ccsr" },
-            { "source": "icd10_cm" },
-            { "source": "openfda_labels" },
-            { "source": "medicare_pos" },
-            { "source": "medicare_coverage_hcpc" },
-            { "source": "medicare_coverage_icd10" }
+            {
+              "source": "medicare_partb"
+            },
+            {
+              "source": "medicare_partd"
+            },
+            {
+              "source": "ccsr"
+            },
+            {
+              "source": "icd10_cm"
+            },
+            {
+              "source": "openfda_labels"
+            },
+            {
+              "source": "medicare_pos"
+            },
+            {
+              "source": "medicare_coverage_hcpc"
+            },
+            {
+              "source": "medicare_coverage_icd10"
+            }
           ]
         }
       },
@@ -21,41 +37,126 @@
         "partition_source": {
           "type": "config_list",
           "values": [
-            { "source": "medicare_partb" },
-            { "source": "medicare_partd" },
-            { "source": "ccsr" },
-            { "source": "icd10_cm" },
-            { "source": "openfda_labels" },
-            { "source": "medicare_pos" },
-            { "source": "medicare_coverage_hcpc" },
-            { "source": "medicare_coverage_icd10" }
+            {
+              "source": "medicare_partb"
+            },
+            {
+              "source": "medicare_partd"
+            },
+            {
+              "source": "ccsr"
+            },
+            {
+              "source": "icd10_cm"
+            },
+            {
+              "source": "openfda_labels"
+            },
+            {
+              "source": "medicare_pos"
+            },
+            {
+              "source": "medicare_coverage_hcpc"
+            },
+            {
+              "source": "medicare_coverage_icd10"
+            }
           ]
         }
       },
-      "build_fda_drug_collection": {
-        "partition_source": { "type": "named_enumerator", "name": "record_ranges", "params": { "count": 300 } },
-        "parallelism_cap": 300
-      },
       "build_providermedicare_base": {
-        "partition_source": { "type": "named_enumerator", "name": "state_entity", "params": { "key": "provider_state" } },
+        "partition_source": {
+          "type": "named_enumerator",
+          "name": "state_entity",
+          "params": {
+            "key": "partition_state"
+          }
+        },
         "parallelism_cap": 104
       },
-      "enrich_drugs": {
-        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
-        "parallelism_cap": 52
-      },
       "enrich_procedures": {
-        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
+        "partition_source": {
+          "type": "named_enumerator",
+          "name": "state",
+          "params": {
+            "key": "provider_state"
+          }
+        },
         "parallelism_cap": 52
       },
       "enrich_org_ccn_size": {
-        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
+        "partition_source": {
+          "type": "named_enumerator",
+          "name": "state",
+          "params": {
+            "key": "provider_state"
+          }
+        },
         "parallelism_cap": 52
       },
       "rollup_specialtymedicare": {
-        "partition_source": { "type": "config_list", "values": [ { "single": true } ] },
+        "partition_source": {
+          "type": "config_list",
+          "values": [
+            {
+              "single": true
+            }
+          ]
+        },
         "parallelism_cap": 1
+      },
+      "build_fda_label_resolution": {
+        "partition_source": {
+          "type": "named_enumerator",
+          "name": "record_ranges",
+          "params": {
+            "count": 50
+          }
+        },
+        "parallelism_cap": 50
       }
+    }
+  },
+  "step_timeouts": {
+    "medicare": {
+      "prepare_infrastructure": 1800,
+      "medicare_source_freshness_gate": 1800,
+      "medicare_fetch_all_sources": 7200,
+      "medicare_source_archival": 3600,
+      "medicare_load_staging": 14400,
+      "index_fda_prescription_records": 3600,
+      "build_fda_label_resolution": 14400,
+      "finalize_fda_molecules": 3600,
+      "prepare_molecule_masters": 7200,
+      "build_providermedicare_base": 21600,
+      "enrich_drugs": 3600,
+      "enrich_procedures": 7200,
+      "enrich_org_ccn_size": 3600,
+      "rollup_specialtymedicare": 14400,
+      "medicare_contract_conformance": 7200,
+      "quiesce_infrastructure": 1800
+    },
+    "provider": {
+      "prepare_infrastructure": 1800,
+      "source_freshness_gate": 1800,
+      "fetch_all_sources": 14400,
+      "source_archival": 3600,
+      "load_staging_parallel": 21600,
+      "load_f006_catalog": 1800,
+      "normalize_nucc": 3600,
+      "publish_smd_and_embed": 7200,
+      "normalize_npi_per_state_fanout": 21600,
+      "add_secondary_practices": 14400,
+      "provider_flags_enrichment": 14400,
+      "harvest_other_identifier_phrases": 14400,
+      "classify_other_identifier_phrases": 14400,
+      "apply_other_identifier_classifications": 14400,
+      "license_address_repair": 7200,
+      "county_enrichment": 21600,
+      "urban_flag": 7200,
+      "entity_second_branch": 14400,
+      "post_load_reconciliation": 7200,
+      "quiesce_infrastructure": 1800
     }
   },
   "pipeline_config": [
@@ -287,7 +388,7 @@
         },
         {
           "source_name": "providermedicare",
-          "public_data_name": "PipelinePublicHealthData.ProviderMedicare",
+          "public_data_name": "PipelinePublicHealthData.providerMedicarePartDQuantityRollUps",
           "depends_on": [
             "medicare_partb",
             "medicare_partd",
@@ -296,7 +397,7 @@
         },
         {
           "source_name": "specialtymedicare",
-          "public_data_name": "PipelinePublicHealthData.SpecialtyMedicare",
+          "public_data_name": "PipelinePublicHealthData.specialtyMedicarePartDQuantityRollUps",
           "depends_on": [
             "providermedicare"
           ]
@@ -423,6 +524,10 @@
       },
       "metadata": {
         "subscribers_secret": "notification-to-email"
+      },
+      "worker_liveness": {
+        "silent_after_s": 440,
+        "worker_max_silence_s": 3600
       }
     },
     {
@@ -651,7 +756,7 @@
         },
         {
           "source_name": "providermedicare",
-          "public_data_name": "PipelinePublicHealthData.ProviderMedicare",
+          "public_data_name": "PipelinePublicHealthData.providerMedicarePartDQuantityRollUps",
           "depends_on": [
             "medicare_partb",
             "medicare_partd",
@@ -660,7 +765,7 @@
         },
         {
           "source_name": "specialtymedicare",
-          "public_data_name": "PipelinePublicHealthData.SpecialtyMedicare",
+          "public_data_name": "PipelinePublicHealthData.specialtyMedicarePartDQuantityRollUps",
           "depends_on": [
             "providermedicare"
           ]
@@ -787,6 +892,10 @@
       },
       "metadata": {
         "subscribers_secret": "notification-to-email"
+      },
+      "worker_liveness": {
+        "silent_after_s": 440,
+        "worker_max_silence_s": 3600
       }
     },
     {
@@ -1015,7 +1124,7 @@
         },
         {
           "source_name": "providermedicare",
-          "public_data_name": "PipelinePublicHealthData.ProviderMedicare",
+          "public_data_name": "PipelinePublicHealthData.providerMedicarePartDQuantityRollUps",
           "depends_on": [
             "medicare_partb",
             "medicare_partd",
@@ -1024,7 +1133,7 @@
         },
         {
           "source_name": "specialtymedicare",
-          "public_data_name": "PipelinePublicHealthData.SpecialtyMedicare",
+          "public_data_name": "PipelinePublicHealthData.specialtyMedicarePartDQuantityRollUps",
           "depends_on": [
             "providermedicare"
           ]
@@ -1151,6 +1260,10 @@
       },
       "metadata": {
         "subscribers_secret": "notification-to-email"
+      },
+      "worker_liveness": {
+        "silent_after_s": 440,
+        "worker_max_silence_s": 3600
       }
     }
   ]

@@ -4,17 +4,22 @@
 """Medicare Provider Evaluation Data Pipeline (EPIC-010-F-007) — orchestrator.
 
 Declares PIPELINE_NAME = "medicare" and the StepSpec DAG realized from the
-approved LLD Part III (medicare_detailed_sequence). Built on the generic run
-lifecycle (EPIC-010-F-001); only the Medicare-specific steps and fan-out keys
-live here. The fda_drug build (the fdaProductToDiagnosisResolution collection)
-is a gated step on its own cadence (the build_fda_drug arg, carried as the
-BUILD_FDA_DRUG env the step reads); the per-provider enrich steps are collection
-lookups only; SpecialtyMedicare is a derive rollup over NUCC codes.
+LLD v83 Part III (III.10). Built on the generic run lifecycle (EPIC-010-F-001);
+only the Medicare-specific steps and fan-out keys live here.
+
+The FDA build is TWO formal steps (operator ruling 2026-10-20):
+build_fda_label_resolution (record-range fan-out -> per-label results in the
+transient collection) and finalize_fda_molecules (serial: groups by
+molecule_id and writes the molecule-keyed fdaProductToDiagnosisResolution).
+prepare_molecule_masters is the serial mode pre-pass: it stamps
+partition_state (the prescriber's billing/business state) onto the staged
+Part D rows, clears this data_version's published collections (full annual
+replace), writes the master stubs with state_aggregated decided globally, and
+measures the no-molecule bucket. Every step's timeout comes from
+step_timeouts.medicare in the durable configuration (required; H7/H9).
 """
 
 from __future__ import annotations
-
-import os
 
 from pipeline.run_lifecycle.base_pipeline_orchestrator import BasePipelineOrchestrator
 from pipeline.run_lifecycle.step_spec import StepSpec
@@ -56,57 +61,84 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             partition_key="source_name",
         ),
         StepSpec(
-            # [ENRICH] Index this run's prescription FDA labels (non-OTC) with a
-            # sequential fda_record_number so the build can range-partition the FDA
-            # work across worker processes (LLD I.3.4a). Serial, once.
+            # [FDA] Index this run's prescription FDA labels (non-OTC) with a
+            # sequential fda_record_number so the per-label resolution can
+            # range-partition its work (LLD I.3.4a). Serial, once. Reports the
+            # in-scope label count (the conformance arithmetic's denominator).
             name="index_fda_prescription_records",
             prerequisites=["medicare_load_staging"],
             parallelism="serial",
             aca_job_name="med-index-fda-records",
         ),
         StepSpec(
-            # [ENRICH] Build the fdaProductToDiagnosisResolution collection (the FDA
-            # drug collection). Gated by the build_fda_drug arg: a normal run consumes
-            # the current published collection; a rebuild produces a candidate released
-            # through the operator-gated crossing (LLD I.6). Fanned out over record-
-            # number ranges -- one worker PROCESS per range; concurrency is the worker-
-            # process count, sized to the worker box.
-            name="build_fda_drug_collection",
+            # [FDA 1/2] Per-label resolution fan-out (LLD v83 III.10): one
+            # worker PROCESS per record-number range (width from
+            # fan_out.medicare.build_fda_label_resolution); per-label results
+            # land in the transient collection, idempotently by set_id.
+            # Publishes nothing. Gated by the build_fda_drug arg.
+            name="build_fda_label_resolution",
             prerequisites=["index_fda_prescription_records"],
             parallelism="process_pool",
-            aca_job_name="med-build-fda-drug-collection",
+            aca_job_name="med-build-fda-labels",
             partition_key="record_range",
         ),
         StepSpec(
-            # [BASE] Per-NPI ProviderMedicare record, fanned out by provider
-            # state.
-            name="build_providermedicare_base",
+            # [FDA 2/2] Serial molecule finalize (LLD v83 III.10): groups the
+            # label results by molecule_id and writes the MOLECULE-keyed
+            # fdaProductToDiagnosisResolution (_id = molecule_id, set_ids =
+            # the folded labels). Clears this data_version's collection first
+            # (full annual replace). Orphan labels are stamped + findings (H2,
+            # non-fatal).
+            name="finalize_fda_molecules",
+            prerequisites=["build_fda_label_resolution"],
+            parallelism="serial",
+            aca_job_name="med-finalize-fda-molecules",
+        ),
+        StepSpec(
+            # [BASE 0/2] The serial mode pre-pass (LLD v83 III.10): stamps
+            # partition_state (billing/business state by NPI, III.3) onto the
+            # staged Part D rows, clears this data_version's published
+            # collections (decision #1), writes every master stub with
+            # state_aggregated decided from the GLOBAL per-molecule count and
+            # applied_partitions [], and measures/reports the no-molecule
+            # bucket (III.6).
+            name="prepare_molecule_masters",
             prerequisites=["medicare_load_staging"],
+            parallelism="serial",
+            aca_job_name="med-prepare-molecule-masters",
+        ),
+        StepSpec(
+            # [BASE 1/2] The master apply fan-out (LLD v83 III.3): partitions
+            # are billing/business state x entity type; each worker groups its
+            # partition's rows per molecule and applies ONE ATOMIC UPDATE per
+            # (molecule, partition) -- children + $inc totals, gated by the
+            # applied_partitions marker (re-application is a silent no-op).
+            name="build_providermedicare_base",
+            prerequisites=["prepare_molecule_masters"],
             parallelism="process_pool",
             aca_job_name="med-build-providermedicare",
-            partition_key="provider_state",
+            partition_key="partition_state",
         ),
         StepSpec(
-            # [ENRICH] Map lookup only: attribute each drug's day supply to the
-            # drug's indication(s), count-under-each.
+            # [ENRICH] Serial: attaches each master's fda block from its
+            # molecule-keyed FDA record by _id (point lookup).
             name="enrich_drugs",
-            prerequisites=["build_providermedicare_base", "build_fda_drug_collection"],
-            parallelism="process_pool",
+            prerequisites=["build_providermedicare_base", "finalize_fda_molecules"],
+            parallelism="serial",
             aca_job_name="med-enrich-drugs",
-            partition_key="provider_state",
         ),
         StepSpec(
-            # [ENRICH] Map lookup only: attach each procedure's allowed ICD-10
-            # to its indication(s).
+            # [ENRICH] Part B procedure coverage. Outside the three-collection
+            # scope (LLD v83 III.1); best-effort -- never fails the run.
             name="enrich_procedures",
-            prerequisites=["build_providermedicare_base", "build_fda_drug_collection"],
+            prerequisites=["build_providermedicare_base"],
             parallelism="process_pool",
             aca_job_name="med-enrich-procedures",
             partition_key="provider_state",
         ),
         StepSpec(
-            # [ENRICH] Organizations only: CCN + coarse size_tier from the
-            # enrollment and POS sources.
+            # [ENRICH] Organizational CCN + coarse size. Outside scope;
+            # best-effort.
             name="enrich_org_ccn_size",
             prerequisites=["build_providermedicare_base"],
             parallelism="process_pool",
@@ -114,11 +146,11 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             partition_key="provider_state",
         ),
         StepSpec(
-            # [DERIVE] Roll up SpecialtyMedicare per NUCC: procedure/drug/
-            # indication aggregates plus the day-supply mean, median and
-            # quintile cut-points per drug and per indication; provider_count
-            # is read from the provider base (any taxonomy slot); the document
-            # is embedded and indexed. A rollup plus an embedding.
+            # [DERIVE] Serial staging-sourced NUCC rollup (LLD v83 III.10):
+            # specialty_total vs de-duplicated molecule_real_total,
+            # prescriber_count, and the max/min/median/avg statistics of every
+            # quantitative measure (III.4.3) computed as the final pass;
+            # provider_count from Provider_v_5.
             name="rollup_specialtymedicare",
             prerequisites=["enrich_drugs", "enrich_procedures", "enrich_org_ccn_size"],
             parallelism="process_pool",
@@ -126,6 +158,8 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             partition_key="nucc_code",
         ),
         StepSpec(
+            # The III.6 conformance checks with the III.7 hard-fail semantics,
+            # version-scoped.
             name="medicare_contract_conformance",
             prerequisites=["rollup_specialtymedicare"],
             parallelism="serial",
@@ -140,19 +174,10 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
     ]
 
     # The Medicare instance declares its own source set and fan-out dimensions.
-    # This override is additive: it resolves the Medicare source partitions and
-    # the provider_state / nucc_code keys, delegating every other key to the
-    # base. The fully declarative per-step partition source is BUG-014; this is
-    # the interim, backward-compatible shape and does not alter the base.
-    # Fetchable sources declared in pipeline_config dataset_versions[]. The
-    # indication-map sources that still need loader/format support (the Medicare
-    # Coverage Database, FDA labels, the UMLS crosswalks) and the organization
-    # sources (hospital enrollments, POS) join this list as they are declared
-    # and the loader gains their formats.
-    # Sources that own a download (fetched). The two Coverage DB tables (HCPCS
-    # and ICD-10) each fetch the same Coverage DB archive and extract their own
-    # member from it (fetch.extract, a cascading-zip member path), so each is an
-    # independent fetched source -- there is no cross-source bundle extraction.
+    # Fetchable sources declared in pipeline_config dataset_versions[]. The two
+    # Coverage DB tables (HCPCS and ICD-10) each fetch the same Coverage DB
+    # archive and extract their own member from it (fetch.extract, a
+    # cascading-zip member path), so each is an independent fetched source.
     FETCH_SOURCES = [
         "medicare_partb",
         "medicare_partd",
@@ -168,20 +193,22 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
 
     def _partition_enumerators(self):
         # The fan-out dimension and worker cap for EVERY step are declared in
-        # persistent config (fan_out.medicare.<step>) per §I.3.4 -- there is no
-        # _partitions_for override here. This method only supplies the one code
-        # hook the config names: the Medicare record-range enumerator, merged
-        # onto the base geographic enumerators (state, county, state_entity).
+        # persistent config (fan_out.medicare.<step>) per §I.3.4. This method
+        # only supplies the code hooks the config names: the Medicare
+        # record-range enumerator, merged onto the base geographic enumerators
+        # (state, county, state_entity).
         enums = dict(super()._partition_enumerators())
         enums["record_ranges"] = self._fda_record_ranges
         return enums
 
-    def _fda_record_ranges(self, ctx, *, count: int = 100, **_) -> list[dict]:
-        """Even record-number ranges over this run's stamped prescription FDA labels --
-        one worker PROCESS per range (LLD I.3.4a). Off-build returns a single
-        verify/consume partition. Range size is configurable per pipeline via
-        fda_drug_records_per_partition."""
-        if os.environ.get("BUILD_FDA_DRUG", "").strip().lower() not in ("1", "true", "yes"):
+    def _fda_record_ranges(self, ctx, *, count: int, **_) -> list[dict]:
+        """Even record-number ranges over this run's stamped prescription FDA
+        labels -- one worker PROCESS per range (LLD I.3.4a). Off-build returns
+        a single verify/consume partition. The width (count) is REQUIRED from
+        fan_out.medicare.build_fda_label_resolution.params (H7: no defaults).
+        Reads the gate from ctx.args (the work-item snapshot), the same source
+        the step reads -- never the environment."""
+        if not bool(ctx.args.build_fda_drug):
             return [{"single": True}]
         from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
         reg = PipelineRuntime(ctx).registry
