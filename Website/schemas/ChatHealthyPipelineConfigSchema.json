@@ -134,6 +134,11 @@
           "type": "integer",
           "minimum": 1
         },
+        "worker_start_stagger_s": {
+          "description": "Stagger between worker starts (operator ruling 2026-10-21): the worker host starts at most one worker per this many seconds, so worker N's start time is its slot (N x stagger) and the coordination cluster never takes a simultaneous connection storm. Required by the reader; no defaults (H7).",
+          "type": "integer",
+          "minimum": 0
+        },
         "batch_limits": {
           "$ref": "#/$defs/BatchLimits"
         },

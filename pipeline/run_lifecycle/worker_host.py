@@ -43,6 +43,31 @@ _IDLE_SLEEP_S = 5       # between passes when the queue is momentarily empty
 _LOG_EVERY_S = 120      # progress heartbeat to the run log
 
 
+def _start_stagger_s() -> int:
+    """worker_start_stagger_s from the per-env durable configuration (operator
+    ruling 2026-10-21): the host starts AT MOST ONE worker per this many
+    seconds, so each worker's start time is its slot -- worker N starts no
+    earlier than N x stagger after the step begins -- and the coordination
+    cluster never sees a simultaneous connection storm. REQUIRED; a missing or
+    malformed value is a hard fail (H7: no defaults)."""
+    from pipeline.run_lifecycle.pipeline_config import load_pipeline_config  # noqa: PLC0415
+    env_prefix = os.environ.get("ENV_PREFIX", "").strip()
+    if not env_prefix:
+        raise ChatHealthyException(
+            mode="config_error",
+            message="worker_host: ENV_PREFIX is absent from the environment; "
+                    "the Worker VM cloud-init must supply it.",
+            component="worker_host")
+    value = load_pipeline_config(env_prefix=env_prefix).get("worker_start_stagger_s")
+    if not isinstance(value, int) or value < 0:
+        raise ChatHealthyException(
+            mode="pipeline_config_missing_value",
+            message="worker_start_stagger_s is required in the per-env pipeline "
+                    "configuration and is absent or malformed (H7: no defaults)",
+            component="worker_host")
+    return value
+
+
 def _pool_cap() -> int:
     """How many Worker processes run concurrently on this box. The box is
     sized (D32s) for len(state_scope) x entity_types; the cap defaults to the
@@ -80,6 +105,7 @@ def _run() -> int:
             component="worker_host")
 
     cap = _pool_cap()
+    stagger_s = _start_stagger_s()
     worker_py = str(Path(__file__).parent / "pipeline_worker.py")
     env = os.environ.copy()
 
@@ -88,11 +114,13 @@ def _run() -> int:
     runs = coord["pipelineAdmin"]["pipeline.runs"]
 
     _log.LogPipeline("INFO",
-        "worker_host: up run_id=%s pool_cap=%d worker=%s", run_id, cap, worker_py)
+        "worker_host: up run_id=%s pool_cap=%d stagger_s=%d worker=%s",
+        run_id, cap, stagger_s, worker_py)
 
     active: list = []          # live pipeline_worker Popen handles
     replica = 0
     last_log = 0.0
+    next_spawn_at = 0.0        # stagger gate: at most one spawn per stagger_s
     while True:
         # Reap finished workers.
         active = [p for p in active if p.poll() is None]
@@ -109,12 +137,22 @@ def _run() -> int:
         pending_count = wi.count_documents({"run_id": run_id, "status": "pending"})
         want = min(cap, pending_count)
         if pending is not None and len(active) < want:
+            # Stagger gate (operator ruling 2026-10-21): each worker's start
+            # time is its slot -- at most one spawn per stagger_s, so the pool
+            # ramps one connection at a time instead of storming the
+            # coordination cluster.
+            wait = next_spawn_at - time.time()
+            if wait > 0:
+                time.sleep(min(wait, _FILL_SLEEP_S))
+                continue
             try:
                 active.append(_spawn(worker_py, pending["step"], run_id, replica, env))
+                next_spawn_at = time.time() + stagger_s
                 _log.LogPipeline("INFO",
                     "worker_host: spawned worker step=%s run_id=%s replica=%d "
-                    "active=%d want=%d cap=%d pending=%d",
-                    pending["step"], run_id, replica, len(active), want, cap, pending_count)
+                    "active=%d want=%d cap=%d pending=%d stagger_s=%d",
+                    pending["step"], run_id, replica, len(active), want, cap,
+                    pending_count, stagger_s)
                 replica += 1
             except Exception as exc:  # noqa: BLE001
                 # The item stays pending and is retried next pass; a persistent

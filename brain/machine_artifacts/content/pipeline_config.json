@@ -116,10 +116,10 @@
           "type": "named_enumerator",
           "name": "record_ranges",
           "params": {
-            "count": 300
+            "count": 200
           }
         },
-        "parallelism_cap": 300
+        "parallelism_cap": 200
       }
     }
   },
@@ -169,7 +169,7 @@
     {
       "env": "dev",
       "worker_vm_size": "Standard_D32s_v6",
-      "worker_max_parallel": 300,
+      "worker_max_parallel": 200,
       "batch_limits": {
         "normalize_batch_size": 1000
       },
@@ -559,7 +559,8 @@
           "max_transient_retries": 5,
           "backoff_base_s": 2
         }
-      }
+      },
+      "worker_start_stagger_s": 5
     },
     {
       "env": "qa",
@@ -952,7 +953,8 @@
           "max_transient_retries": 5,
           "backoff_base_s": 2
         }
-      }
+      },
+      "worker_start_stagger_s": 5
     },
     {
       "env": "prod",
@@ -1345,7 +1347,8 @@
           "max_transient_retries": 5,
           "backoff_base_s": 2
         }
-      }
+      },
+      "worker_start_stagger_s": 5
     }
   ]
 }
