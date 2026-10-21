@@ -187,6 +187,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         "medicare_pos",
         "medicare_coverage_hcpc",
         "medicare_coverage_icd10",
+        "rxnorm",
     ]
     # Every fetched source also lands in staging; nothing is load-only now.
     LOAD_SOURCES = FETCH_SOURCES

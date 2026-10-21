@@ -232,6 +232,17 @@ def test_rollup_skips_rows_without_molecule_or_npi():
     assert len(acc) == 1   # only the complete row lands
 
 
+def test_union_without_resolution_confidence_trust_is_null():
+    # The tool no longer emits resolution_confidence (RxNav removal,
+    # 2026-10-20): the union's trust block degrades to all-null, never raises.
+    lr = _label("s1")
+    del lr["resolution_confidence"]
+    doc = fda_molecule_union([lr])
+    assert doc["trust"] == {"max": None, "min": None, "median": None,
+                            "avg": None}
+    assert doc["molecule"]["rxcui"] == ["83367"]
+
+
 # --------------------------------------------------------------- fda_block
 def test_fda_block_from_molecule_record():
     fda_doc = fda_molecule_union([_label("s1", conf=0.9)])

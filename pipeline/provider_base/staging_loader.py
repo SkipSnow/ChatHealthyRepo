@@ -340,6 +340,32 @@ def _iter_xlsx_rows(local_path: str) -> Iterator[dict[str, str]]:
     wb.close()
 
 
+# RxNorm RRF concept file (RXNCONSO.RRF): pipe-delimited, HEADERLESS, fixed
+# 18-column layout per the RxNorm Technical Documentation, each line ending in
+# a trailing pipe. Staged verbatim under the documented column names (LLD v83
+# III.9, rxnorm source).
+_RXNCONSO_COLUMNS = (
+    "RXCUI", "LAT", "TS", "LUI", "STT", "SUI", "ISPREF", "RXAUI", "SAUI",
+    "SCUI", "SDUI", "SAB", "TTY", "CODE", "STR", "SRL", "SUPPRESS", "CVF",
+)
+
+
+def _iter_rrf_rxnconso_rows(local_path: str) -> Iterator[dict[str, str]]:
+    with open(local_path, "r", encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            line = line.rstrip("\r\n")
+            if not line:
+                continue
+            parts = line.split("|")
+            # trailing pipe yields one empty tail cell; drop exactly that one
+            if parts and parts[-1] == "":
+                parts = parts[:-1]
+            yield {
+                _RXNCONSO_COLUMNS[i] if i < len(_RXNCONSO_COLUMNS) else f"_col{i}": v
+                for i, v in enumerate(parts)
+            }
+
+
 def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dict[str, Any]]:
     fmt = spec.get("format", "csv").lower()
     if fmt == "csv":
@@ -355,6 +381,8 @@ def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dic
         yield from _iter_zipped_json_rows(local_path, inner_name_hint=spec.get("inner_name_hint"))
     elif fmt == "xlsx":
         yield from _iter_xlsx_rows(local_path)
+    elif fmt == "rrf_rxnconso":
+        yield from _iter_rrf_rxnconso_rows(local_path)
     else:
         raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: unsupported format {fmt!r}")
 

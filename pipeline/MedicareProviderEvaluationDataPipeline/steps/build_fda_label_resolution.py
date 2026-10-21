@@ -64,10 +64,36 @@ def _drug_class(product_type) -> str:
     return "UNDETERMINED"
 
 
-def _get_tool() -> FDADrugEnrichmentTool:
+def _require_fda_levers(ctx) -> dict:
+    """The fda lever block from the per-env durable configuration (LLD v83
+    III.15). REQUIRED -- a missing value is a hard fail (H7: no defaults)."""
+    fda = (ctx.config or {}).get("fda")
+    retry = (fda or {}).get("llm_retry") if isinstance(fda, dict) else None
+    if (not isinstance(fda, dict)
+            or not isinstance(fda.get("crosswalk_batch_size"), int)
+            or not isinstance(retry, dict)
+            or not isinstance(retry.get("max_transient_retries"), int)
+            or not isinstance(retry.get("backoff_base_s"), (int, float))):
+        raise ChatHealthyException(
+            mode="pipeline_config_missing_value",
+            message=("fda{crosswalk_batch_size, llm_retry{max_transient_retries, "
+                     "backoff_base_s}} is required in the per-env pipeline "
+                     "configuration and is absent or malformed (H7: no defaults)"),
+            component="build_fda_label_resolution",
+        )
+    return fda
+
+
+def _get_tool(ctx) -> FDADrugEnrichmentTool:
     global _TOOL
     if _TOOL is None:
-        _TOOL = FDADrugEnrichmentTool(catalog=_CATALOG_PATH)
+        fda = _require_fda_levers(ctx)
+        _TOOL = FDADrugEnrichmentTool(
+            catalog=_CATALOG_PATH,
+            batch_size=int(fda["crosswalk_batch_size"]),
+            max_transient_retries=int(fda["llm_retry"]["max_transient_retries"]),
+            backoff_base_s=float(fda["llm_retry"]["backoff_base_s"]),
+        )
     return _TOOL
 
 
@@ -232,7 +258,7 @@ def run_step(ctx) -> dict:
         return {"step": "build_fda_label_resolution", "record_range": [start, end],
                 "labels_resolved": 0, "labels_skipped": skipped}
 
-    tool = _get_tool()
+    tool = _get_tool(ctx)
 
     def _sink(record) -> None:
         # One transient result per label, idempotent by set_id ($set upsert):

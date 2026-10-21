@@ -3414,15 +3414,19 @@ def deploy_one(
             from cluster_host import host_for as _cluster_host
             arch = _raw_manifest()
             # Each mongo_indexes package's config is a fully-qualified index
-            # entry: {cluster, identity, db, collection, indexes, and either a
-            # version_ref (deploy-time, front-end serving generation) or a
-            # version_source (run-time, applied in the pipeline container).
-            # Only version_ref entries are applied here; version_source entries
-            # are declarations the pipeline container applies at run time.
+            # entry: {cluster, identity, db, indexes, and ONE of: a version_ref
+            # (deploy-time, collection resolved from the front-end serving
+            # generation), a version_source (run-time, applied in the pipeline
+            # container, NOT here), or fixed_collections (deploy-time, a list
+            # of {collection, indexes} on fixed-name collections -- the
+            # coordination store, whose names never carry a version).
             deploy_time = [(p, p.get("config") or {}) for p in index_pkgs
                            if (p.get("config") or {}).get("version_ref")]
             runtime = [p.get("package_id") for p in index_pkgs
-                       if not (p.get("config") or {}).get("version_ref")]
+                       if not (p.get("config") or {}).get("version_ref")
+                       and not (p.get("config") or {}).get("fixed_collections")]
+            fixed = [(p, p.get("config") or {}) for p in index_pkgs
+                     if (p.get("config") or {}).get("fixed_collections")]
             if runtime:
                 step(f"  atlas {target_id}: index package(s) {runtime} carry "
                      f"version_source; the run applies them, not this deploy")
@@ -3435,6 +3439,21 @@ def deploy_one(
                     resolve_collection=_resolve, host_for=_cluster_host)
                 step(f"  atlas {target_id}: index package(s) "
                      f"{[p.get('package_id') for p, _c in deploy_time]} -> "
+                     f"{[(r.get('collection'), len(r.get('results') or [])) for r in results]}")
+            if fixed:
+                entries = [
+                    {"catalog_id": f"{p.get('package_id')}:{fc['collection']}",
+                     "cluster": cfg["cluster"], "identity": cfg["identity"],
+                     "db": cfg["db"], "collection": fc["collection"],
+                     "indexes": fc["indexes"]}
+                    for p, cfg in fixed
+                    for fc in cfg["fixed_collections"]]
+                results = apply_index_catalog(
+                    entries,
+                    resolve_collection=lambda e: e["collection"],
+                    host_for=_cluster_host)
+                step(f"  atlas {target_id}: fixed-collection index package(s) "
+                     f"{[p.get('package_id') for p, _c in fixed]} -> "
                      f"{[(r.get('collection'), len(r.get('results') or [])) for r in results]}")
         return result
     if target_kind == "identity":

@@ -178,6 +178,39 @@
               "minimum": 1
             }
           }
+        },
+        "fda": {
+          "type": "object",
+          "description": "FDA-build tunable levers (LLD v83 III.15, operator-ruled 2026-10-20): all REQUIRED by the reader, no defaults (H7).",
+          "additionalProperties": false,
+          "required": [
+            "crosswalk_batch_size",
+            "llm_retry"
+          ],
+          "properties": {
+            "crosswalk_batch_size": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "llm_retry": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "max_transient_retries",
+                "backoff_base_s"
+              ],
+              "properties": {
+                "max_transient_retries": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "backoff_base_s": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -439,7 +472,7 @@
           "minLength": 1
         },
         "file_format": {
-          "description": "Explicit declaration of the on-disk data format of the file that will be staged. Required on every non-derived entry; forbidden on Class C derived entries. zip_containing_icd10cm_order selects a member (via archive_member) from the CMS ICD-10-CM tabular-order zip and parses its header-less fixed-width columns into order_number, icd10_code, header_flag, record_type, short_description and long_description.",
+          "description": "Explicit declaration of the on-disk data format of the file that will be staged. Required on every non-derived entry; forbidden on Class C derived entries. zip_containing_icd10cm_order selects a member (via archive_member) from the CMS ICD-10-CM tabular-order zip and parses its header-less fixed-width columns into order_number, icd10_code, header_flag, record_type, short_description and long_description. rrf_rxnconso parses the headerless pipe-delimited RxNorm RXNCONSO.RRF concept file under its documented 18 column names.",
           "enum": [
             "csv",
             "tsv",
@@ -448,7 +481,8 @@
             "json",
             "zip_containing_csv",
             "zip_containing_json",
-            "zip_containing_icd10cm_order"
+            "zip_containing_icd10cm_order",
+            "rrf_rxnconso"
           ]
         },
         "staging_name": {

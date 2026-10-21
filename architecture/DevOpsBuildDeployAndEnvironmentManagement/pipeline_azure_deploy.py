@@ -858,8 +858,10 @@ def ensure_acr(target, env: str) -> str:
         # pipeline cluster's entries, so a front-end index never ships to a
         # pipeline container. deployment_architecture.json is the one source;
         # this is its derived copy for a container that cannot read it.
-        if any(p.get("package_id") == "pipeline_vm_image"
-               or (p.get("config") or {}).get("role") == "pipeline_vm_image"
+        _baking_roles = {"pipeline_vm_image", "medicare_control_image",
+                         "medicare_worker_image"}
+        if any(p.get("package_id") in _baking_roles
+               or (p.get("config") or {}).get("role") in _baking_roles
                for p in packages):
             import json as _json_idx
             _content_dir = (_repo_root / "brain" / "machine_artifacts" / "content")
@@ -880,6 +882,25 @@ def ensure_acr(target, env: str) -> str:
             step(f"  derived pipeline_indexes.json "
                  f"({len(_pipe_cfg.get('indexes') or [])} index(es)) "
                  f"for the pipeline image")
+            # The full run-time index catalog: every mongo_indexes package on
+            # the pipeline Atlas target that carries version_source, keyed by
+            # package_id. pipeline_index_catalog.py reads this in the
+            # container; the record stays the one source.
+            _pkg_catalog = {}
+            for _rec in _arch.get("DeploymentTargetRecord", []):
+                if _rec.get("target_id") != "target_atlas_pipeline":
+                    continue
+                for _e in _rec.get("environments", []):
+                    for _p in (_e.get("packages") or []):
+                        if (_p.get("kind") == "mongo_indexes"
+                                and (_p.get("config") or {}).get("version_source")):
+                            _pkg_catalog[_p["package_id"]] = _p["config"]
+            _cat_out = _content_dir / "pipeline_index_packages.json"
+            _cat_out.write_text(_json_idx.dumps(_pkg_catalog, indent=2),
+                                encoding="utf-8")
+            _wrote_paths.append(_cat_out)
+            step(f"  derived pipeline_index_packages.json "
+                 f"({len(_pkg_catalog)} package(s)) for the pipeline image")
         _acr_docker_build_loop(packages, name, rg)
     finally:
         for _out in _wrote_paths:

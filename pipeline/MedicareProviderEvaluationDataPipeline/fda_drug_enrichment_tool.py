@@ -1,40 +1,21 @@
-# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
-# Licensed under the FindCare Evaluation License (FEL-1.0).
+"""FDA drug enrichment tool (EPIC-010-F-007, LLD v83 III.12) -- the ONE
+sanctioned external model call of the Medicare build: the indication ->
+ICD-10-CM crosswalk (PROMPT 2). One claims-blind pydantic-ai agent; typed
+pydantic input and output; the model resolved from configuration.
 
-"""FDADrugEnrichmentTool (EPIC-010-F-007-S-008) -- the production inference that
-builds the fdaProductToDiagnosisResolution collection (the FDA drug collection).
+Molecule identity is NOT resolved here: it is the proprietary molecule_id
+surrogate (III.2 decision #2) plus a LOCAL join against the staged RxNorm
+vocabulary at finalize_fda_molecules (III.9/III.10). The former runtime
+RxNav API resolution (PROMPT 1) was an off-design holdover removed
+2026-10-20 -- it throttled at the service's per-IP limit and destroyed
+coverage in two runs (operator-confirmed bug).
 
-One claims-blind pydantic-ai agent making TWO single-concern calls, never merged:
-
-  PROMPT 1 -- the RXCUI resolution (the prerequisite, runs FIRST). Each FDA drug
-  is resolved to its RxNorm ingredient RXCUI(s) (tty=IN) off the label's own
-  openfda.rxcui through an ordered funnel. A combination drug resolves to the
-  full set of its tty=IN ingredients, a single-ingredient drug to a one-element
-  set:
-    tier1  deterministic RxNorm, EXACT   -- the label's rxcui related directly to
-           its tty=IN ingredient(s) (no model).
-    tier2  deterministic RxNorm, NORMALIZED -- the label's rxcui normalized via
-           RxNorm status/remap, then related to its tty=IN ingredient(s)
-           (no model).
-    tier3  bounded inference on the residue ONLY -- RxNav's approximate match
-           supplies the real candidate RXCUIs for the unresolved name; the model
-           SELECTS one or declines. It never invents an identifier.
-    floor  unresolvable, reported by reason.
-  tier1/tier2 carry confidence=1 and confidence_rationale="Deterministic".
-  Its output is RxcuiResolutionOutput.
-
-  PROMPT 2 -- the crosswalk. Indication text -> ICD-10-CM 3/4-char codes chosen
-  ONLY from the catalog. The rxcui PROMPT 1 resolved is INSERTED into PROMPT 2's
-  input only when that resolution's confidence > 0.75 (tier1/2 always; tier3 only
-  above 0.75; floor and any tier3 at or below 0.75 never). Its output assembles
-  the FdaDrugRecord -- the FDA SPL record enriched in place.
-
-The agent sees only strings. RxNorm lookups use the RxNav REST API. The model is
-resolved from configuration (never pinned in source) and constructed per the per-
-provider call shape (Appendix D). The sink is pluggable -- local disk for the
-benchmark, MongoDB in production -- and is the caller's, not the tool's: this
-module opens no database. No model call happens on import or construction; a call
-fires only when resolve_rxcuis(), crosswalk(), or enrich() is invoked.
+LLM THROTTLING IS BACKPRESSURE (hard-fail table ruling, 2026-10-20): an
+HTTP 429 / rate-limit response waits and retries indefinitely -- bounded
+only by the step timeout (H9) -- and NEVER drops the batch. Other
+transient failures retry up to the configured bound. The batch size and
+retry knobs are REQUIRED constructor arguments supplied from the per-env
+durable configuration (H7: no defaults in code).
 """
 
 from __future__ import annotations
@@ -42,9 +23,8 @@ from __future__ import annotations
 import json
 import os
 import time
-from typing import Any, Callable, Iterable, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 
-import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
 from chathealthy_lib.exceptions import ChatHealthyException
@@ -57,14 +37,7 @@ _log = ChatHealthyLoggingService()
 # ─────────────────────────────────────────────────────────────────────────────
 _MODEL_ENV = "CH_FDA_ENRICHMENT_MODEL"          # e.g. "gpt-5.6-luna"
 _CATALOG_ENV = "CH_ICD10_CATALOG_PATH"          # path to the ICD-10-CM catalog xlsx
-_RXNAV_ENV = "CH_RXNAV_BASE_URL"                # optional override of the public API
 
-_RXNAV_DEFAULT_BASE = "https://rxnav.nlm.nih.gov/REST"
-_CROSSWALK_BATCH_SIZE = 25                      # the production batch size (50 -> 25, operator ruling 2026-10-20)
-_APPROX_MAX_CANDIDATES = 20                     # bounded tier-3 candidate list
-_INSERT_THRESHOLD = 0.75                        # rxcui inserted into PROMPT 2 only above this
-_HTTP_TIMEOUT_SECONDS = 30.0
-_MAX_TRANSIENT_RETRIES = 5
 _MODEL_MAX_TOKENS = 32000                       # headroom for a full 50-record batch
 
 # Per-provider call shape, Appendix D. The model STRING comes from configuration;
@@ -77,39 +50,6 @@ _MODEL_REGISTRY: dict[str, dict[str, str]] = {
     "grok-4.3":              {"provider": "xai",    "effort": "high"},
 }
 
-_TRANSIENT_STATUS = frozenset({429, 500, 502, 503, 504, 529})
-
-# The rationale stamped on a residue name the tier-3 model OMITTED from its batch
-# output (a drop, not a decline). A model that declines carries its own rationale;
-# a dropped id gets this sentinel so the caller can tell a drop from a decline and
-# refire only the dropped ids per the retest-on-drop protocol (Appendix/section 5).
-_RESOLUTION_DROP_RATIONALE = (
-    "No RxNorm candidate selected by the resolver; name is unresolvable.")
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PROMPT 1 -- the verbatim drug-name -> RXCUI resolution system prompt (Appendix C)
-# ─────────────────────────────────────────────────────────────────────────────
-_PROMPT_1_SYSTEM = (
-    "You are an expert pharmacist and drug-terminology specialist. You are given a batch of "
-    "drug names taken from FDA drug labels whose deterministic RxNorm resolution -- exact and "
-    "normalized, off the label's own rxcui -- could not resolve. For each name you are also "
-    "given the candidate RxNorm concepts that RxNorm's approximate match returned for it: each "
-    "candidate is a real RxNorm RXCUI with its RxNorm name, term type, and ingredient. Your task "
-    "is to SELECT the candidate that is the same drug as the input name. You never invent an "
-    "identifier; you only choose among the candidates given, or decline. "
-    "For each input name return: rxcui -- the RXCUI of the candidate you selected, copied exactly "
-    "from the candidate list, or null if none is the same drug; ingredient_rxcui -- the RxNorm "
-    "ingredient RXCUI (tty=IN) of the selected concept, taken from the candidate as given, or "
-    "null; confidence -- 0 to 1; confidence_rationale -- one plain sentence explaining why you "
-    "selected that candidate, or why none matched. "
-    "Absolute rules, because this output is auditable and may become evidence: Choose ONLY from "
-    "the candidate RXCUIs provided -- never emit an RXCUI that is not in the candidate list, and "
-    "never invent, alter, or guess a number. If no candidate is the same drug, return null -- a "
-    "null correctly passes the name to the unresolvable floor; a wrong identifier is far worse "
-    "than an honest null. Be honest and conservative with confidence: reserve high confidence for "
-    "a clear, unambiguous match, and do not inflate it -- not braggadocious. Return one result "
-    "per input name, keyed by its id."
-)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROMPT 2 -- the verbatim crosswalk system prompt (Appendix C). The ICD-10-CM
@@ -160,69 +100,6 @@ class CrosswalkBatchInput(BaseModel):
     drugs: list[DrugInput] = Field(min_length=1, max_length=50)
 
 
-class RxcuiResolutionItem(BaseModel):
-    """One resolution record (Appendix B). rxcui is null and ingredient_rxcuis is
-    empty and resolved_by is "floor" when the drug cannot be resolved. A
-    combination drug resolves to the full set of its tty=IN ingredient RXCUIs; a
-    non-empty array is a resolved join."""
-    model_config = ConfigDict(extra="forbid")
-    id: str
-    rxcui: Optional[str]
-    ingredient_rxcuis: list[str] = Field(default_factory=list)
-    ingredient_names: list[str] = Field(default_factory=list)
-    resolved_by: Literal["tier1", "tier2", "tier3", "floor"]
-    confidence: float = Field(ge=0.0, le=1.0)
-    confidence_rationale: str
-
-
-class RxcuiResolutionOutput(BaseModel):
-    """PROMPT 1 output (Appendix B) -- the prerequisite that feeds PROMPT 2."""
-    model_config = ConfigDict(extra="forbid")
-    results: list[RxcuiResolutionItem]
-
-
-class Tier3Selection(BaseModel):
-    """The tier-3 model's selection for one unresolved name -- exactly what the
-    PROMPT 1 system prompt (Appendix C) asks the model to return. The orchestrator
-    stamps resolved_by (tier3 when rxcui is non-null, floor when the model declines
-    with null) to assemble the RxcuiResolutionItem above."""
-    model_config = ConfigDict(extra="forbid")
-    id: str
-    rxcui: Optional[str]
-    ingredient_rxcui: Optional[str]
-    confidence: float = Field(ge=0.0, le=1.0)
-    confidence_rationale: str
-
-
-class Tier3SelectionOutput(BaseModel):
-    """PROMPT 1's tier-3 model output_type -- one selection per residue name."""
-    model_config = ConfigDict(extra="forbid")
-    results: list[Tier3Selection]
-
-
-class CandidateConcept(BaseModel):
-    """One real RxNorm concept RxNav's approximate match returned for an unresolved
-    name: its RXCUI, RxNorm name, term type, and every tty=IN ingredient related to
-    it (a combination concept carries more than one)."""
-    rxcui: str
-    name: str
-    tty: str
-    ingredient_rxcuis: list[str] = Field(default_factory=list)
-    ingredient_names: list[str] = Field(default_factory=list)
-
-
-class UnresolvedDrug(BaseModel):
-    """A residue drug name plus the candidate concepts the model chooses among."""
-    id: str
-    name: str
-    candidates: list[CandidateConcept]
-
-
-class ResolutionBatchInput(BaseModel):
-    """PROMPT 1 tier-3 typed input (deps)."""
-    drugs: list[UnresolvedDrug]
-
-
 class Icd10Code(BaseModel):
     """One crosswalk code (Appendix B). level marks 3- vs 4-character."""
     model_config = ConfigDict(extra="forbid")
@@ -258,16 +135,13 @@ class CrosswalkBatchOutput(BaseModel):
 class FdaDrugRecord(BaseModel):
     """PROMPT 2 output (Appendix B) -- one record per dispensable drug, 1:1 with the
     FDA file. The FDA SPL record enriched in place: its native fields pass through
-    unchanged (additionalProperties:true) and the enrichment fields below are added.
-    Keyed by set_id, never by ingredient_rxcuis."""
+    unchanged (additionalProperties:true) and the crosswalk enrichment fields below
+    are added. Keyed by set_id. Molecule identity (rxcui/unii) is NOT carried here:
+    it is unioned from the label's openfda fields and the staged RxNorm vocabulary
+    at finalize_fda_molecules (LLD v83 III.9/III.10)."""
     model_config = ConfigDict(extra="allow")
     set_id: str
     record_number: Optional[int] = None
-    ingredient_rxcuis: list[str] = Field(default_factory=list)
-    ingredient_names: list[str] = Field(default_factory=list)
-    resolved_by: Literal["tier1", "tier2", "tier3", "floor"]
-    resolution_confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    resolution_confidence_rationale: Optional[str] = None
     indications: list[CrosswalkIndication]
     usage_summary: Optional[str] = None
 
@@ -278,7 +152,6 @@ class _DrugKey(BaseModel):
     id: str
     set_id: str
     molecule: str
-    openfda_rxcui: list[str] = Field(default_factory=list)
     indication_text: str
 
 
@@ -344,12 +217,17 @@ class FDADrugEnrichmentTool:
     def __init__(
         self,
         *,
+        batch_size: int,
+        max_transient_retries: int,
+        backoff_base_s: float,
         model: Optional[str] = None,
         catalog: Optional[Any] = None,
-        rxnav_base_url: Optional[str] = None,
-        http_timeout_seconds: float = _HTTP_TIMEOUT_SECONDS,
-        max_transient_retries: int = _MAX_TRANSIENT_RETRIES,
     ) -> None:
+        # The tunable levers are REQUIRED and come from the per-env durable
+        # configuration (fda.crosswalk_batch_size, fda.llm_retry) -- H7: no
+        # defaults in code.
+        self._batch_size = int(batch_size)
+        self._backoff_base_s = float(backoff_base_s)
         # Model resolved from configuration, not pinned in source.
         self._model_id: Optional[str] = model or (os.environ.get(_MODEL_ENV, "").strip() or None)
         # Catalog: a path, a prepared (text, codes) pair, or None (resolve from env lazily).
@@ -361,19 +239,12 @@ class FDADrugEnrichmentTool:
             self._catalog_text, self._catalog_codes = catalog[0], frozenset(catalog[1])
             self._catalog_descriptions = dict(catalog[2]) if len(catalog) == 3 else {}
             self._catalog_source = None
-        self._rxnav_base = (rxnav_base_url or os.environ.get(_RXNAV_ENV, "").strip()
-                            or _RXNAV_DEFAULT_BASE).rstrip("/")
-        self._http_timeout = float(http_timeout_seconds)
         self._max_transient_retries = int(max_transient_retries)
-        # Lazily built agents (no network until a call fires).
-        self._resolution_agent = None
+        # Lazily built agent (no network until a call fires).
         self._crosswalk_agent = None
         self._crosswalk_system_prompt: Optional[str] = None
-        # Per-call usage of the most recent PROMPT 1 / PROMPT 2 model call. The
-        # pydantic output_type is unchanged; usage is surfaced through these
-        # accessors so a caller can cost the run (section 8) without the tool
-        # altering what it returns. None until the respective method runs.
-        self._last_resolution_usage: Optional[dict] = None
+        # Per-call usage of the most recent crosswalk model call, surfaced so a
+        # caller can cost the run without the tool altering what it returns.
         self._last_crosswalk_usage: Optional[dict] = None
 
     # ── configuration helpers ────────────────────────────────────────────────
@@ -463,20 +334,6 @@ class FDADrugEnrichmentTool:
             message=f"unknown provider {provider!r} for model {model_id!r}",
         )
 
-    def _get_resolution_agent(self):
-        if self._resolution_agent is None:
-            from pydantic_ai import Agent
-            model, settings = self._build_model()
-            self._resolution_agent = Agent(
-                model,
-                deps_type=ResolutionBatchInput,
-                output_type=Tier3SelectionOutput,
-                system_prompt=_PROMPT_1_SYSTEM,
-                model_settings=settings,
-                retries=2,
-            )
-        return self._resolution_agent
-
     def _get_crosswalk_agent(self):
         if self._crosswalk_agent is None:
             from pydantic_ai import Agent
@@ -492,235 +349,7 @@ class FDADrugEnrichmentTool:
             )
         return self._crosswalk_agent
 
-    # ── RxNav REST client (deterministic funnel + tier-3 candidate generation) ─
-    def _get_json(self, client: httpx.Client, path: str,
-                  params: Optional[dict] = None) -> Optional[dict]:
-        """GET {base}{path}; return the parsed body, or None for a 404/negative.
-        Transient failures (429/5xx/network/timeout) retry with backoff; an
-        exhausted transient failure raises. Deterministic 4xx (other than 429)
-        resolve to None -- a normal 'not found' from RxNorm."""
-        url = self._rxnav_base + path
-        attempt, backoff = 0, 2.0
-        while True:
-            try:
-                response = client.get(url, params=params)
-            except (httpx.TransportError, httpx.TimeoutException) as exc:
-                if attempt >= self._max_transient_retries:
-                    raise ChatHealthyException(
-                        mode="rxnav_unavailable",
-                        component="FDADrugEnrichmentTool",
-                        message=f"RxNav request to {url} failed after {attempt} retries",
-                        exception=exc,
-                        url=url,
-                    ) from exc
-                time.sleep(backoff)
-                backoff *= 2
-                attempt += 1
-                continue
-            status = response.status_code
-            if status == 404:
-                return None
-            if status in _TRANSIENT_STATUS:
-                if attempt >= self._max_transient_retries:
-                    raise ChatHealthyException(
-                        mode="rxnav_unavailable",
-                        component="FDADrugEnrichmentTool",
-                        message=f"RxNav request to {url} returned {status} after {attempt} retries",
-                        url=url,
-                        status=status,
-                    )
-                time.sleep(backoff)
-                backoff *= 2
-                attempt += 1
-                continue
-            if status >= 400:
-                return None
-            return response.json()
-
-    def _concept_tty_name(self, client: httpx.Client, rxcui: str) -> tuple[Optional[str], Optional[str]]:
-        body = self._get_json(client, f"/rxcui/{rxcui}/properties.json")
-        props = (body or {}).get("properties") or {}
-        tty = str(props.get("tty") or "").strip() or None
-        name = str(props.get("name") or "").strip() or None
-        return tty, name
-
-    def _ingredients_of(self, client: httpx.Client, rxcui: str) -> list[tuple[str, str]]:
-        """Return [(ingredient_rxcui, ingredient_name), ...] of tty=IN concepts
-        related to rxcui. If rxcui is itself an ingredient, it is its own."""
-        tty, name = self._concept_tty_name(client, rxcui)
-        if tty == "IN":
-            return [(rxcui, name or "")]
-        body = self._get_json(client, f"/rxcui/{rxcui}/related.json", {"tty": "IN"})
-        found: list[tuple[str, str]] = []
-        groups = (((body or {}).get("relatedGroup") or {}).get("conceptGroup") or [])
-        for group in groups:
-            for concept in group.get("conceptProperties") or []:
-                cid = str(concept.get("rxcui") or "").strip()
-                if cid:
-                    found.append((cid, str(concept.get("name") or "").strip()))
-        return found
-
-    def _remapped_rxcuis(self, client: httpx.Client, rxcui: str) -> list[str]:
-        """Normalized step: RxNorm status/remap of a non-current rxcui."""
-        body = self._get_json(client, f"/rxcui/{rxcui}/status.json")
-        status_group = (body or {}).get("rxcuiStatus") or {}
-        remapped: list[str] = []
-        min_group = status_group.get("minConceptGroup") or {}
-        for concept in min_group.get("minConcept") or []:
-            cid = str(concept.get("rxcui") or "").strip()
-            if cid and cid != rxcui:
-                remapped.append(cid)
-        return remapped
-
-    def _approximate_candidates(self, client: httpx.Client, term: str) -> list[CandidateConcept]:
-        body = self._get_json(
-            client, "/approximateTerm.json",
-            {"term": term, "maxEntries": str(_APPROX_MAX_CANDIDATES)})
-        candidates_raw = (((body or {}).get("approximateGroup") or {}).get("candidate") or [])
-        seen: set[str] = set()
-        candidates: list[CandidateConcept] = []
-        for entry in candidates_raw:
-            rxcui = str(entry.get("rxcui") or "").strip()
-            if not rxcui or rxcui in seen:
-                continue
-            seen.add(rxcui)
-            tty, name = self._concept_tty_name(client, rxcui)
-            ingredients = self._ingredients_of(client, rxcui)
-            candidates.append(CandidateConcept(
-                rxcui=rxcui, name=name or "", tty=tty or "",
-                ingredient_rxcuis=[ing[0] for ing in ingredients],
-                ingredient_names=[ing[1] for ing in ingredients]))
-        return candidates
-
-    def _deterministic_resolve(self, client: httpx.Client,
-                               key: _DrugKey) -> Optional[RxcuiResolutionItem]:
-        """tier1 (exact) then tier2 (normalized), both off the label's own
-        openfda.rxcui, with no model. Any tty=IN ingredient(s) found resolve
-        deterministically -- a single-ingredient drug yields a one-element set, a
-        combination its full set; anything unresolved falls to tier3."""
-        # tier1 -- direct relation off each of the label's rxcuis.
-        exact: dict[str, str] = {}
-        exact_names: dict[str, str] = {}
-        exact_source: Optional[str] = None
-        for product_rxcui in key.openfda_rxcui:
-            product_rxcui = str(product_rxcui).strip()
-            if not product_rxcui:
-                continue
-            for ing_rxcui, ing_name in self._ingredients_of(client, product_rxcui):
-                exact[ing_rxcui] = product_rxcui
-                exact_names[ing_rxcui] = ing_name
-                exact_source = exact_source or product_rxcui
-        if exact:
-            ordered = sorted(exact)
-            return RxcuiResolutionItem(
-                id=key.id, rxcui=exact_source, ingredient_rxcuis=ordered,
-                ingredient_names=[exact_names.get(r, "") for r in ordered],
-                resolved_by="tier1", confidence=1.0, confidence_rationale="Deterministic")
-        # tier2 -- normalized via status/remap of each label rxcui.
-        normalized: dict[str, str] = {}
-        normalized_names: dict[str, str] = {}
-        normalized_source: Optional[str] = None
-        for product_rxcui in key.openfda_rxcui:
-            product_rxcui = str(product_rxcui).strip()
-            if not product_rxcui:
-                continue
-            for remapped in self._remapped_rxcuis(client, product_rxcui):
-                for ing_rxcui, ing_name in self._ingredients_of(client, remapped):
-                    normalized[ing_rxcui] = remapped
-                    normalized_names[ing_rxcui] = ing_name
-                    normalized_source = normalized_source or remapped
-        if normalized:
-            ordered = sorted(normalized)
-            return RxcuiResolutionItem(
-                id=key.id, rxcui=normalized_source, ingredient_rxcuis=ordered,
-                ingredient_names=[normalized_names.get(r, "") for r in ordered],
-                resolved_by="tier2", confidence=1.0, confidence_rationale="Deterministic")
-        return None
-
-    # ── PROMPT 1 -- the RXCUI resolution funnel ──────────────────────────────
-    def resolve_rxcuis(self, drugs: Iterable[_DrugKey]) -> RxcuiResolutionOutput:
-        """Run the funnel over a batch of drugs and return RxcuiResolutionOutput
-        (Appendix B). tier1/tier2 are deterministic RxNav lookups; tier3 is one
-        bounded model call over the residue only; the floor is reported by reason.
-        FIRES RxNav calls, and a model call only if a residue exists."""
-        keys = list(drugs)
-        # No model call unless a residue exists; record that so the caller can
-        # cost a fully-deterministic batch as zero model tokens (section 8).
-        self._last_resolution_usage = {
-            "input_tokens": 0, "output_tokens": 0, "cached_input_tokens": 0,
-            "transient_retries": 0, "model_call_fired": False}
-        resolved: dict[str, RxcuiResolutionItem] = {}
-        residue: list[UnresolvedDrug] = []
-        with httpx.Client(timeout=self._http_timeout) as client:
-            for key in keys:
-                item = self._deterministic_resolve(client, key)
-                if item is not None:
-                    resolved[key.id] = item
-                    continue
-                candidates = self._approximate_candidates(client, key.molecule)
-                residue.append(UnresolvedDrug(id=key.id, name=key.molecule, candidates=candidates))
-        if residue:
-            selections, meta = self._run_tier3(residue)
-            self._last_resolution_usage = {**meta, "model_call_fired": True}
-            # Keep the whole candidate concept per id (not just its rxcui) so the
-            # join key is RE-DERIVED from the CHOSEN candidate's own tty=IN
-            # ingredient, never taken from the model's returned ingredient_rxcui.
-            candidates_by_id = {d.id: {c.rxcui: c for c in d.candidates} for d in residue}
-            for selection in selections.results:
-                allowed = candidates_by_id.get(selection.id, {})
-                chosen_candidate = (allowed.get(selection.rxcui)
-                                    if selection.rxcui is not None else None)
-                if chosen_candidate is not None:
-                    # Candidate-constrained join key: the selected concept's tty=IN
-                    # ingredient(s), as RxNav returned them -- all of them for a
-                    # combination, re-derived from the chosen candidate and never the
-                    # model's free text. An empty array (concept with no IN ingredient)
-                    # is a floor on the join, never an invented identifier.
-                    resolved[selection.id] = RxcuiResolutionItem(
-                        id=selection.id, rxcui=chosen_candidate.rxcui,
-                        ingredient_rxcuis=list(chosen_candidate.ingredient_rxcuis),
-                        ingredient_names=list(chosen_candidate.ingredient_names),
-                        resolved_by="tier3", confidence=selection.confidence,
-                        confidence_rationale=selection.confidence_rationale)
-                else:
-                    resolved[selection.id] = RxcuiResolutionItem(
-                        id=selection.id, rxcui=None, ingredient_rxcuis=[],
-                        ingredient_names=[],
-                        resolved_by="floor", confidence=0.0,
-                        confidence_rationale=selection.confidence_rationale)
-        # Any residue name the model did not return a result for is floored by reason.
-        for drug in residue:
-            resolved.setdefault(drug.id, RxcuiResolutionItem(
-                id=drug.id, rxcui=None, ingredient_rxcuis=[], ingredient_names=[],
-                resolved_by="floor", confidence=0.0,
-                confidence_rationale=_RESOLUTION_DROP_RATIONALE))
-        ordered = [resolved[key.id] for key in keys]
-        return RxcuiResolutionOutput(results=ordered)
-
-    def _run_tier3(self, residue: list[UnresolvedDrug]) -> tuple[Tier3SelectionOutput, dict]:
-        agent = self._get_resolution_agent()
-        deps = ResolutionBatchInput(drugs=residue)
-        payload = [
-            {
-                "id": drug.id,
-                "name": drug.name,
-                "candidates": [c.model_dump(exclude_none=True) for c in drug.candidates],
-            }
-            for drug in residue
-        ]
-        user_message = ("Unresolved drug names and their RxNorm approximate-match candidates:\n"
-                        + json.dumps(payload, ensure_ascii=False, indent=1))
-        output, meta = self._run_agent(agent, user_message, deps, call_site="prompt1_tier3")
-        return output, meta
-
     # ── per-call usage accessors (Appendix D / section 8 costing) ─────────────
-    def last_resolution_usage(self) -> Optional[dict]:
-        """Token/retry usage of the most recent resolve_rxcuis() call (PROMPT 1):
-        input_tokens, output_tokens, cached_input_tokens, transient_retries, and
-        model_call_fired (False when the batch resolved entirely deterministically).
-        None until resolve_rxcuis() has run. Does not alter the pydantic output."""
-        return self._last_resolution_usage
-
     def last_crosswalk_usage(self) -> Optional[dict]:
         """Token/retry usage of the most recent crosswalk() call (PROMPT 2). None
         until crosswalk() has run. Does not alter the pydantic output."""
@@ -753,15 +382,36 @@ class FDADrugEnrichmentTool:
 
     # ── shared model-call runner (transient retry; never fabricates) ─────────
     def _run_agent(self, agent, user_message: str, deps, *, call_site: str):
-        attempt, backoff = 0, 2.0
+        """Run one model call. THROTTLING IS BACKPRESSURE (LLD v83 III.15,
+        operator-ruled 2026-10-20): a 429/rate-limit response waits and retries
+        INDEFINITELY -- bounded only by the step timeout (H9) -- and never
+        surfaces as a failure, so a throttled batch is never dropped. Other
+        transient failures retry up to the configured bound; deterministic
+        failures raise immediately."""
+        attempt, backoff = 0, self._backoff_base_s
+        throttle_waits = 0
         while True:
             try:
                 result = agent.run_sync(user_message, deps=deps)
-                return result.output, self._extract_usage(result, attempt)
+                usage = self._extract_usage(result, attempt)
+                usage["throttle_waits"] = throttle_waits
+                return result.output, usage
             except Exception as exc:  # noqa: BLE001  record, retry transient, never fabricate
                 text = str(exc).lower()
+                throttled = ("429" in text or "rate limit" in text
+                             or "rate_limit" in text or "too many requests" in text)
+                if throttled:
+                    throttle_waits += 1
+                    wait = min(backoff, 60.0)
+                    _log.LogPipeline(
+                        "WARNING",
+                        "%s throttled by the model provider (wait %d, %.0fs); "
+                        "backpressure, not failure", call_site, throttle_waits, wait)
+                    time.sleep(wait)
+                    backoff = min(backoff * 2, 60.0)
+                    continue
                 transient = any(token in text for token in (
-                    "429", "rate", "timeout", "timed out", "500", "502", "503", "504",
+                    "timeout", "timed out", "500", "502", "503", "504",
                     "529", "overloaded", "connection"))
                 if not transient or attempt >= self._max_transient_retries:
                     raise ChatHealthyException(
@@ -775,7 +425,7 @@ class FDADrugEnrichmentTool:
                         attempts=attempt,
                     ) from exc
                 time.sleep(backoff)
-                backoff *= 2
+                backoff = min(backoff * 2, 60.0)
                 attempt += 1
 
     @staticmethod
@@ -792,7 +442,7 @@ class FDADrugEnrichmentTool:
             usage["usage_error"] = repr(exc)[:200]
         return usage
 
-    # ── end-to-end enrichment (PROMPT 1 then PROMPT 2, assembled per Appendix B)
+    # ── end-to-end enrichment (the crosswalk, assembled per Appendix B) ──────
     def enrich(
         self,
         fda_records: list[dict],
@@ -801,38 +451,30 @@ class FDADrugEnrichmentTool:
         sink: Optional[Callable[[FdaDrugRecord], None]] = None,
         on_batch_error: Optional[Callable[[list, Exception], None]] = None,
     ) -> list[FdaDrugRecord]:
-        """For each FDA SPL record: resolve its RXCUI (PROMPT 1), insert it into the
-        crosswalk input only above the 0.75 threshold, crosswalk (PROMPT 2), and
-        assemble the FdaDrugRecord (the FDA record enriched in
-        place). Processes in batches of the production batch size. Each assembled
-        record is written through the pluggable sink when one is supplied; the raw
-        PROMPT 1 and PROMPT 2 outputs are returned to the caller via resolve_rxcuis()
-        and crosswalk() for persist-first scratch. FIRES model and RxNav calls."""
+        """For each FDA SPL record: crosswalk its indication text to ICD-10-CM
+        (PROMPT 2 -- the one sanctioned model call) and assemble the
+        FdaDrugRecord (the FDA record enriched in place). Processes in batches
+        of the configured batch size. Each assembled record is written through
+        the pluggable sink when one is supplied. FIRES model calls only --
+        nothing else leaves the box."""
         records: list[FdaDrugRecord] = []
         record_number = record_number_start
         skipped_records = 0
-        for start in range(0, len(fda_records), _CROSSWALK_BATCH_SIZE):
-            chunk = fda_records[start:start + _CROSSWALK_BATCH_SIZE]
+        for start in range(0, len(fda_records), self._batch_size):
+            chunk = fda_records[start:start + self._batch_size]
             keys = [self._extract_key(record, start + offset) for offset, record in enumerate(chunk)]
             try:
-                resolution = self.resolve_rxcuis(keys)
-                resolution_by_id = {item.id: item for item in resolution.results}
-
-                drug_inputs: list[DrugInput] = []
-                for key in keys:
-                    item = resolution_by_id[key.id]
-                    insert = bool(item.ingredient_rxcuis) and item.confidence > _INSERT_THRESHOLD
-                    drug_inputs.append(DrugInput(
-                        id=key.id, set_id=key.set_id, molecule=key.molecule,
-                        rxcui=list(item.ingredient_rxcuis) if insert else [],
-                        indication_text=key.indication_text))
+                drug_inputs = [
+                    DrugInput(id=key.id, set_id=key.set_id, molecule=key.molecule,
+                              indication_text=key.indication_text)
+                    for key in keys
+                ]
                 crosswalk_output = self.crosswalk(CrosswalkBatchInput(drugs=drug_inputs))
             except ChatHealthyException as exc:
-                # A model call for this batch threw (crosswalk returned schema-
-                # invalid output, an incomplete tool call, or the resolver's model
-                # failed). Recover: record the error and skip this batch, so one
-                # bad model response does not fail the whole ~2000-record partition.
-                # The catcher logs; it does not re-raise.
+                # A NON-THROTTLE model failure for this batch (throttles never
+                # reach here -- _run_agent absorbs them as backpressure).
+                # Recover: record the error and skip this batch, so one bad
+                # model response does not fail the whole partition.
                 _log.LogPipeline(
                     "ERROR", "FDADrugEnrichmentTool.enrich: batch of %d record(s) "
                     "skipped after model failure: %s", len(chunk), str(exc)[:200])
@@ -844,9 +486,8 @@ class FDADrugEnrichmentTool:
             crosswalk_by_id = {result.id: result for result in crosswalk_output.results}
 
             for key, fda_record in zip(keys, chunk):
-                item = resolution_by_id[key.id]
                 crosswalk_result = crosswalk_by_id.get(key.id)
-                record = self._assemble(fda_record, key, item, crosswalk_result, record_number)
+                record = self._assemble(fda_record, key, crosswalk_result, record_number)
                 if sink is not None:
                     sink(record)
                 records.append(record)
@@ -871,32 +512,24 @@ class FDADrugEnrichmentTool:
                 message=(f"FDA record at position {position} is missing required field(s): "
                          f"{', '.join(missing)}"),
             )
-        openfda = fda_record.get("openfda") or {}
-        openfda_rxcui = [str(v).strip() for v in (openfda.get("rxcui") or []) if str(v).strip()]
         record_id = str(fda_record.get("id") or position)
         return _DrugKey(id=record_id, set_id=set_id, molecule=molecule,
-                        openfda_rxcui=openfda_rxcui, indication_text=indication_text)
+                        indication_text=indication_text)
 
     def _assemble(
         self,
         fda_record: dict,
         key: _DrugKey,
-        resolution: RxcuiResolutionItem,
         crosswalk_result: Optional[CrosswalkResult],
         record_number: int,
     ) -> FdaDrugRecord:
-        """The FDA SPL record enriched in place: native fields pass through unchanged,
-        the resolution fields are carried from PROMPT 1, and the crosswalk's
-        indications and usage_summary are added (Appendix B). Each crosswalk code is
-        stamped with its ICD-10-CM short description from the loaded catalog."""
+        """The FDA SPL record enriched in place: native fields pass through
+        unchanged and the crosswalk's indications and usage_summary are added
+        (Appendix B). Each crosswalk code is stamped with its ICD-10-CM short
+        description from the loaded catalog."""
         data: dict[str, Any] = dict(fda_record)
         data["set_id"] = key.set_id
         data["record_number"] = record_number
-        data["ingredient_rxcuis"] = resolution.ingredient_rxcuis
-        data["ingredient_names"] = resolution.ingredient_names
-        data["resolved_by"] = resolution.resolved_by
-        data["resolution_confidence"] = resolution.confidence
-        data["resolution_confidence_rationale"] = resolution.confidence_rationale
         indications: list[dict] = []
         if crosswalk_result is not None:
             for indication in crosswalk_result.indications:

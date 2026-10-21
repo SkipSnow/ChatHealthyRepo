@@ -39,6 +39,7 @@ COPY pipeline/MedicareProviderEvaluationDataPipeline /app/pipeline/MedicareProvi
 COPY Website/schemas /app/Website/schemas
 COPY brain/machine_artifacts/content/pipeline_config.json /app/brain/machine_artifacts/content/pipeline_config.json
 COPY brain/machine_artifacts/content/pipeline_indexes.json /app/brain/machine_artifacts/content/pipeline_indexes.json
+COPY brain/machine_artifacts/content/pipeline_index_packages.json /app/brain/machine_artifacts/content/pipeline_index_packages.json
 
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1

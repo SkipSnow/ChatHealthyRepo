@@ -81,6 +81,19 @@ def run_step(ctx) -> dict:
     prov_db, prov_name = parse_provider_source(ctx.args.provider_collection)
     provider_coll = mongo[prov_db][prov_name]
 
+    # ---- 0. Record-declared staging indexes (LLD v83 III.8) ---------------
+    # The version_source index packages are declarations the run applies:
+    # (run_id, raw.Prscrbr_NPI) carries the stamping filter below;
+    # (run_id, partition_state) carries the fan-out workers' partition reads;
+    # the Part B (run_id, rendering state) index carries the enrich fan-out.
+    from pipeline.run_lifecycle.pipeline_index_catalog import (  # noqa: PLC0415
+        apply_runtime_index_package)
+    dv = int(ctx.args.data_version)
+    for pkg in ("medicare_staging_indexes", "medicare_partb_staging_indexes"):
+        res = apply_runtime_index_package(mongo, pkg, dv)
+        _log.LogPipeline("INFO", "prepare_molecule_masters: index package %s -> %s",
+                         pkg, res)
+
     # ---- 1. Stamp partition_state / partition_entity by NPI ---------------
     npis = _distinct_npis(staging, ctx.run_id)
     spine = _spine_states(provider_coll, npis)
