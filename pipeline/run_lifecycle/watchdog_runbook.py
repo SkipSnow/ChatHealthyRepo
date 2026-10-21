@@ -426,7 +426,12 @@ def _list_orphan_disks(tok: str) -> list[dict]:
     for d in resp.get("value", []):
         name = d.get("name", "")
         state = ((d.get("properties") or {}).get("diskState") or "")
-        if state == "Unattached" and name.startswith("vm-chpipeline-") and "_OsDisk_" in name:
+        # Every pipeline VM naming shape: the legacy per-step VMs and the
+        # two-VM run shape (control + worker). The worker/control shapes were
+        # outside this sweep -- run 03dec011's orphan disks sat invisible to
+        # it (orchestration audit 2026-10-21, finding 1).
+        if state == "Unattached" and "_OsDisk_" in name and name.startswith(
+                ("vm-chpipeline-", "vm-chworker-", "vm-chcontrol-")):
             out.append(d)
     return out
 
@@ -471,7 +476,11 @@ def _list_orphan_nics(tok: str) -> list[dict]:
     out = []
     for n in resp.get("value", []):
         name = n.get("name", "")
-        if not name.startswith("vm-chpipeline-") or not name.endswith("-nic"):
+        # Same prefix set as the disk sweep: legacy per-step VMs plus the
+        # two-VM run shape. pe-atlas-* stays excluded by never matching.
+        if not name.startswith(
+                ("vm-chpipeline-", "vm-chworker-", "vm-chcontrol-")
+                ) or not name.endswith("-nic"):
             continue
         vm_binding = ((n.get("properties") or {}).get("virtualMachine") or {}).get("id")
         if vm_binding:

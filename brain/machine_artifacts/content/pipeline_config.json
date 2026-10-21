@@ -116,10 +116,10 @@
           "type": "named_enumerator",
           "name": "record_ranges",
           "params": {
-            "count": 200
+            "count": 400
           }
         },
-        "parallelism_cap": 200
+        "parallelism_cap": 400
       }
     }
   },
@@ -169,7 +169,7 @@
     {
       "env": "dev",
       "worker_vm_size": "Standard_D32s_v6",
-      "worker_max_parallel": 200,
+      "worker_max_parallel": 400,
       "batch_limits": {
         "normalize_batch_size": 1000
       },

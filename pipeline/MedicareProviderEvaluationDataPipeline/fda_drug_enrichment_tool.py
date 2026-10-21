@@ -390,11 +390,23 @@ class FDADrugEnrichmentTool:
         failures raise immediately."""
         attempt, backoff = 0, self._backoff_base_s
         throttle_waits = 0
+        wall_t0 = time.perf_counter()
         while True:
             try:
+                call_t0 = time.perf_counter()
                 result = agent.run_sync(user_message, deps=deps)
                 usage = self._extract_usage(result, attempt)
                 usage["throttle_waits"] = throttle_waits
+                # Instrumentation (operator-ordered 2026-10-21): the duration of
+                # THIS model call, and the wall time including every retry/wait.
+                usage["model_call_s"] = round(time.perf_counter() - call_t0, 3)
+                usage["wall_s"] = round(time.perf_counter() - wall_t0, 3)
+                _log.LogLlmCall(
+                    call_site=call_site, model=str(self._model_id), outcome="ok",
+                    model_call_s=usage["model_call_s"], wall_s=usage["wall_s"],
+                    input_tokens=usage.get("input_tokens"),
+                    output_tokens=usage.get("output_tokens"),
+                    throttle_waits=throttle_waits, transient_retries=attempt)
                 return result.output, usage
             except Exception as exc:  # noqa: BLE001  record, retry transient, never fabricate
                 text = str(exc).lower()
@@ -414,6 +426,11 @@ class FDADrugEnrichmentTool:
                     "timeout", "timed out", "500", "502", "503", "504",
                     "529", "overloaded", "connection"))
                 if not transient or attempt >= self._max_transient_retries:
+                    _log.LogLlmCall(
+                        call_site=call_site, model=str(self._model_id),
+                        outcome=f"failed:{type(exc).__name__}",
+                        wall_s=round(time.perf_counter() - wall_t0, 3),
+                        throttle_waits=throttle_waits, transient_retries=attempt)
                     raise ChatHealthyException(
                         mode="llm_unavailable",
                         component="FDADrugEnrichmentTool",
@@ -450,6 +467,7 @@ class FDADrugEnrichmentTool:
         record_number_start: int = 1,
         sink: Optional[Callable[[FdaDrugRecord], None]] = None,
         on_batch_error: Optional[Callable[[list, Exception], None]] = None,
+        on_batch_usage: Optional[Callable[[dict], None]] = None,
     ) -> list[FdaDrugRecord]:
         """For each FDA SPL record: crosswalk its indication text to ICD-10-CM
         (PROMPT 2 -- the one sanctioned model call) and assemble the
@@ -470,6 +488,10 @@ class FDADrugEnrichmentTool:
                     for key in keys
                 ]
                 crosswalk_output = self.crosswalk(CrosswalkBatchInput(drugs=drug_inputs))
+                if on_batch_usage is not None:
+                    on_batch_usage({"batch_size": len(chunk), "outcome": "ok",
+                                    "model": str(self._model_id),
+                                    **(self._last_crosswalk_usage or {})})
             except ChatHealthyException as exc:
                 # A NON-THROTTLE model failure for this batch (throttles never
                 # reach here -- _run_agent absorbs them as backpressure).
@@ -478,6 +500,10 @@ class FDADrugEnrichmentTool:
                 _log.LogPipeline(
                     "ERROR", "FDADrugEnrichmentTool.enrich: batch of %d record(s) "
                     "skipped after model failure: %s", len(chunk), str(exc)[:200])
+                if on_batch_usage is not None:
+                    on_batch_usage({"batch_size": len(chunk),
+                                    "outcome": f"failed:{exc.mode}",
+                                    "model": str(self._model_id)})
                 if on_batch_error is not None:
                     on_batch_error(keys, exc)
                 skipped_records += len(chunk)

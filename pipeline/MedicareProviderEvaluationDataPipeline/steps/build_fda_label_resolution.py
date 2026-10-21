@@ -285,8 +285,31 @@ def run_step(ctx) -> dict:
                     "skipped_count": len(keys),
                     "error": str(exc)[:200]})
 
+    # Durable per-batch telemetry (operator-ordered 2026-10-21): one small doc
+    # per LLM batch into the coordination store, so batch-size economics
+    # (seconds/label, failures/label by batch size) are answerable by query
+    # across runs. Best-effort: a telemetry write failure logs a WARNING and
+    # never discards a paid model result.
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: PLC0415
+    llm_batches = ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.llm_batches"]
+
+    def _on_batch_usage(batch_meta: dict) -> None:
+        doc = dict(batch_meta)
+        doc["run_id"] = ctx.run_id
+        doc["step"] = "build_fda_label_resolution"
+        doc["record_range"] = [start, end]
+        doc["ts"] = datetime.datetime.utcnow()
+        try:
+            llm_batches.insert_one(doc)
+        except Exception as exc:  # noqa: BLE001
+            _log.LogPipeline(
+                "WARNING", "build_fda_label_resolution: llm_batches telemetry "
+                "write failed (batch continues): %s", str(exc)[:200])
+
     produced = tool.enrich(buildable, record_number_start=start, sink=_sink,
-                           on_batch_error=_on_batch_error)
+                           on_batch_error=_on_batch_error,
+                           on_batch_usage=_on_batch_usage)
     coded = sum(1 for r in produced if any(ind.codes for ind in r.indications))
     _log.LogPipeline(
         "INFO", "build_fda_label_resolution: range=[%d,%d) labels=%d with_codes=%d skipped=%d",

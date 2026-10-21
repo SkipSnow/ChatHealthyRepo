@@ -309,9 +309,28 @@ class _MongoLogHandler(logging.Handler):
                     from .mongo_utilities import ChatHealthyMongoUtilities
                     # Logs are operational records: admin target, which must
                     # answer 24x7 even while the pipeline factory is down.
-                    timed_client = ChatHealthyMongoUtilities().getConnection(
-                        _mongo_log_identity, "ChatHealthyFrontEnd"
-                    )
+                    # One literal getConnection per log-writing identity
+                    # (Rule-065 s10: the call site states which identity opens
+                    # which cluster; this branch IS the vocabulary of
+                    # identities allowed to write logs).
+                    if _mongo_log_identity == "pipelineEditor":
+                        timed_client = ChatHealthyMongoUtilities().getConnection(
+                            "pipelineEditor", "ChatHealthyFrontEnd")
+                    elif _mongo_log_identity == "frontendUser":
+                        timed_client = ChatHealthyMongoUtilities().getConnection(
+                            "frontendUser", "ChatHealthyFrontEnd")
+                    else:
+                        raise ChatHealthyException(
+                            mode="config_error",
+                            component="ChatHealthyLoggingService",
+                            message=(
+                                f"mongo log identity {_mongo_log_identity!r} is not "
+                                "in the literal vocabulary of log-writing "
+                                "identities (pipelineEditor, frontendUser); add a "
+                                "literal branch deliberately rather than passing "
+                                "an arbitrary identity through."
+                            ),
+                        )
                     raw_client = timed_client._client
                     # ONE log. The system is distributed but the business
                     # process is single, so every component writes here and
@@ -719,3 +738,35 @@ class ChatHealthyLoggingService:
             extra["data_version"] = int(data_version)
         kw["extra"] = extra
         self._emit(lvl, msg, args, exc, if_not_debug_log, kw)
+
+    def LogLlmCall(
+        self, *, call_site: str, model: str, outcome: str,
+        model_call_s: Optional[float] = None, wall_s: Optional[float] = None,
+        batch_size: Optional[int] = None,
+        input_tokens: Optional[int] = None, output_tokens: Optional[int] = None,
+        throttle_waits: Optional[int] = None, transient_retries: Optional[int] = None,
+    ) -> None:
+        """The infrastructure event for ONE LLM model call (operator-ordered
+        2026-10-21): every pydantic-ai call site emits this after each call,
+        success or failure, so duration, token and retry telemetry is uniform
+        across the firm without a facade (Rule-065 s11 forbids wrapping the
+        agent; the call site runs the agent directly and then reports here).
+        outcome: "ok" | "failed:<reason>". Durations in seconds: model_call_s
+        is the winning attempt alone; wall_s includes every retry and wait.
+        """
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
+        fields = {
+            "llm_call": True, "call_site": call_site, "model": model,
+            "outcome": outcome, "model_call_s": model_call_s, "wall_s": wall_s,
+            "batch_size": batch_size, "input_tokens": input_tokens,
+            "output_tokens": output_tokens, "throttle_waits": throttle_waits,
+            "transient_retries": transient_retries,
+        }
+        self.LogPipeline(
+            "INFO",
+            "llm_call site=%s model=%s outcome=%s model_call_s=%s wall_s=%s "
+            "batch=%s in_tok=%s out_tok=%s throttles=%s retries=%s",
+            call_site, model, outcome, model_call_s, wall_s, batch_size,
+            input_tokens, output_tokens, throttle_waits, transient_retries,
+            extra={k: v for k, v in fields.items() if v is not None},
+        )

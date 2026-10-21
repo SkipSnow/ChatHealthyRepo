@@ -132,10 +132,15 @@ def _run() -> int:
         # serial (single-partition) step has exactly one pending item, so it
         # needs exactly one worker; spawning the whole pool_cap for it
         # over-spawns workers that find nothing to claim and can mask a step
-        # with no claimable work. Bound concurrency to min(cap, pending_count).
+        # with no claimable work. An ACTIVE worker has already claimed its own
+        # item and will never take a pending one, so actives keep their slots
+        # and every pending item budgets a NEW worker: bound concurrency to
+        # min(cap, active + pending). (Bounding to pending alone serialized the
+        # tail -- run f7b0c4e7's rxnorm load sat pending behind the Part D
+        # load with 199 slots idle; operator-ruled fix 2026-10-21.)
         pending = wi.find_one({"run_id": run_id, "status": "pending"}, {"step": 1})
         pending_count = wi.count_documents({"run_id": run_id, "status": "pending"})
-        want = min(cap, pending_count)
+        want = min(cap, len(active) + pending_count)
         if pending is not None and len(active) < want:
             # Stagger gate (operator ruling 2026-10-21): each worker's start
             # time is its slot -- at most one spawn per stagger_s, so the pool
