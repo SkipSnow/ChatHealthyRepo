@@ -63,8 +63,10 @@ def rollup_specialtymedicare(
     projection = {f"raw.{PARTD_COLS[k]}": 1 for k in
                   ("npi", "generic", "total_claims", "total_30day_fills",
                    "days_supply", "total_drug_cost")}
+    # No run_id filter: the drained-and-replaced staging is the one truth
+    # (Start At, operator design 2026-10-22). run_id stays on provenance only.
     rows = (doc.get("raw") or {}
-            for doc in partd_coll.find({"run_id": run_id}, projection))
+            for doc in partd_coll.find({}, projection))
     acc = accumulate_provider_molecule_totals(rows)
 
     npis = sorted({npi for npi, _ in acc})

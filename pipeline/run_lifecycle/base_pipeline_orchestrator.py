@@ -18,7 +18,6 @@ Behavior:
     without contacting ARM. In local mode this orchestrator additionally
     invokes the step's run_step(ctx) in-process for each partition so the
     coordination substrate stays exercised.
-  * PipelineArgs.resume_from_step skips completed steps up to that name.
   * finally_block steps run in a try/finally on both success and failure.
 """
 
@@ -129,6 +128,27 @@ class BasePipelineOrchestrator:
 
         self._validate_prerequisites(self.STEPS)
 
+        # START AT (operator design 2026-10-22): begin the walk at the named
+        # step. This run carries no history and references no prior job --
+        # whether the walk may proceed is decided by DATA alone, through the
+        # StepDataDependenciesAreMet gate below. An unknown step name is fatal
+        # (a skip-until loop would otherwise mark everything complete and
+        # report success on an empty run).
+        start_at = getattr(args, "start_at_step", None)
+        if start_at:
+            names = [s.name for s in main_steps]
+            if start_at not in names:
+                raise ChatHealthyException(
+                    mode="value_error",
+                    message=(f"start_at_step {start_at!r} names no step of "
+                             f"pipeline {self.PIPELINE_NAME!r}; legal steps: "
+                             f"{', '.join(names)}"))
+            main_steps = main_steps[names.index(start_at):]
+            _log.LogPipeline("INFO",
+                "orchestrator run=%s starts at step %s (%d of %d steps scheduled)",
+                manifest.run_id, start_at, len(main_steps), len(names))
+        scheduled = {s.name for s in main_steps}
+
         ctx = StepContext(
             args=args,
             manifest=manifest,
@@ -137,24 +157,22 @@ class BasePipelineOrchestrator:
             blob_client=self.blob_client,
         )
 
-        skipping_until = args.resume_from_step
-        if skipping_until and skipping_until not in {s.name for s in main_steps}:
-            # Guard (operator requirement 2026-10-21): a resume name outside
-            # the DAG would skip-until-never-matches -- every step marked
-            # complete, the run reported succeeded, nothing executed. Reject.
-            raise ChatHealthyException(
-                mode="value_error",
-                message=(f"resume_from_step {skipping_until!r} names no step of "
-                         f"pipeline {self.PIPELINE_NAME!r}; legal steps: "
-                         f"{', '.join(s.name for s in main_steps)}"))
         try:
             for spec in main_steps:
-                if skipping_until and spec.name != skipping_until:
-                    _log.LogPipeline("INFO", "skip step=%s (resume_from_step=%s)", spec.name, skipping_until)
-                    manifest.completed_steps.add(spec.name)
-                    continue
-                skipping_until = None
-                self._require_prereqs_met(spec, manifest)
+                # The DATA gate, before EVERY step (operator design
+                # 2026-10-22): the collections this step consumes either exist
+                # with data, or the run dies here. No history is consulted.
+                if not self.StepDataDependenciesAreMet(spec.name, ctx):
+                    raise ChatHealthyException(
+                        mode="pipeline_data_dependencies_unmet",
+                        message=(f"step {spec.name!r}: the data this step "
+                                 f"consumes is absent or empty; the run cannot "
+                                 f"proceed (StepDataDependenciesAreMet=False)"))
+                # In-run ordering: only prerequisites scheduled in THIS run are
+                # required to have completed; a prerequisite before the
+                # start-at point is vouched for by the data gate, not history.
+                self._require_prereqs_met(spec, manifest,
+                                          required_among=scheduled)
                 self._invoke_step(spec, ctx)
             manifest.status = "succeeded"
         except Exception as exc:
@@ -165,9 +183,17 @@ class BasePipelineOrchestrator:
         finally:
             for spec in finally_steps:
                 try:
+                    # The same DATA gate guards every step, finally-block
+                    # included (operator design 2026-10-22).
+                    if not self.StepDataDependenciesAreMet(spec.name, ctx):
+                        raise ChatHealthyException(
+                            mode="pipeline_data_dependencies_unmet",
+                            message=(f"step {spec.name!r}: the data this step "
+                                     f"consumes is absent or empty "
+                                     f"(StepDataDependenciesAreMet=False)"))
                     self._invoke_step(spec, ctx)
                 except Exception:
-                    _log.LogPipeline("EXCEPTION", 
+                    _log.LogPipeline("EXCEPTION",
                         "finally-block step %s raised; continuing", spec.name
                     )
             manifest.updated_at = _utc_now_iso()
@@ -239,7 +265,6 @@ class BasePipelineOrchestrator:
         args_snapshot = {
             "env_prefix": ctx.args.env_prefix,
             "state_scope": ctx.args.state_scope or ctx.args.states,
-            "resume_from_step": ctx.args.resume_from_step,
             "load_mode": (
                 "full" if not ctx.args.incremental else "incremental"
             ),
@@ -616,7 +641,27 @@ class BasePipelineOrchestrator:
                 if pre not in names:
                     raise ChatHealthyException(mode="value_error", message=f"Step {spec.name} names unknown prerequisite {pre!r}")
 
-    def _require_prereqs_met(self, spec: StepSpec, manifest: RunManifest) -> None:
-        missing = [p for p in spec.prerequisites if p not in manifest.completed_steps]
+    def _require_prereqs_met(self, spec: StepSpec, manifest: RunManifest,
+                             required_among: set[str] | None = None) -> None:
+        """In-run ordering only: a prerequisite is required to have completed
+        iff it is scheduled in THIS run (required_among). A prerequisite
+        before a start-at point is vouched for by the StepDataDependenciesAreMet
+        gate -- data, not history (operator design 2026-10-22)."""
+        missing = [p for p in spec.prerequisites
+                   if (required_among is None or p in required_among)
+                   and p not in manifest.completed_steps]
         if missing:
             raise ChatHealthyException(mode="runtime_error", message=f"Step {spec.name} prerequisites not met: {missing}")
+
+    def StepDataDependenciesAreMet(self, step_name: str, ctx: StepContext) -> bool:
+        """Does the data this step consumes exist, with rows in it? Called by
+        the infrastructure before EVERY step (operator design 2026-10-22).
+        Virtual: every pipeline child class MUST override this and answer for
+        every one of its steps -- a step that consumes nothing answers True
+        explicitly. A pipeline that fails to override has no business running."""
+        raise ChatHealthyException(
+            mode="not_implemented",
+            message=(f"{type(self).__name__} does not override "
+                     f"StepDataDependenciesAreMet; every pipeline must declare "
+                     f"the data dependencies of every step (asked for "
+                     f"{step_name!r})"))

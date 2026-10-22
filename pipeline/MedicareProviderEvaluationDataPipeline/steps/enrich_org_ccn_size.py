@@ -48,7 +48,6 @@ def run_step(ctx) -> dict:
 
     result = enrich_org_ccn_size(
         state=state,
-        run_id=ctx.run_id,
         providermedicare_coll=providermedicare_coll,
         provider_spine_coll=provider_spine_coll,
         pos_coll=pos_coll,

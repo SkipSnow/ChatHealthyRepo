@@ -51,7 +51,7 @@ _RXNORM_INGREDIENT_TTYS = ("IN", "PIN")
 
 def _rxnorm_rxcui_by_molecule(ctx, reg, mongo) -> dict[str, list[str]]:
     """The staged RxNorm vocabulary folded to the pipeline's molecule grain:
-    molecule_id(STR) -> first-seen-ordered RXCUI list, from this run's staged
+    molecule_id(STR) -> first-seen-ordered RXCUI list, from the staged
     RXNCONSO ingredient rows (TTY IN/PIN). A LOCAL join -- the vocabulary is a
     declared, fetched, staged source like every other (LLD v83 III.9). An
     empty staging in build mode is a missing source: hard fail (H6)."""
@@ -59,8 +59,10 @@ def _rxnorm_rxcui_by_molecule(ctx, reg, mongo) -> dict[str, list[str]]:
     coll = mongo[rx.staging_db][reg.staging_collection_name("rxnorm")]
     by_mid: dict[str, list[str]] = {}
     rows = 0
+    # No run_id filter: the drained-and-replaced staging is the one truth
+    # (Start At, operator design 2026-10-22).
     cursor = coll.find(
-        {"run_id": ctx.run_id, "TTY": {"$in": list(_RXNORM_INGREDIENT_TTYS)}},
+        {"TTY": {"$in": list(_RXNORM_INGREDIENT_TTYS)}},
         {"RXCUI": 1, "STR": 1})
     for row in cursor:
         rows += 1
@@ -76,9 +78,8 @@ def _rxnorm_rxcui_by_molecule(ctx, reg, mongo) -> dict[str, list[str]]:
             mode="runtime_error",
             component="finalize_fda_molecules",
             message=("finalize_fda_molecules: the staged RxNorm vocabulary holds "
-                     "zero ingredient rows (TTY IN/PIN) for this run -- the rxnorm "
-                     "source is declared and required; missing source is a hard "
-                     "fail (H6)"))
+                     "zero ingredient rows (TTY IN/PIN) -- the rxnorm source is "
+                     "declared and required; missing source is a hard fail (H6)"))
     _log.LogPipeline(
         "INFO", "finalize_fda_molecules: rxnorm vocabulary rows=%d molecules=%d",
         rows, len(by_mid))
@@ -118,7 +119,7 @@ def run_step(ctx) -> dict:
     by_molecule: dict[str, list[dict]] = {}
     orphans = 0
     labels = 0
-    for lr in transient_coll.find({"run_id": ctx.run_id}):
+    for lr in transient_coll.find({}):
         labels += 1
         mid = molecule_id(lr.get("molecule"))
         if not mid:

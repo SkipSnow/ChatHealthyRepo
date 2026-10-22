@@ -214,7 +214,7 @@ def run_step(ctx) -> dict:
     records = [
         _shape_fda_record(doc.get("raw") or {})
         for doc in staging_coll.find(
-            {"run_id": ctx.run_id, "fda_record_number": {"$gte": start, "$lt": end}}
+            {"fda_record_number": {"$gte": start, "$lt": end}}
         ).sort("fda_record_number", 1)
     ]
     if not records:

@@ -82,7 +82,6 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
         env_prefix=args_snap.get("env_prefix", "dev"),
         state_scope=list(args_snap.get("state_scope") or []) or None,
         run_id=payload.get("run_id"),
-        resume_from_step=args_snap.get("resume_from_step") or None,
         incremental=(args_snap.get("load_mode") == "incremental"),
         data_version=int(args_snap.get("data_version") or 0),
         # Operator-driven flags round-trip through the payload snapshot.

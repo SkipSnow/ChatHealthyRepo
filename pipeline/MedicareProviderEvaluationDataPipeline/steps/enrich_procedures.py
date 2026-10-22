@@ -45,7 +45,6 @@ def run_step(ctx) -> dict:
 
     result = enrich_procedures(
         state=state,
-        run_id=ctx.run_id,
         providermedicare_coll=providermedicare_coll,
         coverage_hcpc_coll=coverage_hcpc_coll,
         coverage_icd10_coll=coverage_icd10_coll,

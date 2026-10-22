@@ -9,7 +9,7 @@ RAW mode (< 100 CMS records, decided globally by prepare_molecule_masters) one
 child per CMS Part D record; STATE-AGGREGATE mode one child per billing/
 business state. The build fans out by partition = (billing/business state x
 entity type); every row was stamped with its partition by the pre-pass, so a
-worker's read is an indexed find({run_id, partition_state, partition_entity}).
+worker's read is an indexed find({partition_state, partition_entity}).
 
 Concurrency and exactly-once (LLD v83 III.3): multiple state workers converge
 on one master. Each worker applies its partition's contribution to a molecule
@@ -146,7 +146,6 @@ def build_provider_molecule(
     *,
     state: str,
     entity_type: int,
-    run_id: str,
     provider_spine_coll,
     partd_coll,
     master_coll,
@@ -164,8 +163,10 @@ def build_provider_molecule(
     rows_by_molecule: dict[str, list[dict]] = defaultdict(list)
     npis: set[str] = set()
     no_molecule_rows = 0
+    # No run_id filter: the drained-and-replaced staging is the one truth
+    # (Start At, operator design 2026-10-22).
     cursor = partd_coll.find(
-        {"run_id": run_id, "partition_state": state,
+        {"partition_state": state,
          "partition_entity": int(entity_type)})
     total_rows = 0
     for doc in cursor:

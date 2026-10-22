@@ -76,10 +76,12 @@ def _percentile(sorted_vals: list[int], p: float) -> float:
     return sorted_vals[lo] + (sorted_vals[hi] - sorted_vals[lo]) * (idx - lo)
 
 
-def _build_pos_index(pos_coll, run_id: str) -> tuple[dict[str, int], list[float]]:
-    """CCN -> certified bed count, plus the four quintile cut-points of bed count."""
+def _build_pos_index(pos_coll) -> tuple[dict[str, int], list[float]]:
+    """CCN -> certified bed count, plus the four quintile cut-points of bed count.
+    No run_id filter: a full load drains-then-replaces the staging collection,
+    so the staged rows are the one truth (Start At, operator design 2026-10-22)."""
     ccn_beds: dict[str, int] = {}
-    for doc in pos_coll.find({"run_id": run_id}):
+    for doc in pos_coll.find({}):
         low = _norm_keys(doc.get("raw") or {})
         ccn = _first(low, _POS_CCN_KEYS)
         beds = _to_int(_first(low, _POS_BED_KEYS))
@@ -102,20 +104,21 @@ def _band(beds: int | None, cutpoints: list[float]) -> int | None:
 def enrich_org_ccn_size(
     *,
     state: str,
-    run_id: str,
     providermedicare_coll,
     provider_spine_coll,
     pos_coll,
     batch_size: int = 1000,
 ) -> dict[str, Any]:
-    ccn_beds, cutpoints = _build_pos_index(pos_coll, run_id)
+    ccn_beds, cutpoints = _build_pos_index(pos_coll)
 
     ops: list[UpdateOne] = []
     written = 0
     orgs = 0
     sized = 0
+    # Version-scoped masters collection is the one truth -- no provenance
+    # run filter (Start At, operator design 2026-10-22).
     for pm in providermedicare_coll.find(
-            {"provenance.source_run_id": run_id, "prescriber_state": state, "entity_type": "O"}):
+            {"prescriber_state": state, "entity_type": "O"}):
         orgs += 1
         npi = pm["_id"]
         spine = provider_spine_coll.find_one({"npi": npi}) or \

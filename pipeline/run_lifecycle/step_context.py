@@ -32,8 +32,12 @@ class PipelineArgs:
     batch_size: int = 1000
     pool_size: int = 51
     discrepancy_threshold: int = 1000
-    resume_from_step: str | None = None
     run_id: str | None = None
+    # START AT (operator design 2026-10-22): begin the DAG walk at this step.
+    # No history, no prior-run reference -- the infrastructure gates every
+    # step on StepDataDependenciesAreMet(step_name): the collections a step
+    # consumes either exist with data (go) or the run dies fatally.
+    start_at_step: str | None = None
     # Mandatory data-version integer. Default 0 is only for dataclass
     # field-ordering; __post_init__ enforces >= 1 at construction.
     data_version: int = 0

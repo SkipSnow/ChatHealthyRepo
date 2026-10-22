@@ -61,7 +61,6 @@ def run_step(ctx) -> dict:
     result = build_provider_molecule(
         state=str(state),
         entity_type=int(entity_type),
-        run_id=ctx.run_id,
         provider_spine_coll=provider_spine_coll,
         partd_coll=partd_coll,
         master_coll=master_coll,

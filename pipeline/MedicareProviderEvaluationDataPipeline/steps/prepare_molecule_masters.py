@@ -50,9 +50,11 @@ RAW_THRESHOLD = 100
 _STAMP_CHUNK = 20000
 
 
-def _distinct_npis(staging_coll, run_id: str) -> list[str]:
+def _distinct_npis(staging_coll) -> list[str]:
+    # No run_id filter: the drained-and-replaced staging is the one truth
+    # (Start At, operator design 2026-10-22).
     return [str(n) for n in staging_coll.distinct(
-        f"raw.{PARTD_COLS['npi']}", {"run_id": run_id}) if n]
+        f"raw.{PARTD_COLS['npi']}") if n]
 
 
 def _spine_states(provider_coll, npis: list[str]) -> dict[str, tuple[str, int]]:
@@ -95,7 +97,7 @@ def run_step(ctx) -> dict:
                          pkg, res)
 
     # ---- 1. Stamp partition_state / partition_entity by NPI ---------------
-    npis = _distinct_npis(staging, ctx.run_id)
+    npis = _distinct_npis(staging)
     spine = _spine_states(provider_coll, npis)
     not_found = sorted(set(npis) - set(spine))
     for npi in not_found:
@@ -124,12 +126,12 @@ def run_step(ctx) -> dict:
         for i in range(0, len(group), _STAMP_CHUNK):
             chunk = group[i:i + _STAMP_CHUNK]
             res = staging.update_many(
-                {"run_id": ctx.run_id, npi_col: {"$in": chunk}},
+                {npi_col: {"$in": chunk}},
                 {"$set": {"partition_state": state, "partition_entity": entity}})
             stamped += res.modified_count
-    # Catch-all: everything this run left unstamped (spine-missing NPIs).
+    # Catch-all: every staged row still unstamped (spine-missing NPIs).
     res = staging.update_many(
-        {"run_id": ctx.run_id, "partition_state": {"$exists": False}},
+        {"partition_state": {"$exists": False}},
         {"$set": {"partition_state": CATCH_ALL_STATE, "partition_entity": 1}})
     catch_all_rows = res.modified_count
 
@@ -138,7 +140,6 @@ def run_step(ctx) -> dict:
     counts: dict[str, int] = {}
     no_molecule_rows = 0
     for row in staging.aggregate([
-            {"$match": {"run_id": ctx.run_id}},
             {"$group": {"_id": f"${gnrc_col}", "n": {"$sum": 1}}},
     ], allowDiskUse=True):
         mid = molecule_id(row.get("_id"))

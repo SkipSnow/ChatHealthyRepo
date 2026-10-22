@@ -39,15 +39,18 @@ def _first(low: dict, keys: tuple[str, ...]) -> str:
     return ""
 
 
-def _rows(coll, run_id: str):
-    for doc in coll.find({"run_id": run_id}):
+def _rows(coll):
+    # No run_id filter: a full load drains-then-replaces the staging
+    # collection, so the staged rows are the one truth regardless of which
+    # run staged them (Start At, operator design 2026-10-22).
+    for doc in coll.find({}):
         yield doc.get("raw") or {}
 
 
-def build_hcpc_to_icd10(hcpc_coll, icd10_coll, run_id: str) -> dict[str, set]:
+def build_hcpc_to_icd10(hcpc_coll, icd10_coll) -> dict[str, set]:
     """Join the coverage HCPCS and ICD-10 tables by article into HCPCS -> ICD-10."""
     article_icd10: dict[str, set] = defaultdict(set)
-    for raw in _rows(icd10_coll, run_id):
+    for raw in _rows(icd10_coll):
         low = _norm_keys(raw)
         article = _first(low, _POLICY_KEYS)
         code = _first(low, _ICD10_CODE_KEYS)
@@ -55,7 +58,7 @@ def build_hcpc_to_icd10(hcpc_coll, icd10_coll, run_id: str) -> dict[str, set]:
             article_icd10[article].add(code.upper().replace(".", ""))
 
     hcpc_to_icd10: dict[str, set] = defaultdict(set)
-    for raw in _rows(hcpc_coll, run_id):
+    for raw in _rows(hcpc_coll):
         low = _norm_keys(raw)
         article = _first(low, _POLICY_KEYS)
         hcpc = _first(low, _HCPC_CODE_KEYS)
@@ -67,19 +70,19 @@ def build_hcpc_to_icd10(hcpc_coll, icd10_coll, run_id: str) -> dict[str, set]:
 def enrich_procedures(
     *,
     state: str,
-    run_id: str,
     providermedicare_coll,
     coverage_hcpc_coll,
     coverage_icd10_coll,
     batch_size: int = 1000,
 ) -> dict[str, Any]:
-    hcpc_to_icd10 = build_hcpc_to_icd10(coverage_hcpc_coll, coverage_icd10_coll, run_id)
+    hcpc_to_icd10 = build_hcpc_to_icd10(coverage_hcpc_coll, coverage_icd10_coll)
 
     ops: list[UpdateOne] = []
     written = 0
     procedures_justified = 0
-    for doc in providermedicare_coll.find(
-            {"provenance.source_run_id": run_id, "prescriber_state": state}):
+    # The masters collection is version-scoped by name (full annual replace),
+    # so the collection IS the one truth -- no provenance run filter.
+    for doc in providermedicare_coll.find({"prescriber_state": state}):
         procs = doc.get("procedures") or []
         if not procs:
             continue

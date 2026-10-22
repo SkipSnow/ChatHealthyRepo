@@ -83,20 +83,29 @@ def check(run_id: str, out=sys.stdout.write) -> int:
     out(f"  status={run.get('status')} controller_phase={run.get('controller_phase')} "
         f"heartbeat={hb_age}\n")
 
-    # On a failed/aborted run, surface WHY at the top -- the fatal exception on
-    # the run record and the run's most recent ERROR log lines -- so the status
-    # names the cause (e.g. an ARM quota 409), not merely that it failed.
+    # Surface the run's recent ERROR lines in EVERY state (operator ruling
+    # 2026-10-22: errors were invisible while a run was live and only appeared
+    # post-mortem), and only THIS incarnation's: a resumed run reuses its
+    # run_id, so without the resumed_at epoch filter the tool reprinted the
+    # dead incarnation's errors under the live one.
     if status in ("failed", "aborted", "error"):
         fx = run.get("fatal_exception") or {}
         if fx:
             out(f"  FATAL [{fx.get('mode', '')}] {str(fx.get('message') or fx.get('type') or '')[:400]}\n")
-        logcoll = "Log_" + str(run.get("env") or "dev")
-        try:
-            errs = list(db[logcoll].find({"run_id": run_id, "level": "ERROR"}).sort([("_id", -1)]).limit(5))
-            for e in reversed(errs):
-                out(f"  ERROR {str(e.get('message') or '')[:400]}\n")
-        except Exception:  # noqa: BLE001
-            pass
+    logcoll = "Log_" + str(run.get("env") or "dev")
+    try:
+        err_q = {"run_id": run_id, "level": "ERROR"}
+        epoch = run.get("resumed_at")
+        if epoch:
+            from bson import ObjectId  # noqa: PLC0415
+            err_q["_id"] = {"$gte": ObjectId.from_datetime(
+                epoch.replace(tzinfo=datetime.timezone.utc))}
+        errs = list(db[logcoll].find(err_q).sort([("_id", -1)]).limit(5))
+        for e in reversed(errs):
+            stamp = e["_id"].generation_time.strftime("%H:%M:%SZ")
+            out(f"  ERROR [{stamp}] {str(e.get('message') or '')[:400]}\n")
+    except Exception:  # noqa: BLE001
+        pass
 
     # silent_after_s (LLD v83 III.15): a running item with no beat for this
     # long is SILENT -- a diagnostic, never a failure. Read from the per-env

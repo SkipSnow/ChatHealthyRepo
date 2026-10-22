@@ -37,14 +37,15 @@ def run_step(ctx) -> dict:
 
     partd = reg.by_source_name("medicare_partd")
     staging_partd = mongo[partd.staging_db][reg.staging_collection_name("medicare_partd")]
-    cms_row_count = staging_partd.count_documents({"run_id": ctx.run_id})
+    # No run_id filters below: the drained-and-replaced staging is the one
+    # truth (Start At, operator design 2026-10-22).
+    cms_row_count = staging_partd.count_documents({})
 
     # The no-molecule bucket, recounted here so the check is self-contained
     # (the same arithmetic the pre-pass measured and recorded).
     gnrc_col = f"raw.{PARTD_COLS['generic']}"
     no_molecule_rows = 0
     for row in staging_partd.aggregate([
-            {"$match": {"run_id": ctx.run_id}},
             {"$group": {"_id": f"${gnrc_col}", "n": {"$sum": 1}}},
     ], allowDiskUse=True):
         if molecule_id(row.get("_id")) is None:
@@ -58,10 +59,9 @@ def run_step(ctx) -> dict:
         ofda = reg.by_source_name("openfda_labels")
         staging_fda = mongo[ofda.staging_db][reg.staging_collection_name("openfda_labels")]
         fda_in_scope = staging_fda.count_documents(
-            {"run_id": ctx.run_id, "fda_record_number": {"$exists": True}})
+            {"fda_record_number": {"$exists": True}})
 
     result = check_conformance(
-        run_id=ctx.run_id,
         collections=collections,
         cms_partd_row_count=cms_row_count,
         no_molecule_rows=no_molecule_rows,

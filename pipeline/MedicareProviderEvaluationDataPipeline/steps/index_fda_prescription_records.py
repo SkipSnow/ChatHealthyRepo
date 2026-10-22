@@ -2,13 +2,15 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 """index_fda_prescription_records (EPIC-010-F-007) -- stamp a sequential fda_record_number
-on this run's PRESCRIPTION openFDA staging labels so build_fda_label_resolution can
+on the staged PRESCRIPTION openFDA labels so build_fda_label_resolution can
 range-partition the FDA work across worker PROCESSES (LLD I.3.4a).
 
 A label is in scope when it carries indications_and_usage prose and is NOT OTC
 (openfda.product_type naming a HUMAN OTC DRUG). OTC labels are left unstamped and so are
-excluded from the fdaProductToDiagnosisResolution collection. Serial, once per run,
-idempotent (a resume or retry re-reading the step does not re-stamp).
+excluded from the fdaProductToDiagnosisResolution collection. Serial, idempotent
+(already-stamped staging is not re-stamped). Reads carry no run_id: a full load
+drains-then-replaces the staging collection, so the staged rows are the one truth
+regardless of which run staged them (Start At, operator design 2026-10-22).
 """
 
 from __future__ import annotations
@@ -36,19 +38,30 @@ def run_step(ctx) -> dict:
     ofda = reg.by_source_name("openfda_labels")
     staging_coll = mongo[ofda.staging_db][reg.staging_collection_name("openfda_labels")]
 
+    # Build mode: this serial pre-pass drains the FDA leg's per-label result
+    # store so the fan-out repopulates it from zero -- drain-then-replace, the
+    # same single-truth rule the staging loader applies. Without the drain,
+    # run-id-free folds would mix stale labels from an older staging.
+    if bool(ctx.args.build_fda_drug):
+        from pipeline.MedicareProviderEvaluationDataPipeline.steps.build_fda_label_resolution import (  # noqa: PLC0415
+            TRANSIENT_COLLECTION)
+        removed = mongo[ofda.staging_db][TRANSIENT_COLLECTION].delete_many({}).deleted_count
+        _log.LogPipeline(
+            "INFO", "index_fda_prescription_records: drained transient rows=%d", removed)
+
     already = staging_coll.count_documents(
-        {"run_id": ctx.run_id, "fda_record_number": {"$exists": True}})
+        {"fda_record_number": {"$exists": True}})
     if already:
         _log.LogPipeline(
-            "INFO", "index_fda_prescription_records: already stamped run_id=%s count=%d",
-            ctx.run_id, already)
+            "INFO", "index_fda_prescription_records: already stamped count=%d",
+            already)
         return {"step": "index_fda_prescription_records", "fda_records": already,
                 "restamped": False}
 
-    staging_coll.create_index([("run_id", 1), ("fda_record_number", 1)])
+    staging_coll.create_index([("fda_record_number", 1)])
     number = otc_excluded = no_indication = 0
     ops: list[UpdateOne] = []
-    for doc in staging_coll.find({"run_id": ctx.run_id}).sort("_id", 1):
+    for doc in staging_coll.find({}).sort("_id", 1):
         label = doc.get("raw") or {}
         if not (label.get("indications_and_usage") or []):
             no_indication += 1
@@ -69,8 +82,8 @@ def run_step(ctx) -> dict:
         raise ChatHealthyException(
             mode="runtime_error",
             component="index_fda_prescription_records",
-            message=(f"index_fda_prescription_records: no prescription FDA labels for "
-                     f"run_id={ctx.run_id}; openFDA staging empty or all OTC"))
+            message=("index_fda_prescription_records: no prescription FDA labels "
+                     "staged; openFDA staging empty or all OTC"))
     _log.LogPipeline(
         "INFO",
         "index_fda_prescription_records: stamped=%d otc_excluded=%d no_indication=%d",

@@ -21,8 +21,13 @@ step_timeouts.medicare in the durable configuration (required; H7/H9).
 
 from __future__ import annotations
 
+from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+
 from pipeline.run_lifecycle.base_pipeline_orchestrator import BasePipelineOrchestrator
 from pipeline.run_lifecycle.step_spec import StepSpec
+
+_log = ChatHealthyLoggingService()
 
 
 class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
@@ -192,6 +197,97 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
     # Every fetched source also lands in staging; nothing is load-only now.
     LOAD_SOURCES = FETCH_SOURCES
 
+    # The DATA each step consumes (operator design 2026-10-22): source name ->
+    # resolved staging collection, checked nonempty by StepDataDependenciesAreMet
+    # before the step runs. EVERY step answers here -- a step that consumes no
+    # collection (infra, fetch, gates) declares [] explicitly, and a step name
+    # this map does not know is an unimplemented-check fatal, never a pass.
+    # "transient" is the FDA per-label result store; "fda_published" the
+    # molecule collection; "masters" the ProviderMedicare build. No run_id
+    # enters any check: a full load drains-then-replaces every staging
+    # collection, so existence-with-rows IS the dependency.
+    STEP_DATA_DEPENDENCIES: dict[str, list[str]] = {
+        "prepare_infrastructure": [],
+        "medicare_source_freshness_gate": [],
+        "medicare_fetch_all_sources": [],
+        "medicare_source_archival": [],
+        "medicare_load_staging": [],
+        "index_fda_prescription_records": ["staging:openfda_labels"],
+        "build_fda_label_resolution": ["staging:openfda_labels"],
+        # build mode consumes the per-label transient + the RxNorm vocabulary;
+        # consume mode reads the published molecule collection instead.
+        "finalize_fda_molecules": ["if_build_fda:transient",
+                                   "if_build_fda:staging:rxnorm",
+                                   "if_consume_fda:fda_published"],
+        "prepare_molecule_masters": ["staging:medicare_partd", "provider_spine"],
+        "build_providermedicare_base": ["staging:medicare_partd", "masters"],
+        "enrich_drugs": ["masters", "fda_published"],
+        "enrich_procedures": ["masters", "staging:medicare_coverage_hcpc",
+                              "staging:medicare_coverage_icd10"],
+        "enrich_org_ccn_size": ["masters", "staging:medicare_pos"],
+        "rollup_specialtymedicare": ["staging:medicare_partd"],
+        "medicare_contract_conformance": ["staging:medicare_partd", "masters",
+                                          "specialty_published", "fda_published",
+                                          "if_build_fda:staging:openfda_labels"],
+        "quiesce_infrastructure": [],
+    }
+
+    def StepDataDependenciesAreMet(self, step_name: str, ctx) -> bool:
+        if step_name not in self.STEP_DATA_DEPENDENCIES:
+            raise ChatHealthyException(
+                mode="not_implemented",
+                message=(f"MedicareProviderEvaluationOrchestrator declares no "
+                         f"data dependencies for step {step_name!r}; every "
+                         f"step must answer StepDataDependenciesAreMet"))
+        deps = self.STEP_DATA_DEPENDENCIES[step_name]
+        if not deps:
+            return True
+        from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime  # noqa: PLC0415
+        from pipeline.MedicareProviderEvaluationDataPipeline.steps.build_fda_label_resolution import (  # noqa: PLC0415
+            TRANSIENT_COLLECTION)
+        reg = PipelineRuntime(ctx).registry
+        mongo = ctx.mongo_client
+        building = bool(ctx.args.build_fda_drug)
+        for dep in deps:
+            if dep.startswith("if_build_fda:"):
+                if not building:
+                    continue
+                dep = dep.split(":", 1)[1]
+            elif dep.startswith("if_consume_fda:"):
+                if building:
+                    continue
+                dep = dep.split(":", 1)[1]
+            if dep.startswith("staging:"):
+                src = dep.split(":", 1)[1]
+                e = reg.by_source_name(src)
+                coll = mongo[e.staging_db][reg.staging_collection_name(src)]
+            elif dep == "transient":
+                ofda = reg.by_source_name("openfda_labels")
+                coll = mongo[ofda.staging_db][TRANSIENT_COLLECTION]
+            elif dep == "fda_published":
+                tgt = reg.by_source_name("fda_drug")
+                coll = mongo[tgt.public_data_db][reg.public_data_collection_name("fda_drug")]
+            elif dep == "masters":
+                tgt = reg.by_source_name("providermedicare")
+                coll = mongo[tgt.public_data_db][reg.public_data_collection_name("providermedicare")]
+            elif dep == "specialty_published":
+                tgt = reg.by_source_name("specialtymedicare")
+                coll = mongo[tgt.public_data_db][reg.public_data_collection_name("specialtymedicare")]
+            elif dep == "provider_spine":
+                db_name, coll_name = ctx.provider_collection.split(".", 1)
+                coll = mongo[db_name][coll_name]
+            else:
+                raise ChatHealthyException(
+                    mode="not_implemented",
+                    message=(f"StepDataDependenciesAreMet: step {step_name!r} "
+                             f"declares unknown dependency kind {dep!r}"))
+            if coll.count_documents({}, limit=1) == 0:
+                _log.LogPipeline(
+                    "ERROR", "StepDataDependenciesAreMet: step=%s dependency=%s "
+                    "collection=%s is absent or empty", step_name, dep, coll.full_name)
+                return False
+        return True
+
     def _partition_enumerators(self):
         # The fan-out dimension and worker cap for EVERY step are declared in
         # persistent config (fan_out.medicare.<step>) per §I.3.4. This method
@@ -216,7 +312,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         ofda = reg.by_source_name("openfda_labels")
         staging = ctx.mongo_client[ofda.staging_db][reg.staging_collection_name("openfda_labels")]
         total = staging.count_documents(
-            {"run_id": ctx.run_id, "fda_record_number": {"$exists": True}})
+            {"fda_record_number": {"$exists": True}})
         if total <= 0:
             return [{"single": True}]
         worker_count = max(1, min(int(count), total))

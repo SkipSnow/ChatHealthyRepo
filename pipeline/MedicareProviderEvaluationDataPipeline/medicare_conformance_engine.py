@@ -49,7 +49,7 @@ def _validator(schema_file: str):
     return Draft202012Validator(schema)
 
 
-def check_conformance(*, run_id: str, collections: dict,
+def check_conformance(*, collections: dict,
                       cms_partd_row_count: int | None = None,
                       no_molecule_rows: int = 0,
                       fda_in_scope_labels: int | None = None,

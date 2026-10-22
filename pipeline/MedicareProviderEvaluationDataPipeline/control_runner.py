@@ -67,16 +67,15 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Medicare Provider Evaluation pipeline Control runner")
     parser.add_argument("--run-id", dest="run_id",
                         default=os.environ.get("RUN_ID") or None,
-                        help="Existing manifest run_id; a new one is minted if omitted")
+                        help="The run_id the runbook admitted this run under. "
+                             "REQUIRED: a controller may never invent its own "
+                             "identity (operator ruling 2026-10-22).")
     parser.add_argument("--env-prefix", dest="env_prefix",
                         default=os.environ.get("ENV_PREFIX", "dev"),
                         help="Environment prefix (local|dev|qa|prod)")
     parser.add_argument("--states", dest="states",
                         default=os.environ.get("STATES", "ALL"),
                         help="Comma-separated state list or ALL (provider fan-out scope)")
-    parser.add_argument("--resume-from-step", dest="resume_from_step",
-                        default=os.environ.get("RESUME_FROM_STEP") or None,
-                        help="Skip completed steps up to this step name")
     parser.add_argument("--expected-duration-minutes", dest="expected_duration_minutes",
                         type=int,
                         default=int(os.environ.get("EXPECTED_DURATION_MINUTES", "120")))
@@ -98,6 +97,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                              "this run (produces a candidate for operator-gated "
                              "release). Default off: consume the current published "
                              "collection.")
+    parser.add_argument("--start-at-step", dest="start_at_step",
+                        default=os.environ.get("START_AT_STEP", "").strip() or None,
+                        help="START AT (operator design 2026-10-22): begin the "
+                             "DAG walk at this formal step name. Every step is "
+                             "gated on StepDataDependenciesAreMet -- the data a "
+                             "step consumes either exists with rows (go) or the "
+                             "run dies fatally. No history, no prior-run "
+                             "reference. Reads START_AT_STEP env if omitted.")
     parser.add_argument("--provider-collection", dest="provider_collection",
                         default=os.environ.get("PROVIDER_COLLECTION", "").strip() or None,
                         help="Fully-qualified provider source as "
@@ -129,8 +136,17 @@ def _control(ns) -> int:
     os.environ["PIPELINE_DISPLAY_NAME"] = (
         MedicareProviderEvaluationOrchestrator.PIPELINE_DISPLAY_NAME
         or MedicareProviderEvaluationOrchestrator.PIPELINE_NAME)
-    if ns.run_id:
-        os.environ["RUN_ID"] = ns.run_id
+    if not ns.run_id:
+        # A controller with no run_id has no record, no reservation and no
+        # lock behind it. Minting one here would create a ghost run the
+        # supervisors rightly kill (operator ruling 2026-10-22: a missing
+        # required input is fatal, never a fallback).
+        raise ChatHealthyException(
+            mode="config_error",
+            component="MedicareControlRunner",
+            message="--run-id (or RUN_ID env) is required: the runbook admits "
+                    "the run and mints its id; the controller never invents one.")
+    os.environ["RUN_ID"] = ns.run_id
 
     _phase.set_controller_phase(os.environ.get("RUN_ID", ""),
                                 _phase.CONTROLLER_STARTING,
@@ -244,11 +260,11 @@ def _control(ns) -> int:
             states=_states_list(ns.states),
             env_prefix=ns.env_prefix,
             expected_duration_minutes=ns.expected_duration_minutes,
-            resume_from_step=ns.resume_from_step,
             run_id=ns.run_id,
             data_version=ns.data_version,
             build_fda_drug=ns.build_fda_drug,
             provider_collection=ns.provider_collection,
+            start_at_step=ns.start_at_step,
         )
         _cfg = load_pipeline_config(env_prefix=ns.env_prefix)
         # Worker box size and pool size are per-environment CONFIGURATION, read
@@ -270,9 +286,9 @@ def _control(ns) -> int:
         _log.LogPipeline(
             "INFO",
             "medicare control_runner: starting run env_prefix=%s states=%s "
-            "resume_from_step=%s data_version=%s build_fda_drug=%s run_id=%s",
-            ns.env_prefix, args.states, ns.resume_from_step, ns.data_version,
-            ns.build_fda_drug, ns.run_id or "(mint)",
+            "data_version=%s build_fda_drug=%s run_id=%s start_at_step=%s",
+            ns.env_prefix, args.states, ns.data_version,
+            ns.build_fda_drug, ns.run_id, ns.start_at_step,
         )
         _phase.set_controller_phase(os.environ.get("RUN_ID", ""), _phase.ORCHESTRATING,
                                     "walking the step DAG; fanning out work_items")

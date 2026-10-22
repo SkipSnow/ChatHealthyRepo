@@ -596,7 +596,7 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 
 
 def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
-                          invocation_mode: str, resume_from_step: str,
+                          invocation_mode: str,
                           data_version: int,
                           google_maps_enabled: bool = False,
                           debug_level: str = DEBUG_LEVEL_DEFAULT) -> str:
@@ -683,7 +683,6 @@ runcmd:
       -e LOAD_MODE='{load_mode}' \\
       -e STATE_SCOPE='{scope_json}' \\
       -e PIPELINE_NAME='{PIPELINE_NAME}' \\
-      -e RESUME_FROM_STEP='{resume_from_step}' \\
       -e KEY_VAULT_URI='{KEY_VAULT_URI}' \\
       -e AZURE_RESOURCE_GROUP='{RESOURCE_GROUP}' \\
       -e AZURE_SUBSCRIPTION_ID='{SUBSCRIPTION_ID}' \\
@@ -754,7 +753,7 @@ def _get_ssh_pubkey() -> str:
 
 
 def _provision_vm(run_id: str, load_mode: str, state_scope,
-                  invocation_mode: str, resume_from_step: str = "",
+                  invocation_mode: str,
                   data_version: int = 0,
                   google_maps_enabled: bool = False,
                   debug_level: str = DEBUG_LEVEL_DEFAULT) -> dict:
@@ -802,7 +801,7 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
         f"virtualMachines/{vm_name}?api-version=2024-03-01"
     )
     user_data_b64 = _cloud_init_user_data(
-        run_id, load_mode, state_scope, invocation_mode, resume_from_step,
+        run_id, load_mode, state_scope, invocation_mode,
         data_version, google_maps_enabled, debug_level,
     )
     vm_body = {
@@ -918,7 +917,7 @@ def _atlas_resume_pipeline_cluster() -> dict:
 
 def _wake_mongo_then_provision_vm(
     run_id: str, load_mode: str, state_scope,
-    invocation_mode: str, resume_from_step: str = "",
+    invocation_mode: str,
     data_version: int = 0,
     google_maps_enabled: bool = False,
     debug_level: str = DEBUG_LEVEL_DEFAULT,
@@ -929,7 +928,7 @@ def _wake_mongo_then_provision_vm(
     no VM at all."""
     atlas = _atlas_resume_pipeline_cluster()
     vm = _provision_vm(
-        run_id, load_mode, state_scope, invocation_mode, resume_from_step,
+        run_id, load_mode, state_scope, invocation_mode,
         data_version, google_maps_enabled, debug_level,
     )
     return {"vm": vm, "atlas": atlas}
@@ -1035,10 +1034,6 @@ def _run_provider() -> int:
     state_scope = _resolve_state_scope(
         webhook_body.get("state_scope") if webhook_body else STATE_SCOPE_DEFAULT
     )
-    resume_from_step = (
-        (webhook_body.get("resume_from_step") or "").strip()
-        if webhook_body else ""
-    )
     dv_raw = (webhook_body or {}).get("data_version")
     try:
         data_version = int(dv_raw)
@@ -1067,8 +1062,7 @@ def _run_provider() -> int:
         state_scope=state_scope,
         data_version=data_version,
         google_maps_enabled=google_maps_enabled,
-        debug_level=debug_level,
-        resume_from_step=resume_from_step or None)
+        debug_level=debug_level)
 
     log("run_id_generated", run_id=run_id)
 
@@ -1125,7 +1119,7 @@ def _run_provider() -> int:
         vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
         try:
             result = _wake_mongo_then_provision_vm(
-                run_id, load_mode, state_scope, invocation_mode, resume_from_step,
+                run_id, load_mode, state_scope, invocation_mode,
                 data_version, google_maps_enabled, debug_level,
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
@@ -1305,12 +1299,16 @@ def _short(run_id: str) -> str:
 
 def _write_run_manifest_med(mongo, run_id: str, data_version: int,
                             build_fda_drug: bool, invocation_mode: str,
-                            states: list[str]) -> None:
-    mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].insert_one({
+                            states: list[str],
+                            start_at_step: str | None) -> None:
+    doc = {
         "run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX,
         "status": "running", "started_at": datetime.datetime.utcnow(),
         "invocation_mode": invocation_mode, "data_version": data_version,
-        "build_fda_drug": build_fda_drug, "states": states})
+        "build_fda_drug": build_fda_drug, "states": states}
+    if start_at_step:
+        doc["start_at_step"] = start_at_step
+    mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].insert_one(doc)
 
 
 def _cancel_reservation_med(mongo, run_id: str) -> None:
@@ -1325,7 +1323,7 @@ def _controller_cloud_init(run_id: str, data_version: int,
                            build_fda_drug: bool, vm_name: str,
                            debug_level: str, states: list[str],
                            provider_collection: str,
-                           resume_from_step: str = "") -> str:
+                           start_at_step: str | None) -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
     VMs, then self-delete. The Controller presents pipelineController for ARM
@@ -1335,6 +1333,7 @@ def _controller_cloud_init(run_id: str, data_version: int,
     ct, cc, cs = _controller_credential()
     image = f"{VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}"
     bim = "--build-fda-drug" if build_fda_drug else ""
+    sas = f"--start-at-step {start_at_step}" if start_at_step else ""
     yaml_body = f"""#cloud-config
 apt:
   primary:
@@ -1368,7 +1367,6 @@ runcmd:
       -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{MONGO_HOST_FRONTEND}' \\
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{MONGO_HOST_PIPELINE}' \\
       -e RUN_ID='{run_id}' -e DATA_VERSION='{data_version}' -e ENV_PREFIX='{ENV_PREFIX}' \\
-      -e RESUME_FROM_STEP='{resume_from_step}' \\
       -e PIPELINE_NAME='medicare' -e GOOGLE_MAPS_ENABLED='0' \\
       -e PIPELINE_LOG_ACCOUNT_URL='{PIPELINE_LOG_ACCOUNT_URL}' \\
       -e AZURE_VM_NAME='{vm_name}' \\
@@ -1392,7 +1390,7 @@ runcmd:
       --entrypoint python {image} \\
       pipeline/run_lifecycle/bootstrap.py \\
       pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \\
-      --run-id {run_id} --env-prefix {ENV_PREFIX} --data-version {data_version} --states {",".join(states)} --provider-collection '{provider_collection}' {bim}
+      --run-id {run_id} --env-prefix {ENV_PREFIX} --data-version {data_version} --states {",".join(states)} --provider-collection '{provider_collection}' {bim} {sas}
     rc=$?
     echo "chcontrol: controller exit=$rc $(date -u +%FT%TZ)"
     set -e
@@ -1410,13 +1408,13 @@ def _provision_controller_vm(run_id: str, data_version: int,
                              build_fda_drug: bool, debug_level: str,
                              states: list[str],
                              provider_collection: str,
-                             resume_from_step: str = "") -> dict:
+                             start_at_step: str | None) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
     user_data = _controller_cloud_init(run_id, data_version, build_fda_drug,
                                        vm_name, debug_level, states,
-                                       provider_collection, resume_from_step)
+                                       provider_collection, start_at_step)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
@@ -1674,33 +1672,17 @@ def _run_medicare() -> int:
         # via provider_source.
         provider_collection = ((body or {}).get("providerCollection")
                                or (body or {}).get("provider_collection"))
-
-        # Resume at a formal step (operator requirement 2026-10-21; realizes
-        # S-010 restart-from-a-chosen-point for this pipeline): the payload
-        # names BOTH the step and the prior run to resume -- the staged data a
-        # mid-DAG step reads is keyed by that run's id, so resuming under a
-        # fresh id would find nothing. Both-or-neither; anything else is a
-        # reject, never a guess.
-        resume_from_step = ((body or {}).get("resume_from_step") or "").strip()
-        resume_run_id = ((body or {}).get("resume_run_id") or "").strip()
-        if bool(resume_from_step) != bool(resume_run_id):
-            raise ChatHealthyException(
-                mode="value_error",
-                message=("pipeline_runbook: resume_from_step and resume_run_id "
-                         "MUST be supplied together (the resumed step reads the "
-                         "named run's staged data). Fire again with both or "
-                         "neither."),
-                resume_from_step=resume_from_step, resume_run_id=resume_run_id)
-        if resume_run_id:
-            run_id = resume_run_id
-            os.environ["RUN_ID"] = run_id
-            vm_name = f"vm-chcontrol-{_short(run_id)}"
+        # START AT (operator design 2026-10-22): begin the DAG walk at the
+        # named step. Pure pass-through -- the orchestrator validates the step
+        # name and gates every step on StepDataDependenciesAreMet; the runbook
+        # carries no history and no reference to any prior run.
+        start_at_step = (str((body or {}).get("start_at_step") or "").strip()
+                         or None)
 
         log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
             invocation_mode=invocation_mode, data_version=data_version,
             build_fda_drug=build_fda_drug, debug_level=debug_level,
-            states=states, resume_from_step=resume_from_step or None,
-            resume_run_id=resume_run_id or None)
+            states=states, start_at_step=start_at_step)
 
         blocking = _acquire_pipeline_lock(mongo, PIPELINE_NAME, run_id, vm_name)
         if blocking is not None:
@@ -1708,34 +1690,9 @@ def _run_medicare() -> int:
                 live_run_id=blocking.get("run_id"))
             return 1
         runbook_owns_lock = True
-        if resume_run_id:
-            # Resurrect the prior run record rather than inserting a twin, and
-            # purge its leftover work items -- stale pending/claimed items from
-            # the dead run would otherwise be claimed by the resumed fleet.
-            res = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].update_one(
-                {"run_id": run_id,
-                 "status": {"$in": ["failed", "aborted", "cancelled"]}},
-                {"$set": {"status": "running",
-                          "resumed_at": datetime.datetime.utcnow(),
-                          "resume_from_step": resume_from_step,
-                          "data_version": data_version,
-                          "build_fda_drug": build_fda_drug,
-                          "states": states},
-                 "$unset": {"finished_at": "", "fatal_exception": ""}})
-            if res.matched_count != 1:
-                raise ChatHealthyException(
-                    mode="value_error",
-                    message=(f"pipeline_runbook: resume_run_id {run_id!r} names "
-                             "no terminal (failed/aborted/cancelled) medicare "
-                             "run; nothing to resume."))
-            purged = mongo[PIPELINE_ADMIN_DB]["pipeline.work_items"].delete_many(
-                {"run_id": run_id}).deleted_count
-            log("run_manifest_resumed", run_id=run_id,
-                resume_from_step=resume_from_step, stale_work_items_purged=purged)
-        else:
-            _write_run_manifest_med(mongo, run_id, data_version, build_fda_drug,
-                                    invocation_mode, states)
-            log("run_manifest_written", run_id=run_id)
+        _write_run_manifest_med(mongo, run_id, data_version, build_fda_drug,
+                                invocation_mode, states, start_at_step)
+        log("run_manifest_written", run_id=run_id)
 
         _reserve_and_resume_cluster(mongo, run_id, vm_name, RESERVATION_TTL_HOURS)
         reservation_created = True
@@ -1745,7 +1702,7 @@ def _run_medicare() -> int:
         # where the pipeline package exists; the sandbox trigger cannot run it.
         _provision_controller_vm(run_id, data_version, build_fda_drug,
                                  debug_level, states, provider_collection,
-                                 resume_from_step)
+                                 start_at_step)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
         log("runbook_exit", run_id=run_id)
