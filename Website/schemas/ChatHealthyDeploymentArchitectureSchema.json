@@ -1129,6 +1129,33 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "nat_gateway": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "Explicit SNAT egress for the VNET's run VMs: a NAT gateway with its own Standard static Public IP, associated to the named subnet. Declared because Azure default outbound access caps concurrent flows to a single destination at ~1,024 SNAT ports, which the worker fleet's per-primary connection count exceeds (root cause, 2026-10-21); Microsoft rates default outbound access not-for-production. Deploy ensures IP, gateway, and subnet association idempotently.",
+                      "required": [
+                        "name",
+                        "public_ip_name",
+                        "subnet_name"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "pattern": "^natgw-[a-z0-9-]{1,60}$"
+                        },
+                        "public_ip_name": {
+                          "type": "string",
+                          "pattern": "^pip-[a-z0-9-]{1,60}$"
+                        },
+                        "subnet_name": {
+                          "type": "string",
+                          "pattern": "^snet-[a-z0-9-]{1,60}$"
+                        },
+                        "purpose": {
+                          "type": "string"
+                        }
+                      }
                     }
                   }
                 },
