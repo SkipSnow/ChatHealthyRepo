@@ -11,6 +11,23 @@ Parallelism = Literal["serial", "gather", "process_pool"]
 InvocationPhase = Literal["main_loop", "finally_block"]
 
 
+def skipped_step_names(steps: list["StepSpec"], start_at: str | None) -> set[str]:
+    """The main-loop steps a start_at slice removes: everything before the
+    start point that is not always_run (operator design 2026-10-22). The ONE
+    source of skip truth -- the orchestrator's slice and every status surface
+    (run_status_server, checkPipelineStatus) read it, so the walk and the
+    report can never disagree. Unknown or absent start_at -> empty set (the
+    orchestrator separately rejects unknown names as fatal)."""
+    if not start_at:
+        return set()
+    main = [s for s in steps if s.invocation_phase == "main_loop"]
+    names = [s.name for s in main]
+    if start_at not in names:
+        return set()
+    idx = names.index(start_at)
+    return {s.name for i, s in enumerate(main) if i < idx and not s.always_run}
+
+
 @dataclass(frozen=True)
 class StepSpec:
     name: str

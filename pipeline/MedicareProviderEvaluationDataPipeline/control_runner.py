@@ -160,7 +160,7 @@ def _control(ns) -> int:
     # lost, not the work lost, so it is logged and the run proceeds.
     try:
         from pipeline.run_lifecycle.run_status_server import start_status_server  # noqa: PLC0415
-        start_status_server([s.name for s in MedicareProviderEvaluationOrchestrator.STEPS])
+        start_status_server(MedicareProviderEvaluationOrchestrator.STEPS)
         _phase.set_controller_phase(os.environ.get("RUN_ID", ""), _phase.STATUS_API_UP,
                                     "mTLS status API bound on :6969")
     except Exception as exc:  # noqa: BLE001

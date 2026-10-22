@@ -155,20 +155,24 @@ def _status_db():
     return _DB
 
 
-def build_status(step_names: list[str], run_id: str) -> dict | None:
+def build_status(step_specs: list, run_id: str) -> dict | None:
     """The status document for one run: the run header, a top-level run_state
     (no_workers_yet | working | fatal_error | complete) and, for every step the
     pipeline's persistent configuration declares, the per-worker (per-partition)
-    state and the percent complete. Returns None when no such run exists -- the
-    caller renders that as an allocation-pending 200, never a 404."""
+    state and the percent complete. A step the run's start_at_step sliced away
+    reports state 'skipped', never 'not_started' (operator order 2026-10-22).
+    Returns None when no such run exists -- the caller renders that as an
+    allocation-pending 200, never a 404."""
+    from pipeline.run_lifecycle.step_spec import skipped_step_names  # noqa: PLC0415
     db = _status_db()
     run = db["pipeline.runs"].find_one({"run_id": run_id})
     if not run:
         return None
+    skipped = skipped_step_names(step_specs, run.get("start_at_step"))
     by_step: dict[str, list] = {}
     for item in db["pipeline.work_items"].find({"run_id": run_id}):
         by_step.setdefault(item.get("step"), []).append(item)
-    names = list(step_names)
+    names = [s.name for s in step_specs]
     for extra in sorted(set(by_step) - set(names) - {None}):
         names.append(extra)
     now = datetime.datetime.utcnow()
@@ -205,7 +209,7 @@ def build_status(step_names: list[str], run_id: str) -> dict | None:
                 "heartbeat_at": str(hb_at) if hb_at else None,
             })
         if total == 0:
-            state = "not_started"
+            state = "skipped" if name in skipped else "not_started"
         elif failed:
             state = "failed"
         elif done == total:
@@ -214,7 +218,7 @@ def build_status(step_names: list[str], run_id: str) -> dict | None:
             state = "running"
         else:
             state = "queued"
-        if current_step is None and state != "complete":
+        if current_step is None and state not in ("complete", "skipped"):
             current_step = name
         steps.append({"step": name, "state": state, "done": done,
                       "failed": failed, "total": total,
@@ -272,7 +276,7 @@ def _client_cn(conn) -> str:
     return ""
 
 
-def _status_with_timeout(step_names: list[str], run_id: str) -> tuple:
+def _status_with_timeout(step_specs: list, run_id: str) -> tuple:
     """Run build_status under a hard wall-clock bound so the HTTP call can never
     hang on a slow Mongo read -- the failure that killed the last run. Returns
     (doc_or_None, error_or_None, timed_out)."""
@@ -280,7 +284,7 @@ def _status_with_timeout(step_names: list[str], run_id: str) -> tuple:
 
     def _work():
         try:
-            result["doc"] = build_status(step_names, run_id)
+            result["doc"] = build_status(step_specs, run_id)
         except Exception as exc:  # noqa: BLE001
             result["error"] = exc
 
@@ -292,7 +296,7 @@ def _status_with_timeout(step_names: list[str], run_id: str) -> tuple:
     return result.get("doc"), result.get("error"), False
 
 
-def _make_handler(step_names: list[str]):
+def _make_handler(step_specs: list):
     class _Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802
             started = time.monotonic()
@@ -311,7 +315,7 @@ def _make_handler(step_names: list[str]):
                     code, state = 400, "bad_request"
                     self._json(400, {"error": "run_id is required"})
                     return
-                doc, error, timed_out = _status_with_timeout(step_names, run_id)
+                doc, error, timed_out = _status_with_timeout(step_specs, run_id)
                 if timed_out:
                     state = "status_read_timeout"
                     _log.LogPipeline("ERROR", "run_status_server: status read exceeded "
@@ -363,7 +367,7 @@ def _make_handler(step_names: list[str]):
     return _Handler
 
 
-def start_status_server(step_names: list[str]):
+def start_status_server(step_specs: list):
     """Stand up the mTLS status listener on a daemon thread. Fails loud if the
     controller certificate is not in the environment -- a controller that cannot
     answer its status call must say so, not run a plaintext or absent server."""
@@ -406,7 +410,7 @@ def start_status_server(step_names: list[str]):
         allow_reuse_address = True
         daemon_threads = True
 
-    httpd = _StatusServer(("0.0.0.0", STATUS_PORT), _make_handler(list(step_names)))
+    httpd = _StatusServer(("0.0.0.0", STATUS_PORT), _make_handler(list(step_specs)))
     httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
 
     def _serve_forever() -> None:
@@ -428,8 +432,8 @@ def start_status_server(step_names: list[str]):
             "INFO",
             "run_status_server: mTLS listener UP, serving at %s:%d (%d steps); "
             "only client CN=%s is authorized",
-            reachable, STATUS_PORT, len(step_names), _AUTHORIZED_CLIENT_CN)
+            reachable, STATUS_PORT, len(step_specs), _AUTHORIZED_CLIENT_CN)
     except Exception:  # noqa: BLE001
         _log.LogPipeline("INFO", "run_status_server: mTLS listener up on :%d (%d steps)",
-                         STATUS_PORT, len(step_names))
+                         STATUS_PORT, len(step_specs))
     return httpd

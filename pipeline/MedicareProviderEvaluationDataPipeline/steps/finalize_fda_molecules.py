@@ -60,14 +60,18 @@ def _rxnorm_rxcui_by_molecule(ctx, reg, mongo) -> dict[str, list[str]]:
     by_mid: dict[str, list[str]] = {}
     rows = 0
     # No run_id filter: the drained-and-replaced staging is the one truth
-    # (Start At, operator design 2026-10-22).
+    # (Start At, operator design 2026-10-22). The loader stages every source's
+    # columns under "raw" (staging_loader LLD 4.6) -- top-level TTY/RXCUI/STR
+    # can never match; that mis-path killed run 41aa1028 on this step's first
+    # ever execution (2026-10-22).
     cursor = coll.find(
-        {"TTY": {"$in": list(_RXNORM_INGREDIENT_TTYS)}},
-        {"RXCUI": 1, "STR": 1})
+        {"raw.TTY": {"$in": list(_RXNORM_INGREDIENT_TTYS)}},
+        {"raw.RXCUI": 1, "raw.STR": 1})
     for row in cursor:
         rows += 1
-        mid = molecule_id(row.get("STR"))
-        rxcui = str(row.get("RXCUI") or "").strip()
+        raw = row.get("raw") or {}
+        mid = molecule_id(raw.get("STR"))
+        rxcui = str(raw.get("RXCUI") or "").strip()
         if not mid or not rxcui:
             continue
         dest = by_mid.setdefault(mid, [])

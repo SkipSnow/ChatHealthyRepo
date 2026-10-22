@@ -390,6 +390,40 @@ def test_provider_unknown_start_at_step_is_rejected_before_the_gate():
 
 
 # ==========================================================================
+# SKIP TRUTH -- one helper feeds the walk AND every status surface
+# ==========================================================================
+
+def test_skipped_step_names_matches_the_walk_for_every_start_point():
+    from pipeline.run_lifecycle.step_spec import skipped_step_names
+    for start in MED_MAIN_STEPS:
+        skipped = skipped_step_names(
+            MedicareProviderEvaluationOrchestrator.STEPS, start)
+        orch = _MedicareWalkRecorder()
+        orch.run(_med_args(start_at_step=start))
+        assert skipped == set(MED_MAIN_STEPS) - set(orch.invoked), (
+            f"start_at={start}: the status surfaces' skip set disagrees "
+            f"with the steps the walk actually skipped")
+
+
+def test_skipped_step_names_negative_cases():
+    from pipeline.run_lifecycle.step_spec import skipped_step_names
+    steps = MedicareProviderEvaluationOrchestrator.STEPS
+    assert skipped_step_names(steps, None) == set()
+    assert skipped_step_names(steps, "") == set()
+    assert skipped_step_names(steps, "no_such_step") == set()
+    assert skipped_step_names(steps, MED_MAIN_STEPS[0]) == set()
+
+
+def test_skipped_step_names_never_contains_always_run_or_finally():
+    from pipeline.run_lifecycle.step_spec import skipped_step_names
+    steps = MedicareProviderEvaluationOrchestrator.STEPS
+    for start in MED_MAIN_STEPS:
+        skipped = skipped_step_names(steps, start)
+        for name in MED_ALWAYS_RUN + MED_FINALLY_STEPS:
+            assert name not in skipped
+
+
+# ==========================================================================
 # BASE CLASS -- the virtual function itself
 # ==========================================================================
 

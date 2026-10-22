@@ -147,9 +147,11 @@ class BasePipelineOrchestrator:
             # start point: a canceled predecessor leaves the cluster paused
             # and partial state behind, and the step owns readiness
             # (operator ruling 2026-10-22). The slice removes data steps only.
-            idx = names.index(start_at)
-            main_steps = [s for i, s in enumerate(main_steps)
-                          if s.always_run or i >= idx]
+            # skipped_step_names is the ONE skip truth, shared with every
+            # status surface so the walk and the report cannot disagree.
+            from pipeline.run_lifecycle.step_spec import skipped_step_names  # noqa: PLC0415
+            skipped = skipped_step_names(self.STEPS, start_at)
+            main_steps = [s for s in main_steps if s.name not in skipped]
             _log.LogPipeline("INFO",
                 "orchestrator run=%s starts at step %s (%d of %d steps scheduled)",
                 manifest.run_id, start_at, len(main_steps), len(names))

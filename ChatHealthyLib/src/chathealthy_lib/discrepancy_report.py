@@ -656,11 +656,27 @@ class DiscrepancyReport:
         delivered, last_failure = 0, None
         for address in receivers:
             try:
-                client.send_email(
+                result = client.send_email(
                     address, subject, body,
                     attachments=attachments, log_context=log_context,
                 )
-                delivered += 1
+                # send_email NEVER raises -- every failure comes back as a
+                # status dict (sparkpost_error / exception). Counting on
+                # no-raise made every failure read as delivered and left the
+                # fatal_report_undeliverable guarantee unreachable (found
+                # 2026-10-22). "noop" is the operator's deliberate
+                # notifications-off configuration, not a failure.
+                status = str((result or {}).get("status") or "")
+                if status in ("delivered", "noop"):
+                    delivered += 1
+                else:
+                    last_failure = ChatHealthyException(
+                        mode="notification_failed",
+                        message=(f"send_email to {address!r} returned "
+                                 f"status={status!r}: "
+                                 f"{str(result)[:300]}"),
+                        component="DiscrepancyReport",
+                    )
             except Exception as exc:  # noqa: BLE001 -- failure mode 1
                 last_failure = exc
         if delivered:
