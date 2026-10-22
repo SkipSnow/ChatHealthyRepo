@@ -26,11 +26,13 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             prerequisites=[],
             parallelism="serial",
             aca_job_name="prov-prepare-infrastructure",
+            always_run=True,
         ),
         StepSpec(
             name="source_freshness_gate",
             prerequisites=["prepare_infrastructure"],
             parallelism="serial",
+            always_run=True,
         ),
         StepSpec(
             name="fetch_all_sources",

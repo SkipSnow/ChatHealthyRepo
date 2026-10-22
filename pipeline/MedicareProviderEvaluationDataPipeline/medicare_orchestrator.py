@@ -39,12 +39,14 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             name="prepare_infrastructure",
             prerequisites=[],
             parallelism="serial",
+            always_run=True,
             aca_job_name="med-prepare-infrastructure",
         ),
         StepSpec(
             name="medicare_source_freshness_gate",
             prerequisites=["prepare_infrastructure"],
             parallelism="serial",
+            always_run=True,
         ),
         StepSpec(
             name="medicare_fetch_all_sources",
@@ -213,14 +215,19 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         "medicare_source_archival": [],
         "medicare_load_staging": [],
         "index_fda_prescription_records": ["staging:openfda_labels"],
-        "build_fda_label_resolution": ["staging:openfda_labels"],
+        # The fan-out partitions by fda_record_number: unstamped staging would
+        # silently yield one do-nothing partition, so the gate demands stamps.
+        "build_fda_label_resolution": ["fda_stamped"],
         # build mode consumes the per-label transient + the RxNorm vocabulary;
         # consume mode reads the published molecule collection instead.
         "finalize_fda_molecules": ["if_build_fda:transient",
                                    "if_build_fda:staging:rxnorm",
                                    "if_consume_fda:fda_published"],
         "prepare_molecule_masters": ["staging:medicare_partd", "provider_spine"],
-        "build_providermedicare_base": ["staging:medicare_partd", "masters"],
+        # The apply workers read staged Part D BY partition_state -- stamps only
+        # prepare_molecule_masters writes -- so the gate demands stamped rows,
+        # not merely staged rows (unstamped = silent empty build).
+        "build_providermedicare_base": ["partd_stamped", "masters"],
         "enrich_drugs": ["masters", "fda_published"],
         "enrich_procedures": ["masters", "staging:medicare_coverage_hcpc",
                               "staging:medicare_coverage_icd10"],
@@ -261,6 +268,28 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
                 src = dep.split(":", 1)[1]
                 e = reg.by_source_name(src)
                 coll = mongo[e.staging_db][reg.staging_collection_name(src)]
+            elif dep == "fda_stamped":
+                ofda = reg.by_source_name("openfda_labels")
+                coll = mongo[ofda.staging_db][reg.staging_collection_name("openfda_labels")]
+                if coll.count_documents({"fda_record_number": {"$exists": True}},
+                                        limit=1) == 0:
+                    _log.LogPipeline(
+                        "ERROR", "StepDataDependenciesAreMet: step=%s needs "
+                        "STAMPED FDA labels (fda_record_number) and the staged "
+                        "openFDA collection carries none", step_name)
+                    return False
+                continue
+            elif dep == "partd_stamped":
+                partd = reg.by_source_name("medicare_partd")
+                coll = mongo[partd.staging_db][reg.staging_collection_name("medicare_partd")]
+                if coll.count_documents({"partition_state": {"$exists": True}},
+                                        limit=1) == 0:
+                    _log.LogPipeline(
+                        "ERROR", "StepDataDependenciesAreMet: step=%s needs "
+                        "partition-STAMPED Part D rows (partition_state) and "
+                        "the staged collection carries none", step_name)
+                    return False
+                continue
             elif dep == "transient":
                 ofda = reg.by_source_name("openfda_labels")
                 coll = mongo[ofda.staging_db][TRANSIENT_COLLECTION]

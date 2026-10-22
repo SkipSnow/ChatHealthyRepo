@@ -17,6 +17,12 @@ class StepSpec:
     prerequisites: list[str] = field(default_factory=list)
     parallelism: Parallelism = "serial"
     invocation_phase: InvocationPhase = "main_loop"
+    # Infrastructure steps run on EVERY run regardless of start_at_step
+    # (operator ruling 2026-10-22): a canceled predecessor leaves the cluster
+    # paused and partial state behind, and the step -- not the runbook's
+    # courtesy wake -- owns readiness. The start-at slice removes only steps
+    # that are not always_run.
+    always_run: bool = False
     aca_job_name: str | None = None
     partition_key: str | None = None
     max_attempts: int = 3

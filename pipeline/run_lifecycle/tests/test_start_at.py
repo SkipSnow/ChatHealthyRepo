@@ -63,8 +63,26 @@ MED_NO_DATA_STEPS = [name for name in MED_ALL_STEPS
 # prefixes it strips. A map entry outside this vocabulary would raise
 # not_implemented at run time; this file refuses it at commit time.
 KNOWN_KINDS = ("transient", "fda_published", "masters",
-               "specialty_published", "provider_spine")
+               "specialty_published", "provider_spine",
+               "fda_stamped", "partd_stamped")
 CONDITIONAL_PREFIXES = ("if_build_fda:", "if_consume_fda:")
+
+# Infrastructure preamble: every step up to the first business activity
+# (fetch) runs on EVERY run regardless of start point (operator ruling
+# 2026-10-22) -- a canceled predecessor leaves the cluster paused and
+# partial state behind, and these steps own readiness.
+MED_ALWAYS_RUN = [s.name for s in MedicareProviderEvaluationOrchestrator.STEPS
+                  if s.always_run]
+PROV_ALWAYS_RUN = [s.name for s in ProviderPipelineOrchestrator.STEPS
+                   if s.always_run]
+
+
+def _expected_walk(start: str) -> list[str]:
+    """The scheduled main steps for a medicare start point: the always-run
+    preamble (those before the start point) plus the tail from the start."""
+    idx = MED_MAIN_STEPS.index(start)
+    return [n for i, n in enumerate(MED_MAIN_STEPS)
+            if n in MED_ALWAYS_RUN or i >= idx]
 
 
 def _med_args(**overrides) -> PipelineArgs:
@@ -122,12 +140,32 @@ class _ProviderWalkRecorder(ProviderPipelineOrchestrator):
 # ==========================================================================
 
 @pytest.mark.parametrize("step_name", MED_MAIN_STEPS)
-def test_medicare_start_at_every_step_walks_exactly_the_tail(step_name):
+def test_medicare_start_at_every_step_walks_preamble_plus_tail(step_name):
     orch = _MedicareWalkRecorder()
     manifest = orch.run(_med_args(start_at_step=step_name))
-    expected = MED_MAIN_STEPS[MED_MAIN_STEPS.index(step_name):]
-    assert orch.invoked == expected + MED_FINALLY_STEPS
+    assert orch.invoked == _expected_walk(step_name) + MED_FINALLY_STEPS
     assert manifest.status == "succeeded"
+
+
+@pytest.mark.parametrize("step_name", MED_MAIN_STEPS)
+def test_medicare_infrastructure_preamble_runs_on_every_start_point(step_name):
+    # A canceled predecessor leaves the cluster paused; prepare and the
+    # freshness gate own readiness and may NEVER be sliced away.
+    orch = _MedicareWalkRecorder()
+    orch.run(_med_args(start_at_step=step_name))
+    for always in MED_ALWAYS_RUN:
+        assert always in orch.invoked, (
+            f"start_at={step_name} skipped infrastructure step {always}")
+    assert orch.invoked[:len(MED_ALWAYS_RUN)] == MED_ALWAYS_RUN or (
+        MED_MAIN_STEPS.index(step_name) <= MED_MAIN_STEPS.index(MED_ALWAYS_RUN[-1])), (
+        "the always-run preamble must execute first, in declared order")
+
+
+def test_medicare_always_run_is_everything_before_the_first_business_activity():
+    # Operator ruling: fetch is the first business activity; every step
+    # before it is infrastructure and always runs.
+    fetch_idx = MED_MAIN_STEPS.index("medicare_fetch_all_sources")
+    assert MED_ALWAYS_RUN == MED_MAIN_STEPS[:fetch_idx]
 
 
 def test_medicare_no_start_at_walks_every_step_in_declared_order():
@@ -155,8 +193,7 @@ def test_medicare_gate_is_called_only_for_scheduled_steps_on_start_at():
     start = "prepare_molecule_masters"
     orch = _MedicareWalkRecorder()
     orch.run(_med_args(start_at_step=start))
-    expected = MED_MAIN_STEPS[MED_MAIN_STEPS.index(start):] + MED_FINALLY_STEPS
-    assert orch.gated == expected, (
+    assert orch.gated == _expected_walk(start) + MED_FINALLY_STEPS, (
         "a skipped step must not be gated: the run has no business reading "
         "data for steps it will never execute")
 
@@ -169,7 +206,12 @@ def test_medicare_prereq_before_start_point_is_vouched_by_data_not_history():
     manifest = orch.run(_med_args(start_at_step="enrich_drugs"))
     assert manifest.status == "succeeded"
     assert "build_providermedicare_base" not in manifest.completed_steps
-    assert orch.invoked[0] == "enrich_drugs"
+    assert orch.invoked == MED_ALWAYS_RUN + ["enrich_drugs",
+                                            "enrich_procedures",
+                                            "enrich_org_ccn_size",
+                                            "rollup_specialtymedicare",
+                                            "medicare_contract_conformance"] \
+        + MED_FINALLY_STEPS
 
 
 # ==========================================================================
@@ -204,9 +246,9 @@ def test_medicare_gate_false_kills_the_run_before_the_step_executes():
         orch.run(_med_args(start_at_step=start))
     assert exc_info.value.mode == "pipeline_data_dependencies_unmet"
     assert start in exc_info.value.message
-    assert orch.invoked == MED_FINALLY_STEPS, (
-        "the gated step must never execute on unmet data dependencies; the "
-        "finally block still quiesces what admission provisioned")
+    assert orch.invoked == MED_ALWAYS_RUN + MED_FINALLY_STEPS, (
+        "the infrastructure preamble runs, the gated step never executes, "
+        "and the finally block quiesces what was provisioned")
 
 
 def test_medicare_gate_false_mid_walk_kills_the_run_at_that_step():
@@ -215,8 +257,9 @@ def test_medicare_gate_false_mid_walk_kills_the_run_at_that_step():
     with pytest.raises(ChatHealthyException) as exc_info:
         orch.run(_med_args(start_at_step="index_fda_prescription_records"))
     assert exc_info.value.mode == "pipeline_data_dependencies_unmet"
-    assert orch.invoked == ["index_fda_prescription_records",
-                            "build_fda_label_resolution"] + MED_FINALLY_STEPS
+    assert orch.invoked == MED_ALWAYS_RUN + [
+        "index_fda_prescription_records",
+        "build_fda_label_resolution"] + MED_FINALLY_STEPS
     assert victim not in orch.invoked
 
 
@@ -323,13 +366,15 @@ def test_provider_full_run_dies_at_the_first_gate_before_any_step():
 
 
 @pytest.mark.parametrize("step_name", PROV_MAIN_STEPS)
-def test_provider_start_at_any_step_dies_at_that_steps_gate(step_name):
+def test_provider_start_at_any_step_dies_at_the_first_gate(step_name):
     orch = _ProviderWalkRecorder()
     with pytest.raises(ChatHealthyException) as exc_info:
         orch.run(_prov_args(start_at_step=step_name))
     assert exc_info.value.mode == "not_implemented"
-    assert step_name in exc_info.value.message, (
-        "the gate must be asked about the start-at step itself, first")
+    first_scheduled = (PROV_ALWAYS_RUN[0] if PROV_ALWAYS_RUN else step_name)
+    assert first_scheduled in exc_info.value.message, (
+        "the gate must be asked about the first scheduled step -- the "
+        "infrastructure preamble -- before anything executes")
     assert orch.invoked == []
 
 

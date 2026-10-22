@@ -143,7 +143,13 @@ class BasePipelineOrchestrator:
                     message=(f"start_at_step {start_at!r} names no step of "
                              f"pipeline {self.PIPELINE_NAME!r}; legal steps: "
                              f"{', '.join(names)}"))
-            main_steps = main_steps[names.index(start_at):]
+            # Infrastructure steps (always_run) are kept regardless of the
+            # start point: a canceled predecessor leaves the cluster paused
+            # and partial state behind, and the step owns readiness
+            # (operator ruling 2026-10-22). The slice removes data steps only.
+            idx = names.index(start_at)
+            main_steps = [s for i, s in enumerate(main_steps)
+                          if s.always_run or i >= idx]
             _log.LogPipeline("INFO",
                 "orchestrator run=%s starts at step %s (%d of %d steps scheduled)",
                 manifest.run_id, start_at, len(main_steps), len(names))
