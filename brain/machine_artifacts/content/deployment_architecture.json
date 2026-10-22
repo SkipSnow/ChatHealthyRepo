@@ -5040,6 +5040,23 @@
                   ]
                 },
                 {
+                  "name": "nat_gateway",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "natgw-chpipeline-egress-dev"
+                    },
+                    {
+                      "name": "public_ip_name",
+                      "value": "pip-natgw-chpipeline-egress-dev"
+                    },
+                    {
+                      "name": "subnet_name",
+                      "value": "snet-pipeline-compute"
+                    }
+                  ]
+                },
+                {
                   "name": "subnet",
                   "facts": [
                     {
