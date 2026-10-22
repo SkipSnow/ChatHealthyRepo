@@ -4998,6 +4998,12 @@
               "name": "pip-chathealthy-pipeline-dev",
               "sku": "Standard",
               "allocation_method": "Static"
+            },
+            "nat_gateway": {
+              "name": "natgw-chpipeline-egress-dev",
+              "public_ip_name": "pip-natgw-chpipeline-egress-dev",
+              "subnet_name": "snet-pipeline-compute",
+              "purpose": "Explicit SNAT egress for the run VMs (root cause 2026-10-21: default outbound access caps concurrent flows to one destination at ~1,024 SNAT ports; the worker fleet holds ~3 sockets per worker to the front-end primary, so at ~350 workers newborn connects to exactly that host timed out -- 68 of 68 failures named it. A NAT gateway provides 64k ports per IP; Microsoft rates default outbound not-for-production.)"
             }
           },
           "platforms": [

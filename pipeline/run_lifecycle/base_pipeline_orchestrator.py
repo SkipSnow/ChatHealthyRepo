@@ -138,6 +138,15 @@ class BasePipelineOrchestrator:
         )
 
         skipping_until = args.resume_from_step
+        if skipping_until and skipping_until not in {s.name for s in main_steps}:
+            # Guard (operator requirement 2026-10-21): a resume name outside
+            # the DAG would skip-until-never-matches -- every step marked
+            # complete, the run reported succeeded, nothing executed. Reject.
+            raise ChatHealthyException(
+                mode="value_error",
+                message=(f"resume_from_step {skipping_until!r} names no step of "
+                         f"pipeline {self.PIPELINE_NAME!r}; legal steps: "
+                         f"{', '.join(s.name for s in main_steps)}"))
         try:
             for spec in main_steps:
                 if skipping_until and spec.name != skipping_until:

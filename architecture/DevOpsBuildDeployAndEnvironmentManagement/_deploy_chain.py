@@ -3380,6 +3380,9 @@ def deploy_one(
         # before the private-endpoint step so it is not coupled to Atlas and a
         # deferred/again-failing private route cannot block it.
         pad.ensure_public_ip(target, env)
+        # Explicit SNAT egress for the run VMs (root cause 2026-10-21): its own
+        # IP, independent of the controller's inbound status IP above.
+        pad.ensure_nat_gateway(target, env)
         pad.ensure_vnet_private_dns_zones(target, env)
         pad.ensure_vnet_private_endpoints(target, env, coll)
         return result

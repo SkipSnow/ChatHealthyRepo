@@ -507,6 +507,49 @@ def ensure_public_ip(target, env: str):
     return addr
 
 
+def ensure_nat_gateway(target, env: str) -> None:
+    """Ensure the declared egress NAT gateway: its own Standard static public
+    IP, the gateway, and the association to the declared subnet. No-op when the
+    azure_vnet block declares no nat_gateway.
+
+    Root cause this realizes (2026-10-21): the run VMs egressed via Azure
+    default outbound access, whose SNAT budget caps concurrent flows to ONE
+    destination at ~1,024 ports. Every worker holds ~3 sockets to the
+    front-end primary, so past ~350 workers each newborn's connect to exactly
+    that host timed out (68/68 failures named it) while secondaries and other
+    destinations connected fine via port reuse. A NAT gateway provides 64k
+    SNAT ports per IP; Microsoft rates default outbound not-for-production.
+    """
+    block = _env_block(target, env, "azure_vnet")
+    natgw = block.get("nat_gateway")
+    if not natgw:
+        return
+    rg = block["resource_group"]
+    vnet = block["vnet_name"]
+    gw_name = natgw["name"]
+    pip_name = natgw["public_ip_name"]
+    subnet = natgw["subnet_name"]
+    location = _az_json(["group", "show", "--name", rg]).get("location", "eastus2")
+    step(f"ensure NAT gateway public ip {pip_name} (Standard/Static)")
+    if _az(["network", "public-ip", "show", "-g", rg, "-n", pip_name],
+           check=False).returncode != 0:
+        _az(["network", "public-ip", "create", "-g", rg, "-n", pip_name,
+             "--sku", "Standard", "--allocation-method", "Static",
+             "--location", location])
+    step(f"ensure NAT gateway {gw_name}")
+    if _az(["network", "nat", "gateway", "show", "-g", rg, "-n", gw_name],
+           check=False).returncode != 0:
+        _az(["network", "nat", "gateway", "create", "-g", rg, "-n", gw_name,
+             "--public-ip-addresses", pip_name, "--location", location])
+    sub = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
+                    "--vnet-name", vnet, "-n", subnet])
+    if not ((sub.get("natGateway") or {}).get("id") or "").endswith(f"/{gw_name}"):
+        step(f"associate subnet {subnet} -> NAT gateway {gw_name}")
+        _az(["network", "vnet", "subnet", "update", "-g", rg,
+             "--vnet-name", vnet, "-n", subnet, "--nat-gateway", gw_name])
+    step(f"NAT gateway {gw_name} serving subnet {subnet}")
+
+
 def ensure_controller_nic(target, env: str, location: str) -> None:
     """Map the declared static public IP to a permanent controller NIC -- the
     VNET node the controller VM attaches to -- so inbound reach on the status
@@ -537,20 +580,6 @@ def ensure_controller_nic(target, env: str, location: str) -> None:
             message="azure_vnet declares a public_ip but no subnet with purpose "
                     "'pipeline_run_vm_landing' to place the controller NIC in.",
             component="pipeline_azure_deploy")
-
-    # Free the public IP from a legacy egress NAT gateway, if one is still
-    # mapped. The direct-route-in design puts the IP on the NIC, not the gateway.
-    legacy_natgw = pip.get("nat_gateway_name") or pip_name.replace("pip-", "natgw-", 1)
-    if _az(["network", "nat", "gateway", "show", "-g", rg, "-n", legacy_natgw],
-           check=False).returncode == 0:
-        sub = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
-                        "--vnet-name", vnet, "-n", landing])
-        if (sub.get("natGateway") or {}).get("id"):
-            step(f"dissociate subnet {landing} from legacy NAT gateway {legacy_natgw}")
-            _az(["network", "vnet", "subnet", "update", "-g", rg,
-                 "--vnet-name", vnet, "-n", landing, "--remove", "natGateway"])
-        step(f"delete legacy NAT gateway {legacy_natgw}")
-        _az(["network", "nat", "gateway", "delete", "-g", rg, "-n", legacy_natgw])
 
     step(f"ensure status NSG {nsg_name} (inbound tcp {status_port})")
     if _az(["network", "nsg", "show", "-g", rg, "-n", nsg_name],

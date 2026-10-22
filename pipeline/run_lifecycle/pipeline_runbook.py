@@ -1324,7 +1324,8 @@ def _get_ssh_pubkey_med() -> str:
 def _controller_cloud_init(run_id: str, data_version: int,
                            build_fda_drug: bool, vm_name: str,
                            debug_level: str, states: list[str],
-                           provider_collection: str) -> str:
+                           provider_collection: str,
+                           resume_from_step: str = "") -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
     VMs, then self-delete. The Controller presents pipelineController for ARM
@@ -1367,6 +1368,7 @@ runcmd:
       -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{MONGO_HOST_FRONTEND}' \\
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{MONGO_HOST_PIPELINE}' \\
       -e RUN_ID='{run_id}' -e DATA_VERSION='{data_version}' -e ENV_PREFIX='{ENV_PREFIX}' \\
+      -e RESUME_FROM_STEP='{resume_from_step}' \\
       -e PIPELINE_NAME='medicare' -e GOOGLE_MAPS_ENABLED='0' \\
       -e PIPELINE_LOG_ACCOUNT_URL='{PIPELINE_LOG_ACCOUNT_URL}' \\
       -e AZURE_VM_NAME='{vm_name}' \\
@@ -1407,13 +1409,14 @@ runcmd:
 def _provision_controller_vm(run_id: str, data_version: int,
                              build_fda_drug: bool, debug_level: str,
                              states: list[str],
-                             provider_collection: str) -> dict:
+                             provider_collection: str,
+                             resume_from_step: str = "") -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
     user_data = _controller_cloud_init(run_id, data_version, build_fda_drug,
                                        vm_name, debug_level, states,
-                                       provider_collection)
+                                       provider_collection, resume_from_step)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
@@ -1672,10 +1675,32 @@ def _run_medicare() -> int:
         provider_collection = ((body or {}).get("providerCollection")
                                or (body or {}).get("provider_collection"))
 
+        # Resume at a formal step (operator requirement 2026-10-21; realizes
+        # S-010 restart-from-a-chosen-point for this pipeline): the payload
+        # names BOTH the step and the prior run to resume -- the staged data a
+        # mid-DAG step reads is keyed by that run's id, so resuming under a
+        # fresh id would find nothing. Both-or-neither; anything else is a
+        # reject, never a guess.
+        resume_from_step = ((body or {}).get("resume_from_step") or "").strip()
+        resume_run_id = ((body or {}).get("resume_run_id") or "").strip()
+        if bool(resume_from_step) != bool(resume_run_id):
+            raise ChatHealthyException(
+                mode="value_error",
+                message=("pipeline_runbook: resume_from_step and resume_run_id "
+                         "MUST be supplied together (the resumed step reads the "
+                         "named run's staged data). Fire again with both or "
+                         "neither."),
+                resume_from_step=resume_from_step, resume_run_id=resume_run_id)
+        if resume_run_id:
+            run_id = resume_run_id
+            os.environ["RUN_ID"] = run_id
+            vm_name = f"vm-chcontrol-{_short(run_id)}"
+
         log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
             invocation_mode=invocation_mode, data_version=data_version,
             build_fda_drug=build_fda_drug, debug_level=debug_level,
-            states=states)
+            states=states, resume_from_step=resume_from_step or None,
+            resume_run_id=resume_run_id or None)
 
         blocking = _acquire_pipeline_lock(mongo, PIPELINE_NAME, run_id, vm_name)
         if blocking is not None:
@@ -1683,9 +1708,34 @@ def _run_medicare() -> int:
                 live_run_id=blocking.get("run_id"))
             return 1
         runbook_owns_lock = True
-        _write_run_manifest_med(mongo, run_id, data_version, build_fda_drug,
-                                invocation_mode, states)
-        log("run_manifest_written", run_id=run_id)
+        if resume_run_id:
+            # Resurrect the prior run record rather than inserting a twin, and
+            # purge its leftover work items -- stale pending/claimed items from
+            # the dead run would otherwise be claimed by the resumed fleet.
+            res = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].update_one(
+                {"run_id": run_id,
+                 "status": {"$in": ["failed", "aborted", "cancelled"]}},
+                {"$set": {"status": "running",
+                          "resumed_at": datetime.datetime.utcnow(),
+                          "resume_from_step": resume_from_step,
+                          "data_version": data_version,
+                          "build_fda_drug": build_fda_drug,
+                          "states": states},
+                 "$unset": {"finished_at": "", "fatal_exception": ""}})
+            if res.matched_count != 1:
+                raise ChatHealthyException(
+                    mode="value_error",
+                    message=(f"pipeline_runbook: resume_run_id {run_id!r} names "
+                             "no terminal (failed/aborted/cancelled) medicare "
+                             "run; nothing to resume."))
+            purged = mongo[PIPELINE_ADMIN_DB]["pipeline.work_items"].delete_many(
+                {"run_id": run_id}).deleted_count
+            log("run_manifest_resumed", run_id=run_id,
+                resume_from_step=resume_from_step, stale_work_items_purged=purged)
+        else:
+            _write_run_manifest_med(mongo, run_id, data_version, build_fda_drug,
+                                    invocation_mode, states)
+            log("run_manifest_written", run_id=run_id)
 
         _reserve_and_resume_cluster(mongo, run_id, vm_name, RESERVATION_TTL_HOURS)
         reservation_created = True
@@ -1694,7 +1744,8 @@ def _run_medicare() -> int:
         # the Controller VM (build_providermedicare_base via provider_source),
         # where the pipeline package exists; the sandbox trigger cannot run it.
         _provision_controller_vm(run_id, data_version, build_fda_drug,
-                                 debug_level, states, provider_collection)
+                                 debug_level, states, provider_collection,
+                                 resume_from_step)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
         log("runbook_exit", run_id=run_id)
