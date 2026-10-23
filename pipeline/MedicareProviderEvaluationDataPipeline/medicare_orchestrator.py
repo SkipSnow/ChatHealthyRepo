@@ -303,7 +303,9 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
                 tgt = reg.by_source_name("specialtymedicare")
                 coll = mongo[tgt.public_data_db][reg.public_data_collection_name("specialtymedicare")]
             elif dep == "provider_spine":
-                db_name, coll_name = ctx.provider_collection.split(".", 1)
+                from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (  # noqa: PLC0415
+                    parse_provider_source)
+                db_name, coll_name = parse_provider_source(ctx.provider_collection)
                 coll = mongo[db_name][coll_name]
             else:
                 raise ChatHealthyException(
