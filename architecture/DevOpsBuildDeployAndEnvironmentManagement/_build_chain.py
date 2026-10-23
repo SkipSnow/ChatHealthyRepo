@@ -1686,6 +1686,21 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         # _prepare_build_tree has already emptied the package directory;
         # removing it here would delete the declared structure.
         _stage_packages(repo_root, target, target_dir, selected)
+        if target.target_kind == "azure_container_registry":
+            # Operator rulings 2026-10-22 (EPIC-010): docker images are 100%
+            # complete at BUILD time -- derived index JSONs manufactured here
+            # from the record, CA baked, image built and tagged locally with
+            # an image_manifest.json in the build output. The deploy only
+            # pushes what this built.
+            from pipeline_image_build import build_images_for_target  # noqa: PLC0415
+            pkgs = [p
+                    for eb in target.environments if eb.env_binding == env
+                    for p in (eb.packages or [])
+                    if (selected is None or p.get("package_id") in selected)]
+            n = build_images_for_target(repo_root, target, target_dir, pkgs,
+                                        build_n, log=_step)
+            if n:
+                _step(f"  {n} docker image(s) built complete at build time")
     else:
         raise ChatHealthyException(
             mode="runtime_error",

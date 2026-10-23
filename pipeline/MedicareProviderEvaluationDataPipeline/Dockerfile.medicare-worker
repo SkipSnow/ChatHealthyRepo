@@ -34,6 +34,12 @@ COPY pipeline/run_lifecycle /app/pipeline/run_lifecycle
 COPY pipeline/provider_base /app/pipeline/provider_base
 COPY pipeline/MedicareProviderEvaluationDataPipeline /app/pipeline/MedicareProviderEvaluationDataPipeline
 
+# Segregation (operator ruling 2026-10-22): the worker image cannot do the
+# controller's job. The controller entry program and its status listener are
+# removed; the worker keeps the step data files below.
+RUN rm /app/pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \
+       /app/pipeline/run_lifecycle/run_status_server.py
+
 # The conformance engine validates published records against the committed
 # JSON Schema contracts (LLD v83 III.6 H3); they must exist in the image.
 COPY Website/schemas /app/Website/schemas

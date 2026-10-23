@@ -853,246 +853,88 @@ def ensure_acr(target, env: str) -> str:
                 "--location", "eastus2",
             ]
         )
-    # v32 §3.1.9: the ACR target may carry docker_image packages (the
-    # pipeline VM image). Build + push each one so the Pipeline Run VM
-    # can pull it at cloud-init time.
+    # Operator rulings 2026-10-22 (EPIC-010): the deploy MANUFACTURES NOTHING.
+    # Images are built 100% complete at BUILD time (pipeline_image_build.py:
+    # derived index JSONs, CA material, tags build-<n>/content-<hash>, and an
+    # image_manifest.json in the build output). This deploy step only pushes
+    # the already-built images and verifies the registry carries them.
     packages = _env_packages(target, env, "azure_container_registry")
-    # Per Deployment Architecture v14: managed files live only in the
-    # manifest (embedded_content). Materialize them into the source
-    # tree just-in-time so the docker build context includes them, then
-    # delete them from source tree after the ACR build finishes (finally
-    # ensures cleanup even on build failure). Between deploys, the source
-    # tree is empty of managed deployment-fact files.
-    _repo_root = Path(__file__).resolve().parent.parent.parent
-    _managed_paths = []
-    for _pkg in packages:
-        for _f in _pkg.get("files", []) or []:
-            if _f.get("disposition") == "managed" and _f.get("source_location"):
-                _managed_paths.append((_f["source_location"], _f.get("embedded_content") or ""))
-    _wrote_paths = []
-    try:
-        for _rel, _content in _managed_paths:
-            _out = _repo_root / _rel
-            _out.parent.mkdir(parents=True, exist_ok=True)
-            if _content.startswith("__base64__:"):
-                import base64 as _b64_ext
-                _out.write_bytes(_b64_ext.b64decode(_content[len("__base64__:"):], validate=True))
-            else:
-                _out.write_bytes(_content.encode("utf-8"))
-            _wrote_paths.append(_out)
-        step(f"  materialized {len(_wrote_paths)} managed file(s) for ACR build")
-        # The pipeline image bakes its slice of the index catalog, derived from
-        # the record here -- the deploy host has the manifest and the container
-        # never will. Rides the same materialize/cleanup bracket. Only the
-        # pipeline cluster's entries, so a front-end index never ships to a
-        # pipeline container. deployment_architecture.json is the one source;
-        # this is its derived copy for a container that cannot read it.
-        _baking_roles = {"pipeline_vm_image", "medicare_control_image",
-                         "medicare_worker_image"}
-        if any(p.get("package_id") in _baking_roles
-               or (p.get("config") or {}).get("role") in _baking_roles
-               for p in packages):
-            import json as _json_idx
-            _content_dir = (_repo_root / "brain" / "machine_artifacts" / "content")
-            _arch = _json_idx.loads(
-                (_content_dir / "deployment_architecture.json").read_text(encoding="utf-8"))
-            _pipe_cfg = {}
-            for _rec in _arch.get("DeploymentTargetRecord", []):
-                if _rec.get("target_id") != "target_atlas_pipeline":
-                    continue
-                for _e in _rec.get("environments", []):
-                    for _p in (_e.get("packages") or []):
-                        if _p.get("package_id") == "pipeline_indexes":
-                            _pipe_cfg = _p.get("config") or {}
-            _idx_out = _content_dir / "pipeline_indexes.json"
-            _idx_out.write_text(_json_idx.dumps(_pipe_cfg, indent=2),
-                                encoding="utf-8")
-            _wrote_paths.append(_idx_out)
-            step(f"  derived pipeline_indexes.json "
-                 f"({len(_pipe_cfg.get('indexes') or [])} index(es)) "
-                 f"for the pipeline image")
-            # The full run-time index catalog: every mongo_indexes package on
-            # the pipeline Atlas target that carries version_source, keyed by
-            # package_id. pipeline_index_catalog.py reads this in the
-            # container; the record stays the one source.
-            _pkg_catalog = {}
-            for _rec in _arch.get("DeploymentTargetRecord", []):
-                if _rec.get("target_id") != "target_atlas_pipeline":
-                    continue
-                for _e in _rec.get("environments", []):
-                    for _p in (_e.get("packages") or []):
-                        if (_p.get("kind") == "mongo_indexes"
-                                and (_p.get("config") or {}).get("version_source")):
-                            _pkg_catalog[_p["package_id"]] = _p["config"]
-            _cat_out = _content_dir / "pipeline_index_packages.json"
-            _cat_out.write_text(_json_idx.dumps(_pkg_catalog, indent=2),
-                                encoding="utf-8")
-            _wrote_paths.append(_cat_out)
-            step(f"  derived pipeline_index_packages.json "
-                 f"({len(_pkg_catalog)} package(s)) for the pipeline image")
-        _acr_docker_build_loop(packages, name, rg)
-    finally:
-        for _out in _wrote_paths:
-            try:
-                if _out.is_file():
-                    _out.unlink()
-            except OSError:
-                pass
-        if _wrote_paths:
-            step(f"  cleaned {len(_wrote_paths)} managed file(s) from source tree")
+    _acr_push_built_images(packages, name, rg)
     return name
 
 
-def _acr_docker_build_loop(packages, name: str, rg: str) -> None:
-    """Existing per-package docker_image build+push loop, extracted so
-    the ensure_acr wrapper can bracket it with materialize+cleanup for
-    v14 managed files."""
+def _acr_push_built_images(packages, name: str, rg: str) -> None:
+    """Push the images the BUILD manufactured. Reads each docker_image
+    package's image_manifest.json from the build output; a missing manifest
+    or a missing local image is a hard fail -- the deploy never builds."""
+    import json as _json
+    _repo_root = Path(__file__).resolve().parent.parent.parent
+    logged_in = False
     for pkg in packages:
         if pkg.get("kind") != "docker_image":
             continue
-        config = pkg.get("config", {}) or {}
-        repo = config.get("image_repository") or pkg.get("package_id")
-        dockerfile = config.get("dockerfile")
-        build_context = config.get("build_context", ".")
-        if not dockerfile:
+        pkg_id = pkg.get("package_id")
+        manifest_path = (_repo_root / "build"
+                         / "target_azure_container_registry_pipeline"
+                         / str(pkg_id) / "image_manifest.json")
+        if not manifest_path.is_file():
             raise ChatHealthyException(
                 mode="aborted",
                 component="pipeline_azure_deploy",
-                message=f"ERROR: ACR docker_image package {pkg.get('package_id')!r} missing dockerfile")
-        # Content-hash gate: skip build+push if ACR already has an image
-        # whose :latest tag digest matches the current content-hash tag
-        # (i.e., a prior deploy already built + pushed this exact source).
-        # Content hash covers Dockerfile bytes + every file under each
-        # COPY-source path parsed from the Dockerfile itself (defensive:
-        # picks up new COPY sources automatically when the Dockerfile
-        # changes). Non-source paths in build_context ("." usually the
-        # repo root) are NOT hashed — they're not baked into the image.
-        content_hash = _dockerfile_context_hash(dockerfile, build_context)
-        content_tag = f"content-{content_hash[:12]}"
+                message=f"ERROR: no image_manifest.json for package {pkg_id!r} "
+                f"at {manifest_path}; the image was not built. The deploy "
+                f"only deploys -- run the build first.")
+        m = _json.loads(manifest_path.read_text(encoding="utf-8"))
+        repo = m["image_repository"]
+        build_tag = m["build_tag"]
+        content_tag = m["content_tag"]
+        local_ref = f"{repo}:{build_tag}"
+        check = subprocess.run(["docker", "images", "-q", local_ref],
+                               capture_output=True, text=True, shell=False)
+        local_id = (check.stdout or "").strip()
+        if not local_id:
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: built image {local_ref} (package {pkg_id!r}) "
+                f"is not in the local docker daemon; rebuild before deploying.")
+        if local_id != m.get("image_id"):
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: local {local_ref} is {local_id} but the build "
+                f"manifest recorded {m.get('image_id')}; the daemon's image is "
+                f"not the one the build produced. Rebuild before deploying.")
         if _acr_image_current(name, rg, repo, "latest", content_tag):
-            step(
-                f"docker build+push SKIPPED — {name}/{repo}:latest already "
-                f"points to content {content_hash[:12]} (source unchanged)"
-            )
+            step(f"docker push SKIPPED - {name}/{repo}:latest already points "
+                 f"to content {content_tag} (image unchanged)")
             continue
-
-        step(f"docker build+push {name}.azurecr.io/{repo}:latest from {dockerfile}")
-        # `az acr login` on Windows engages Docker's credential store, which
-        # starts Docker Desktop. `az acr build` server-side does NOT need
-        # this: it authenticates via the operator's current `az` session
-        # directly. Skipping the login avoids Docker Desktop popup entirely.
-        # Build args required by Dockerfile.control: CHATHEALTHY_CA_ROOT_B64,
-        # CHATHEALTHY_CA_INTERMEDIATE_B64 (F-003 CA baked into image).
-        # KV holds the raw PEM under `ca-root-cert` and `ca-intermediate-cert`;
-        # base64-encode here for the docker build-arg.
-        import base64 as _b64
-        kv_name = "kv-chpipeline-dev"
-        ca_root_pem = _az_secret(kv_name, "ca-root-cert", default="")
-        ca_int_pem = _az_secret(kv_name, "ca-intermediate-cert", default="")
-        if not ca_root_pem or not ca_int_pem:
-            raise ChatHealthyException(
-                mode="aborted",
-                component="pipeline_azure_deploy",
-                message=f"ERROR: KV {kv_name!r} missing ca-root-cert or "
-                f"ca-intermediate-cert secrets (F-003 prerequisite)")
-        ca_root_b64 = _b64.b64encode(ca_root_pem.encode("utf-8")).decode("ascii")
-        ca_int_b64 = _b64.b64encode(ca_int_pem.encode("utf-8")).decode("ascii")
-        # `az acr build` performs both build and push server-side.
-        # --no-logs avoids az CLI's log streamer choking on non-cp1252
-        # characters in the remote build output (Windows charmap encoding
-        # UnicodeEncodeError). Build succeeds or fails independently of
-        # log streaming; failure surfaces via the ARM operation status.
-        # Tag with BOTH :latest and :content-<hash> so the next deploy
-        # can compare digests and skip if source is unchanged.
-        # BUILDKIT_INLINE_CACHE=1 bakes layer-cache metadata into the
-        # pushed image so subsequent `az acr build` runs can reuse
-        # unchanged layers instead of rebuilding from base. First build
-        # after this lands has no benefit (no prior cache metadata on
-        # the existing image); every deploy AFTER that reuses layers
-        # for anything upstream of the invalidating COPY. Typical:
-        # base + pip install + ChatHealthyLib COPY stay cached
-        # (~90% of image size); only the final pipeline COPY
-        # re-runs on Python source changes. Cuts ACR build from
-        # ~5min to ~30-60s when only Python source changed.
-        # Built here and pushed, rather than handed to ACR Tasks to build
-        # server-side. `az acr build` needs listBuildSourceUploadUrl, which
-        # lives in Contributor on the registry; the deploy identity holds
-        # AcrPush, which is exactly the right to put an image there and
-        # nothing more. Building locally keeps it that way.
-        _acr_build_and_push(
-            registry=name,
-            repo=repo,
-            tags=("latest", content_tag),
-            dockerfile=dockerfile,
-            build_context=build_context,
-            build_args={
-                "BUILDKIT_INLINE_CACHE": "1",
-                "CHATHEALTHY_CA_ROOT_B64": ca_root_b64,
-                "CHATHEALTHY_CA_INTERMEDIATE_B64": ca_int_b64,
-            },
-        )
-    return name
-
-
-def _acr_build_and_push(
-    registry: str,
-    repo: str,
-    tags: tuple[str, ...],
-    dockerfile: str,
-    build_context: str,
-    build_args: dict[str, str],
-) -> None:
-    """Build the image on this machine and push every tag to the registry.
-
-    Authentication is `az acr login`, which mints a registry token from the
-    signed-in identity -- no admin username or password, and no rights beyond
-    AcrPush.
-    """
-    _az(["acr", "login", "--name", registry])
-    refs = [f"{registry}.azurecr.io/{repo}:{t}" for t in tags]
-    # Anchor the Dockerfile and build context to the repo root ensure_acr
-    # materialized the managed files into. Left relative, docker resolves them
-    # against the deploy process cwd -- which is NOT that root -- so a
-    # just-in-time managed file (requirements-pipeline.txt) was absent from the
-    # context and the COPY failed. The az-acr-build sibling already anchors to
-    # repo_root; this path did not.
-    _repo_root = Path(__file__).resolve().parent.parent.parent
-    cmd = ["docker", "build", "--file", str((_repo_root / dockerfile).resolve())]
-    for k, v in build_args.items():
-        cmd += ["--build-arg", f"{k}={v}"]
-    for ref in refs:
-        cmd += ["--tag", ref]
-    cmd.append(str((_repo_root / build_context).resolve()))
-    env = os.environ.copy()
-    env["DOCKER_BUILDKIT"] = "1"
-    # Plain progress: the default TTY progress writer emits control bytes that
-    # arrive as unreadable garbage once captured and propagated through the
-    # deploy chain, so a failed build reported no usable cause. Plain text is
-    # diagnosable.
-    env["BUILDKIT_PROGRESS"] = "plain"
-    step(f"docker build {refs[0]}")
-    rc, out, log_path = run_streamed(
-        cmd, env=env, label="docker build",
-        log_name=f"docker_build_{repo}_{tags[0]}")
-    if rc != 0:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="pipeline_azure_deploy",
-            message=f"ERROR: docker build failed (exit {rc}) for {refs[0]}\n"
-            f"  full build log: {log_path}\n"
-            f"  output tail:\n{out.strip()[-3000:]}")
-    for ref in refs:
-        step(f"docker push {ref}")
-        rc, out, log_path = run_streamed(
-            ["docker", "push", ref], label="docker push",
-            log_name=f"docker_push_{repo}_{ref.rsplit(':', 1)[-1]}")
-        if rc != 0:
-            raise ChatHealthyException(
-                mode="aborted",
-                component="pipeline_azure_deploy",
-                message=f"ERROR: docker push {ref} failed (exit {rc})\n"
-                f"  full log: {log_path}\n"
-                f"  output tail: {out.strip()[-2000:]}")
+        if not logged_in:
+            _az(["acr", "login", "--name", name])
+            logged_in = True
+        for tag in ("latest", content_tag, build_tag):
+            ref = f"{name}.azurecr.io/{repo}:{tag}"
+            rc_t = subprocess.run(["docker", "tag", local_ref, ref],
+                                  capture_output=True, text=True, shell=False)
+            if rc_t.returncode != 0:
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="pipeline_azure_deploy",
+                    message=f"ERROR: docker tag {local_ref} -> {ref} failed: "
+                    f"{rc_t.stderr[:300]}")
+            step(f"docker push {ref}")
+            rc, out, log_path = run_streamed(
+                ["docker", "push", ref], label="docker push",
+                log_name=f"docker_push_{repo}_{tag}")
+            if rc != 0:
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="pipeline_azure_deploy",
+                    message=f"ERROR: docker push {ref} failed (exit {rc}); "
+                    f"full log: {log_path}; "
+                    f"output tail: {out.strip()[-2000:]}")
+        step(f"pushed {repo} build={m.get('build')} "
+             f"(content {content_tag}) to {name}")
 
 
 def _dockerfile_context_hash(dockerfile_path: str, build_context: str) -> str:

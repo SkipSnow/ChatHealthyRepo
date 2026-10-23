@@ -1331,7 +1331,12 @@ def _controller_cloud_init(run_id: str, data_version: int,
     are handed down for the Worker VMs."""
     import base64
     ct, cc, cs = _controller_credential()
-    image = f"{VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}"
+    # The medicare run uses the MEDICARE images (operator ruling 2026-10-22:
+    # the images must be separate). medicare-control/medicare-worker carry the
+    # medicare bakes -- pipeline_index_packages.json and the Website/schemas
+    # contracts -- that the shared pipeline-control image does not; run
+    # f3f7d1eb died on exactly that gap.
+    image = f"{VM_ACR}.azurecr.io/medicare-control:{VM_IMAGE_TAG}"
     bim = "--build-fda-drug" if build_fda_drug else ""
     sas = f"--start-at-step {start_at_step}" if start_at_step else ""
     yaml_body = f"""#cloud-config
@@ -1375,7 +1380,7 @@ runcmd:
       -e AZURE_SUBSCRIPTION_ID='{SUBSCRIPTION_ID}' -e AZURE_RESOURCE_GROUP='{RESOURCE_GROUP}' \\
       -e AUTOMATION_VM_LOCATION='{VM_LOCATION}' -e AUTOMATION_VM_VNET='{VM_VNET}' \\
       -e AUTOMATION_VM_SUBNET='{VM_SUBNET}' -e AUTOMATION_VM_ACR='{VM_ACR}' \\
-      -e AUTOMATION_VM_IMAGE_REPO='{VM_IMAGE_REPO}' -e AUTOMATION_VM_IMAGE_TAG='{VM_IMAGE_TAG}' \\
+      -e AUTOMATION_VM_IMAGE_REPO='medicare-worker' -e AUTOMATION_VM_IMAGE_TAG='{VM_IMAGE_TAG}' \\
       -e WORKER_VM_SIZE='{WORKER_VM_SIZE}' \\
       -e AZ_VM_ADMIN_SSH_PUBKEY='{_get_ssh_pubkey_med()}' \\
       -e KEY_VAULT_URI='{KEY_VAULT_URI}' -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
