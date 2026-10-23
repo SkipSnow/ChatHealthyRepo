@@ -3086,8 +3086,8 @@ def _identity_name(coll: "DeploymentCollection", identity_target_id: str,
 
 
 def _raw_manifest() -> dict:
-    """The deployment record as a raw dict, read from disk. The MongoIndexCatalog
-    and the served-collection version bindings are declared there."""
+    """The deployment record as a raw dict, read from disk. The mongo_indexes
+    packages and the served-collection version bindings are declared there."""
     import json  # noqa: PLC0415
     import pathlib  # noqa: PLC0415
     here = pathlib.Path(__file__).resolve()
@@ -4050,39 +4050,10 @@ def run_cloud_deploy(env: str, target_arg: str,
     # is how a whole environment deployed and then could not answer
     # a single turn.
     configuration_failed = False
-    pipeline_certs_done = False
     for target_id, target_kind in selected:
-        # bake_ca_chain_into_images reads the CA chain from KV and sets
-        # CHATHEALTHY_CA_ROOT_B64 / _INTERMEDIATE_B64 in the current process
-        # env so acr build can bake it into the image. It must run before the
-        # first ACA job image build because build_and_push_job_image requires
-        # those env vars. Idempotent and KV-read-only, against the two PUBLIC
-        # CA certs.
-        #
-        # Certificate issuance and the vault grant/revoke that follows it are
-        # entitlement work, not deploy work, and belong to claudeCodeAgent.
-        # The deploy mints nothing and grants nothing.
-        if (
-            not pipeline_certs_done
-            and target_arg == "pipeline"
-            and target_kind == "azure_container_app_job"
-        ):
-            from cert_placement import bake_ca_chain_into_images
-            kv_target = coll.by_target_id("target_azure_key_vault_pipeline")
-            acr_target = coll.by_target_id(
-                "target_azure_container_registry_pipeline"
-            )
-            if kv_target is None or acr_target is None:
-                raise ChatHealthyException(
-                    mode="aborted",
-                    component="_deploy_chain",
-                    message="ERROR: manifest missing target_azure_key_vault_pipeline "
-                    "or target_azure_container_registry_pipeline. F-012 §7 "
-                    "cannot run without both.")
-            bake_ca_chain_into_images(
-                env=env, acr_target=acr_target, kv_target=kv_target,
-            )
-            pipeline_certs_done = True
+        # CA material reaches images at BUILD time (pipeline_image_build
+        # fetches it from KV as docker build args; operator mandate
+        # 2026-10-22). The deploy fetches no build material.
         # Wrapper gate: if any HF backend failed in this same run, refuse
         # to publish the wrapper. Live wrapper bytes are the contract
         # against the live backends; we never let them disagree.

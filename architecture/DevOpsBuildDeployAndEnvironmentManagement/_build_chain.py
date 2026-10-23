@@ -1681,8 +1681,9 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         "azure_container_app_job",
     ):
         # F-012: shell / identity / ACR / ACA Env / Job definition packages
-        # are manifests only (deploy owns Azure create; jobs build images
-        # at deploy via az acr build from dockerfile path in the target).
+        # are manifests only (deploy owns Azure resource create). Docker
+        # images are built COMPLETE at build time below (operator mandate
+        # 2026-10-22); no image is ever built at deploy.
         # _prepare_build_tree has already emptied the package directory;
         # removing it here would delete the declared structure.
         _stage_packages(repo_root, target, target_dir, selected)
@@ -1693,12 +1694,14 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
             # an image_manifest.json in the build output. The deploy only
             # pushes what this built.
             from pipeline_image_build import build_images_for_target  # noqa: PLC0415
-            pkgs = [p
-                    for eb in target.environments if eb.env_binding == env
-                    for p in (eb.packages or [])
+            binding_pkgs = [p
+                            for eb in target.environments if eb.env_binding == env
+                            for p in (eb.packages or [])]
+            pkgs = [p for p in binding_pkgs
                     if (selected is None or p.get("package_id") in selected)]
             n = build_images_for_target(repo_root, target, target_dir, pkgs,
-                                        build_n, log=_step)
+                                        build_n, log=_step,
+                                        all_packages=binding_pkgs)
             if n:
                 _step(f"  {n} docker image(s) built complete at build time")
     else:

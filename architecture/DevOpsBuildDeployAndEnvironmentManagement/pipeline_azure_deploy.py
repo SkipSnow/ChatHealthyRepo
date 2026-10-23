@@ -8,13 +8,12 @@ Deploy-created and pre-existing-shell reconcile helpers for:
   azure_vnet (subnets)
   azure_resource_group (verify)
   azure_container_apps_environment
-  azure_container_app_job (definition + image build)
+  azure_container_app_job (refused: images are built at BUILD time)
 
 No soft fallbacks. Every az failure aborts with stderr.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import subprocess
@@ -255,7 +254,8 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
             cfg = pkg.get("config") or {}
             secret_name = cfg["secret_name"]
             source_file = cfg["source_file"]
-            repo_root = Path(__file__).resolve().parents[2]
+            import chain_provenance as _cp_root  # noqa: PLC0415
+            repo_root = _cp_root.repository_root(Path(__file__))
             src_path = repo_root / source_file
             if not src_path.is_file():
                 raise ChatHealthyException(
@@ -865,10 +865,14 @@ def ensure_acr(target, env: str) -> str:
 
 def _acr_push_built_images(packages, name: str, rg: str) -> None:
     """Push the images the BUILD manufactured. Reads each docker_image
-    package's image_manifest.json from the build output; a missing manifest
-    or a missing local image is a hard fail -- the deploy never builds."""
+    package's image_manifest.json from the CANONICAL build output -- the
+    workstation's gitignored build/ directory, never the chain's checkout
+    (nothing deploys from the repo; the deploy reads 100% build output,
+    operator mandate 2026-10-22). A missing manifest or a missing local
+    image is a hard fail -- the deploy never builds."""
     import json as _json
-    _repo_root = Path(__file__).resolve().parent.parent.parent
+    import chain_provenance as _cp  # noqa: PLC0415
+    _repo_root = _cp.repository_root(Path(__file__))
     logged_in = False
     for pkg in packages:
         if pkg.get("kind") != "docker_image":
@@ -937,62 +941,16 @@ def _acr_push_built_images(packages, name: str, rg: str) -> None:
              f"(content {content_tag}) to {name}")
 
 
-def _dockerfile_context_hash(dockerfile_path: str, build_context: str) -> str:
-    """Compute a stable sha256 covering the Dockerfile itself + every file
-    under each `COPY <src>` path referenced by the Dockerfile.
-
-    Only source paths that get baked into the image affect the hash —
-    ambient files under the build_context that aren't COPY'd don't count.
-
-    Excludes __pycache__ / .git / .pytest_cache to keep the hash stable
-    across dev-machine noise."""
-    df = Path(dockerfile_path).resolve()
-    ctx = Path(build_context).resolve()
-    h = hashlib.sha256()
-    h.update(df.read_bytes())
-    # Parse COPY <src> [<src2> ...] <dst> — take every token except the
-    # last as a source path relative to build_context.
-    copy_srcs: list[str] = []
-    for line in df.read_text(encoding="utf-8", errors="replace").splitlines():
-        stripped = line.strip()
-        if not stripped.upper().startswith("COPY "):
-            continue
-        parts = stripped.split()
-        if len(parts) < 3:
-            continue
-        copy_srcs.extend(parts[1:-1])
-    _EXCLUDE_DIRS = {"__pycache__", ".git", ".pytest_cache", "node_modules", ".venv"}
-    for src in copy_srcs:
-        root = (ctx / src).resolve()
-        if not root.exists():
-            # COPY of a non-existent path would fail the build too; still
-            # hash the missing-path token so the hash captures the request.
-            h.update(f"MISSING:{src}\n".encode("utf-8"))
-            continue
-        if root.is_file():
-            h.update(f"{root.relative_to(ctx)}\n".encode("utf-8"))
-            h.update(root.read_bytes())
-            continue
-        for f in sorted(root.rglob("*")):
-            if any(part in _EXCLUDE_DIRS for part in f.parts):
-                continue
-            if not f.is_file():
-                continue
-            h.update(f"{f.relative_to(ctx)}\n".encode("utf-8"))
-            h.update(f.read_bytes())
-    return h.hexdigest()
-
-
 def _acr_image_current(
     registry: str, resource_group: str, repo: str,
     live_tag: str, content_tag: str,
 ) -> bool:
     """Return True iff registry/repo already carries both :live_tag and
     :content_tag AND they resolve to the same image digest. Meaning:
-    the currently-live image is the current source. Safe to skip build.
+    the currently-live image is the current source. Safe to skip the push.
 
     Returns False on any az error / missing tag / digest mismatch — the
-    caller then rebuilds and re-pushes both tags."""
+    caller then re-pushes the already-built image's tags (never rebuilds)."""
     live_digest = _acr_tag_digest(registry, resource_group, repo, live_tag)
     if not live_digest:
         return False
@@ -1152,105 +1110,6 @@ def ensure_aca_environment(target, env: str) -> str:
     return name
 
 
-def _git_head_sha(repo_root: Path) -> str:
-    r = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"],
-        cwd=str(repo_root),
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return r.stdout.strip()
-
-
-def build_and_push_job_image(
-    repo_root: Path,
-    *,
-    registry_name: str,
-    image_repository: str,
-    dockerfile: str,
-    tag: str,
-) -> str:
-    """Build image into ACR via az acr build. Returns image ref."""
-    df = repo_root / dockerfile
-    if not df.is_file():
-        raise ChatHealthyException(
-            mode="aborted",
-            component="pipeline_azure_deploy",
-            message=f"ERROR: dockerfile missing: {dockerfile}")
-    root_b64 = os.environ.get("CHATHEALTHY_CA_ROOT_B64", "").strip()
-    intermediate_b64 = os.environ.get(
-        "CHATHEALTHY_CA_INTERMEDIATE_B64", ""
-    ).strip()
-    if not root_b64 or not intermediate_b64:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="pipeline_azure_deploy",
-            message="ERROR: CHATHEALTHY_CA_ROOT_B64 / CHATHEALTHY_CA_INTERMEDIATE_B64 "
-            "not set; bake_ca_chain_into_images must run before ACA job image "
-            "builds (F-003 §7).")
-    # Dockerfiles COPY pipeline + ChatHealthyLib from repo-root context.
-    context = repo_root
-    image = f"{registry_name}.azurecr.io/{image_repository}:{tag}"
-    # Idempotent: many ACA jobs share prov-control / prov-worker tags.
-    existing = _az(
-        [
-            "acr", "repository", "show",
-            "--name", registry_name,
-            "--image", f"{image_repository}:{tag}",
-        ],
-        check=False,
-    )
-    if existing.returncode == 0:
-        step(f"acr image {image} already present — skip build")
-        return image
-    step(f"acr build {image}")
-    # --no-logs waits for the server-side run without streaming log text.
-    # Windows az (cp1252) raises UnicodeEncodeError on non-ASCII log bytes
-    # even when the ACR task itself Succeeded — false deploy failures.
-    env = os.environ.copy()
-    env["PYTHONUTF8"] = "1"
-    env["PYTHONIOENCODING"] = "utf-8"
-    cmd = [
-        "az", "acr", "build",
-        "--registry", registry_name,
-        "--image", f"{image_repository}:{tag}",
-        "--file", str(df),
-        "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={root_b64}",
-        "--build-arg", f"CHATHEALTHY_CA_INTERMEDIATE_B64={intermediate_b64}",
-        "--no-logs",
-        str(context),
-    ]
-    # --no-logs stays (see above); the server-side build is silent until it
-    # finishes, so run_streamed's heartbeat is what shows it is still alive.
-    rc, out, log_path = run_streamed(
-        cmd, env=env, shell=(sys.platform == "win32"), label="az acr build",
-        log_name=f"acr_build_{image_repository}_{tag}")
-    if rc != 0:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="pipeline_azure_deploy",
-            message=f"ERROR: az acr build --registry {registry_name} "
-            f"--image {image_repository}:{tag}... failed ({rc})\n"
-            f"  full log: {log_path}\n"
-            f"  output: {out[-2000:]}")
-    verify = _az(
-        [
-            "acr", "repository", "show",
-            "--name", registry_name,
-            "--image", f"{image_repository}:{tag}",
-        ],
-        check=False,
-    )
-    if verify.returncode != 0:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="pipeline_azure_deploy",
-            message=f"ERROR: acr build reported success but image {image} is not "
-            f"present in the registry.")
-    return image
-
-
 def ensure_aca_job(
     target,
     env: str,
@@ -1258,173 +1117,14 @@ def ensure_aca_job(
     repo_root: Path,
     image_tag: str | None = None,
 ) -> str:
-    block = _env_block(target, env, "azure_container_app_job")
-    rg = block["resource_group"]
-    job = block["job_name"]
-    env_name = block["environment_name"]
-    registry = block["registry_name"]
-    repo = block["image_repository"]
-    dockerfile = block["dockerfile"]
-    role = block["role"]
-    cpu = str(block["cpu"])
-    memory = block["memory"]
-    parallelism = str(block["parallelism"])
-    timeout = str(block.get("replica_timeout", 7200))
-    node_identity = block["node_identity"]
-    mi_name = block["managed_identity_name"]
-    kv_uri = block.get("key_vault_uri", "https://kv-chpipeline-dev.vault.azure.net/")
-
-    tag = image_tag or _git_head_sha(repo_root)
-    image = build_and_push_job_image(
-        repo_root,
-        registry_name=registry,
-        image_repository=repo,
-        dockerfile=dockerfile,
-        tag=tag,
-    )
-
-    mi = _az_json(["identity", "show", "--name", mi_name, "--resource-group", rg])
-    mi_id = mi["id"]
-    mi_client = mi["clientId"]
-
-    command = ("pipeline/provider_pipeline/control_runner.py"
-               if role == "control"
-               else "pipeline/run_lifecycle/worker_runner.py")
-    # Entrypoint is baked in Dockerfile (bootstrap.py <runner>); override args only.
-    # Container env vars are the merge of:
-    #   1) computed shell facts (identity/KV URI/env prefix/worker mode)
-    #   2) baked env vars from manifest (default_apps_environment +
-    #      {role}_apps_environment merged at synth time by
-    #      target_record._resolve_apps_env_vars, carried on
-    #      azure_container_app_job.container_env_vars).
-    # Later overrides earlier on name collision.
-    env_vars_map: dict[str, str] = {
-        "CHATHEALTHY_NODE_IDENTITY": node_identity,
-        "KEY_VAULT_URI": kv_uri,
-        "ENV_PREFIX": env,
-        "PIPELINE_WORKER_MODE": "control" if role == "control" else "worker",
-        "AZURE_CLIENT_ID": mi_client,
-    }
-    env_vars_map.update(block.get("container_env_vars") or {})
-    env_vars = [f"{k}={v}" for k, v in env_vars_map.items()]
-
-    step(f"ensure ACA job {job} role={role}")
-    show = _az(["containerapp", "job", "show", "-n", job, "-g", rg], check=False)
-    # create accepts identity/registry/--env-vars; update on containerapp 0.3.x
-    # does not — use update-compatible flags + identity assign instead.
-    if show.returncode != 0:
-        _az(
-            [
-                "containerapp", "job", "create",
-                "-n", job,
-                "-g", rg,
-                "--environment", env_name,
-                "--trigger-type", "Manual",
-                "--replica-completion-count", parallelism,
-                "--image", image,
-                "--cpu", cpu,
-                "--memory", memory,
-                "--parallelism", parallelism,
-                "--replica-timeout", timeout,
-                "--replica-retry-limit", "0",
-                "--mi-user-assigned", mi_id,
-                "--registry-identity", mi_id,
-                "--registry-server", f"{registry}.azurecr.io",
-                "--env-vars", *env_vars,
-            ]
-        )
-    else:
-        _az(
-            [
-                "containerapp", "job", "update",
-                "-n", job,
-                "-g", rg,
-                "--image", image,
-                "--cpu", cpu,
-                "--memory", memory,
-                "--parallelism", parallelism,
-                "--replica-timeout", timeout,
-                "--replica-retry-limit", "0",
-                "--set-env-vars", *env_vars,
-            ]
-        )
-        _az(
-            [
-                "containerapp", "job", "identity", "assign",
-                "-n", job,
-                "-g", rg,
-                "--user-assigned", mi_id,
-            ],
-            check=False,
-        )
-    # Confirm AcrPull on the job MI. The chain reads rather than grants.
-    acr_id = _az(
-        ["acr", "show", "--name", registry, "--query", "id", "-o", "tsv"]
-    ).stdout.strip()
-    _acr_role = _az(
-        [
-            "role", "assignment", "list",
-            "--assignee", mi["principalId"],
-            "--scope", acr_id,
-            "--query", "[?roleDefinitionName=='AcrPull']",
-            "-o", "json",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    # The chain reads rather than grants. Without AcrPull the job cannot pull
-    # its image, so this is worth saying plainly rather than discovering at
-    # the first pull.
-    if not (getattr(_acr_role, "stdout", "") or "").strip().startswith("[{"):
-        step(f"WARNING: {mi['principalId']} does not hold AcrPull on the registry; "
-             f"grant it deliberately or the job cannot pull {image}")
-    step(f"ACA job {job} ready image={image} mi_client={mi_client}")
-    return job
-
-
-_ATLAS_OAUTH_TOKEN_URL = "https://cloud.mongodb.com/api/oauth/token"
-_ATLAS_TOKEN_CACHE: dict[str, tuple[str, float]] = {}
-
-
-# Azure region name → Atlas region name mapping. Atlas uses a distinct
-# region naming convention from Azure (e.g. Azure 'eastus2' → Atlas
-# 'US_EAST_2'). Extend as new regions come into use.
-_AZURE_TO_ATLAS_REGION: dict[str, str] = {
-    "eastus": "US_EAST",
-    "eastus2": "US_EAST_2",
-    "westus": "US_WEST",
-    "westus2": "US_WEST_2",
-    "westus3": "US_WEST_3",
-    "centralus": "CENTRAL_US",
-    "northcentralus": "NORTH_CENTRAL_US",
-    "southcentralus": "SOUTH_CENTRAL_US",
-    "westcentralus": "WEST_CENTRAL_US",
-    "canadacentral": "CANADA_CENTRAL",
-    "canadaeast": "CANADA_EAST",
-    "northeurope": "EUROPE_NORTH",
-    "westeurope": "EUROPE_WEST",
-    "uksouth": "UK_SOUTH",
-    "ukwest": "UK_WEST",
-    "eastasia": "ASIA_EAST",
-    "southeastasia": "ASIA_SOUTHEAST",
-    "japaneast": "JAPAN_EAST",
-    "japanwest": "JAPAN_WEST",
-    "australiaeast": "AUSTRALIA_EAST",
-    "australiasoutheast": "AUSTRALIA_SOUTHEAST",
-    "brazilsouth": "BRAZIL_SOUTH",
-    "southafricanorth": "SOUTH_AFRICA_NORTH",
-    "swedencentral": "SWEDEN_CENTRAL",
-    "germanywestcentral": "GERMANY_WEST_CENTRAL",
-    "koreacentral": "KOREA_CENTRAL",
-    "centralindia": "INDIA_CENTRAL",
-    "southindia": "INDIA_SOUTH",
-    "westindia": "INDIA_WEST",
-    "francecentral": "FRANCE_CENTRAL",
-    "norwayeast": "NORWAY_EAST",
-    "switzerlandnorth": "SWITZERLAND_NORTH",
-    "uaenorth": "UAE_NORTH",
-}
+    _env_block(target, env, "azure_container_app_job")  # validate the declaration
+    raise ChatHealthyException(
+        mode="not_implemented",
+        component="pipeline_azure_deploy",
+        message="azure_container_app_job deploy-time image build was removed "
+        "(operator mandate 2026-10-22: images are built complete at BUILD "
+        "time; the deploy only deploys). Declare the job's image as a "
+        "docker_image package on the ACR target so the build manufactures it.")
 
 
 def _azure_to_atlas_region(region: str) -> str:
@@ -1450,7 +1150,8 @@ def _atlas_load_credentials() -> tuple[str, str, str]:
     that authenticate the deploy are also read directly from .env.
     """
     from dotenv import load_dotenv
-    repo_root = Path(__file__).resolve().parents[2]
+    import chain_provenance as _cp_root  # noqa: PLC0415
+    repo_root = _cp_root.repository_root(Path(__file__))
     load_dotenv(repo_root / ".env")
     client_id = os.environ.get("Mong_serviceAccount_ClientID", "")
     client_secret = os.environ.get("Mong_serviceAccount_ClientSecret", "")
@@ -1905,7 +1606,8 @@ def seed_kv_secrets_from_env(vault_name: str, secret_names: list[str]) -> None:
     """
     from dotenv import load_dotenv
 
-    repo_root = Path(__file__).resolve().parents[2]
+    import chain_provenance as _cp_root  # noqa: PLC0415
+    repo_root = _cp_root.repository_root(Path(__file__))
     load_dotenv(repo_root / ".env")
     load_dotenv(repo_root / "Code" / ".env")
     for name in secret_names:

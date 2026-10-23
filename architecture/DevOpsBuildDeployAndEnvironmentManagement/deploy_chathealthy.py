@@ -44,7 +44,6 @@ from _deploy_chain import (  # noqa: E402
     BUILD_ROOT_REL,
 )
 from devops_identity import establish_azure_identity  # noqa: E402
-from cert_placement import bake_ca_chain_into_images  # noqa: E402
 
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
@@ -224,40 +223,6 @@ def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> l
         if env in target.env_binding_set():
             out.append(tid)
     return out
-
-
-def _provision_pipeline_certs(
-    repo_root: Path, env: str, target_ids: list[str]
-) -> None:
-    """F-012 §7.1 pipeline-cert provisioning bridge. Runs BEFORE the
-    substrate-specific deploy so ACR builds see the CA chain baked into
-    the image and ACA Jobs find their per-node cert at KV boot time.
-
-    No-op if no Azure pipeline target is in the current deploy set.
-    Idempotent: skips certs already at the KV node-scoped path and not
-    near expiry (rotation window handled inside cert_placement)."""
-    if not any(t.startswith("target_azure_") for t in target_ids):
-        return
-    from record_loader import RecordLoader
-    brain_path = (
-        repo_root / "brain" / "machine_artifacts" / "content"
-        / "deployment_architecture.json"
-    )
-    coll = RecordLoader().load_collection(brain_path)
-    kv_target = coll.by_target_id("target_azure_key_vault_pipeline")
-    acr_target = coll.by_target_id("target_azure_container_registry_pipeline")
-    if kv_target is None or acr_target is None:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="deploy_chathealthy",
-            message="ERROR: manifest missing target_azure_key_vault_pipeline or "
-            "target_azure_container_registry_pipeline. F-012 §7 cannot "
-            "run without both.")
-    # Certificate issuance and the vault grant/revoke that follows it are
-    # entitlement work, not deploy work, and belong to claudeCodeAgent. The
-    # deploy reads the two public CA certs and bakes the trust chain into
-    # the images; it mints nothing and grants nothing.
-    bake_ca_chain_into_images(env=env, acr_target=acr_target)
 
 
 def _run_tests(env: str, tests: list[str]) -> int:
@@ -736,10 +701,10 @@ def _deploy_to_cloud(args, repo_root: Path) -> int:
             target_ids, pkg_selection, args.target, args.package)
     _staleness_gate(repo_root, args.env, target_ids, pkg_selection)
     _confirm_secrets_agree(repo_root, args.env, target_ids, pkg_selection)
-    # Cert placement runs inside run_cloud_deploy after CA runbooks and before
-    # ACA Jobs (dependency order); not called here, CaEndpointRunbook must
-    # already be published. The filtered target_ids and pkg_selection are
-    # passed so --package is honoured end to end rather than re-enumerated.
+    # Identity-cert placement runs inside run_cloud_deploy (CaEndpointRunbook
+    # must already be published). CA material for images is a BUILD concern
+    # (pipeline_image_build), not a deploy one. The filtered target_ids and
+    # pkg_selection are passed so --package is honoured end to end.
     return run_cloud_deploy(args.env, args.target,
                             explicit_target_ids=target_ids,
                             package_selection=pkg_selection or None)

@@ -7,8 +7,9 @@ Scans the live on-disk tree and produces a `DeploymentCollection` whose
   - 'managed'    — JSON owns the bytes verbatim in embedded_content.
                    Dockerfiles only, per the operator compromise.
   - 'referenced' — only source_location is captured; embedded_content
-                   is None. Deploy machinery copies bytes from
-                   origin/<branch>'s tree at deploy time.
+                   is None. The BUILD stages the bytes from
+                   origin/<branch> into build output; the deploy reads
+                   only build output (operator directive 2026-08-04).
 
 Binary content (when managed) is base64-encoded and prefixed with
 `__base64__:` so the schema sees a string and the Extractor can

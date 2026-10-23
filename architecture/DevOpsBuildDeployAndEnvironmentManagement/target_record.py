@@ -549,8 +549,7 @@ def _synth_runbook_package(aa_record: dict, eb: dict, pkg: dict) -> dict:
 def _resolve_apps_env_vars(sibling_packages: list, role: str, env: str) -> dict:
     """Merge default_apps_environment env_vars with {role}_apps_environment
     env_vars. Later overrides earlier. Templates {role} and {env} are
-    substituted at synth time so ensure_aca_job can pass literal values
-    to the container."""
+    substituted at synth time so consumers read literal values."""
     merged: dict = {}
     for pkg in sibling_packages or []:
         pid = pkg.get("package_id", "")

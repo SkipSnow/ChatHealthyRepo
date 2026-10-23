@@ -58,7 +58,7 @@ from pymongo import MongoClient
 
 
 # The provider collection's index set is declared in the record
-# (deployment_architecture.json MongoIndexCatalog, entry pipeline_provider_staging)
+# (deployment_architecture.json, mongo_indexes packages on target_atlas_pipeline)
 # and applied by the one shared library chathealthy_lib.mongo_indexes. It is no
 # longer restated here: a hardcoded list in pipeline code was the anti-pattern
 # that let an illegal parallel-array index ship and reach production. In the

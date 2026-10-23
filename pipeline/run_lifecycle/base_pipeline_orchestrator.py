@@ -40,7 +40,6 @@ from typing import Any, Iterable
 
 from pipeline.run_lifecycle.step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from pipeline.run_lifecycle.step_spec import StepSpec
-from pipeline.run_lifecycle.steps import get_runner
 from pipeline.run_lifecycle.steps._partitions import (county_partitions, state_entity_partitions,
                                state_partitions)
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
@@ -239,11 +238,6 @@ class BasePipelineOrchestrator:
         finally:
             transition.finished_at = _utc_now_iso()
             ctx.manifest.updated_at = transition.finished_at
-
-    def _invoke_in_process(self, spec: StepSpec, ctx: StepContext) -> dict:
-        runner = get_runner(spec.name)
-        result = runner(ctx)
-        return result if isinstance(result, dict) else {"result": result}
 
     def _invoke_process_pool(self, spec: StepSpec, ctx: StepContext) -> dict:
         """LLD v22-v25 + v32 §4.3.4 fan-out: Worker-subprocess dispatch.

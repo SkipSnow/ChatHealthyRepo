@@ -24,6 +24,7 @@ Imported-only helper (Rule-065 stmt 8): no entry-point block.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -103,7 +104,7 @@ def _docker_image_id(ref: str) -> str:
 
 def build_images_for_target(repo_root: Path, target, target_dir: Path,
                             packages: list[dict], build_n: int,
-                            log=print) -> int:
+                            log=print, all_packages: list[dict] | None = None) -> int:
     """Build every docker_image package of this target, completely, locally.
 
     Managed files and the derived index JSONs are materialized into the
@@ -113,8 +114,7 @@ def build_images_for_target(repo_root: Path, target, target_dir: Path,
     image_manifest.json in the package's build directory tells the deploy
     exactly what to push. Returns the number of images built.
     """
-    from pipeline_azure_deploy import (  # noqa: PLC0415
-        _dockerfile_context_hash, run_streamed)
+    from pipeline_azure_deploy import run_streamed  # noqa: PLC0415
 
     docker_pkgs = [p for p in packages if p.get("kind") == "docker_image"]
     if not docker_pkgs:
@@ -128,7 +128,11 @@ def build_images_for_target(repo_root: Path, target, target_dir: Path,
     built = 0
     try:
         # Managed files: the record owns the bytes; materialize for the build.
-        for pkg in docker_pkgs:
+        # Drawn from EVERY package on the target, not just the selected ones:
+        # a managed file one package declares (requirements-pipeline.txt on
+        # pipeline_vm_image) is COPY'd by every image's Dockerfile, so a
+        # medicare-only build selection must still materialize it.
+        for pkg in (all_packages or docker_pkgs):
             for f in pkg.get("files", []) or []:
                 if f.get("disposition") == "managed" and f.get("source_location"):
                     out = repo_root / f["source_location"]
@@ -217,3 +221,49 @@ def build_images_for_target(repo_root: Path, target, target_dir: Path,
         if wrote_paths:
             log(f"  cleaned {len(wrote_paths)} transient context file(s)")
     return built
+
+
+def _dockerfile_context_hash(dockerfile_path: str, build_context: str) -> str:
+    """Compute a stable sha256 covering the Dockerfile itself + every file
+    under each `COPY <src>` path referenced by the Dockerfile.
+
+    Only source paths that get baked into the image affect the hash —
+    ambient files under the build_context that aren't COPY'd don't count.
+
+    Excludes __pycache__ / .git / .pytest_cache to keep the hash stable
+    across dev-machine noise."""
+    df = Path(dockerfile_path).resolve()
+    ctx = Path(build_context).resolve()
+    h = hashlib.sha256()
+    h.update(df.read_bytes())
+    # Parse COPY <src> [<src2> ...] <dst> — take every token except the
+    # last as a source path relative to build_context.
+    copy_srcs: list[str] = []
+    for line in df.read_text(encoding="utf-8", errors="replace").splitlines():
+        stripped = line.strip()
+        if not stripped.upper().startswith("COPY "):
+            continue
+        parts = stripped.split()
+        if len(parts) < 3:
+            continue
+        copy_srcs.extend(parts[1:-1])
+    _EXCLUDE_DIRS = {"__pycache__", ".git", ".pytest_cache", "node_modules", ".venv"}
+    for src in copy_srcs:
+        root = (ctx / src).resolve()
+        if not root.exists():
+            # COPY of a non-existent path would fail the build too; still
+            # hash the missing-path token so the hash captures the request.
+            h.update(f"MISSING:{src}\n".encode("utf-8"))
+            continue
+        if root.is_file():
+            h.update(f"{root.relative_to(ctx)}\n".encode("utf-8"))
+            h.update(root.read_bytes())
+            continue
+        for f in sorted(root.rglob("*")):
+            if any(part in _EXCLUDE_DIRS for part in f.parts):
+                continue
+            if not f.is_file():
+                continue
+            h.update(f"{f.relative_to(ctx)}\n".encode("utf-8"))
+            h.update(f.read_bytes())
+    return h.hexdigest()

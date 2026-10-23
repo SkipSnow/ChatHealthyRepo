@@ -1,18 +1,16 @@
-"""Expose the CA chain to an image build.
+"""Identity-certificate placement at deploy time.
 
-Reads the CA root and intermediate certificates from Key Vault and sets
-them as base64 environment variables. The deploy passes those to
-`az acr build --build-arg`; Dockerfile.control and Dockerfile.worker
-decode them to /etc/chathealthy/ca/root.pem and intermediate.pem and
-refuse the build unless both decode to a certificate. A container then
-finds the chain on its own filesystem at boot with no Key Vault call.
+Mints declared identity certificates into Key Vault when absent (the
+deploy's one sanctioned cert concern). CA material for images is a BUILD
+concern: pipeline_image_build fetches the CA public PEMs from Key Vault
+at build time and bakes them via local `docker build --build-arg`
+(operator mandate 2026-10-22); nothing here touches image builds.
 
 Azure calls go through the subprocess `az` shim. Every one fails loud on
 a non-zero exit with the tail of stderr; no fallbacks.
 """
 from __future__ import annotations
 
-import base64
 import os
 import subprocess
 import sys
@@ -51,74 +49,6 @@ def _kv_name_for_env(kv_target, env: str) -> str:
     uri = _kv_uri_for_env(kv_target, env)
     host = uri.split("://", 1)[-1].split(".", 1)[0]
     return host
-
-
-def _block_field(block, key: str):
-    """Read a field from an env block that may be a dict or an object."""
-    if block is None:
-        return None
-    if isinstance(block, dict):
-        return block.get(key)
-    return getattr(block, key, None)
-
-
-def _acr_name_for_env(acr_target, env: str) -> str:
-    for eb in acr_target.environments:
-        if getattr(eb, "env_binding", None) == env:
-            block = getattr(eb, "azure_container_registry", None)
-            name = _block_field(block, "registry_name")
-            if not name:
-                raise ChatHealthyException(
-                    mode="aborted",
-                    component="cert_placement",
-                    message=f"ERROR: ACR target env_binding {env!r} missing "
-                    f"azure_container_registry.registry_name.")
-            return name
-    raise ChatHealthyException(
-        mode="aborted",
-        component="cert_placement",
-        message=f"ERROR: ACR target has no env_binding for env {env!r}.")
-
-
-def bake_ca_chain_into_images(env: str, acr_target, kv_target) -> None:
-    """Set CHATHEALTHY_CA_ROOT_B64 and CHATHEALTHY_CA_INTERMEDIATE_B64 in
-    this process, read from the vault bound to this env."""
-    acr_name = _acr_name_for_env(acr_target, env)
-    vault_name = _kv_name_for_env(kv_target, env)
-    _step(f"exposing CA chain as ACR build-arg for {acr_name}")
-    root_b64, intermediate_b64 = _fetch_ca_pem_b64s(vault_name)
-    os.environ["CHATHEALTHY_CA_ROOT_B64"] = root_b64
-    os.environ["CHATHEALTHY_CA_INTERMEDIATE_B64"] = intermediate_b64
-
-
-def _fetch_ca_pem_b64s(vault_name: str) -> tuple[str, str]:
-    """Fetch ca-root-cert + ca-intermediate-cert; return (root_b64, int_b64)."""
-    if os.environ.get("CHATHEALTHY_CERT_TEST_MODE") == "1":
-        return (
-            base64.b64encode(b"---MOCK ROOT---").decode("ascii"),
-            base64.b64encode(b"---MOCK INTERMEDIATE---").decode("ascii"),
-        )
-    root = _kv_secret_value(vault_name, "ca-root-cert")
-    intermediate = _kv_secret_value(vault_name, "ca-intermediate-cert")
-    if "BEGIN CERTIFICATE" not in root or "END CERTIFICATE" not in root:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="cert_placement",
-            message=f"ERROR: KV secret ca-root-cert in {vault_name} is not a PEM cert "
-            f"(len={len(root)}).")
-    if (
-        "BEGIN CERTIFICATE" not in intermediate
-        or "END CERTIFICATE" not in intermediate
-    ):
-        raise ChatHealthyException(
-            mode="aborted",
-            component="cert_placement",
-            message=f"ERROR: KV secret ca-intermediate-cert in {vault_name} is not a "
-            f"PEM cert (len={len(intermediate)}).")
-    return (
-        base64.b64encode(root.encode("utf-8")).decode("ascii"),
-        base64.b64encode(intermediate.encode("utf-8")).decode("ascii"),
-    )
 
 
 def _kv_secret_value(vault_name: str, secret_name: str) -> str:

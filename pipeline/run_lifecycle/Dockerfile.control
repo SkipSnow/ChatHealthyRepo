@@ -40,10 +40,12 @@ COPY pipeline/MedicareProviderEvaluationDataPipeline /app/pipeline/MedicareProvi
 # parents[2] (pipeline/fNNN/<mod>.py -> repo root -> /app).
 COPY brain/machine_artifacts/content/pipeline_config.json /app/brain/machine_artifacts/content/pipeline_config.json
 
-# The pipeline's slice of the index catalog, derived from
-# deployment_architecture.json's MongoIndexCatalog by ensure_acr just before the
-# build (the container carries no manifest). chathealthy_lib.mongo_indexes reads
-# it via the same parents[N] path pattern as pipeline_config.json.
+# The pipeline's slice of the index catalog, derived at BUILD time from
+# deployment_architecture.json (target_atlas_pipeline packages) by
+# pipeline_image_build.derive_index_artifacts -- durable copy in build output,
+# transient copy in this context (the container carries no manifest).
+# chathealthy_lib.mongo_indexes reads it via the same parents[N] path pattern
+# as pipeline_config.json.
 COPY brain/machine_artifacts/content/pipeline_indexes.json /app/brain/machine_artifacts/content/pipeline_indexes.json
 
 ENV PYTHONPATH=/app

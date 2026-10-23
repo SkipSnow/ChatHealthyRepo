@@ -27,22 +27,47 @@ RUN pip install --no-cache-dir /app/ChatHealthyLib
 # Scoped Medicare worker image: same closure as the controller -- run_lifecycle,
 # provider_base (shared ingest engines the Medicare steps call: fetch_all_sources,
 # load_staging, archive_sources, PipelineRuntime), and the Medicare pipeline.
-# provider_enrichment / provider_pipeline / data_release are not imported by the
-# Medicare step runners and are excluded.
+# provider_enrichment / provider_pipeline / data_release are excluded; the step
+# registry attempts their module paths at boot and skips each absence with a
+# WARNING (steps/__init__), by design.
 COPY pipeline/__init__.py /app/pipeline/__init__.py
 COPY pipeline/run_lifecycle /app/pipeline/run_lifecycle
 COPY pipeline/provider_base /app/pipeline/provider_base
 COPY pipeline/MedicareProviderEvaluationDataPipeline /app/pipeline/MedicareProviderEvaluationDataPipeline
 
 # Segregation (operator ruling 2026-10-22): the worker image cannot do the
-# controller's job. The controller entry program and its status listener are
-# removed; the worker keeps the step data files below.
+# controller's job. The controller entry program, its status listener, the
+# orchestration machinery, the controller-release module and the
+# automation-side programs are removed; tests, operator tools and stray
+# Dockerfiles do not ship. aca_job_manager stays: the quiesce step (a worker
+# work item) imports it.
 RUN rm /app/pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \
-       /app/pipeline/run_lifecycle/run_status_server.py
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/medicare_orchestrator.py \
+       /app/pipeline/run_lifecycle/run_status_server.py \
+       /app/pipeline/run_lifecycle/controller_release.py \
+       /app/pipeline/run_lifecycle/base_pipeline_orchestrator.py \
+       /app/pipeline/run_lifecycle/controller_phase.py \
+       /app/pipeline/run_lifecycle/worker_vm_provisioning.py \
+       /app/pipeline/run_lifecycle/worker_pid_verifier.py \
+       /app/pipeline/run_lifecycle/pipeline_runbook.py \
+       /app/pipeline/run_lifecycle/watchdog_runbook.py \
+       /app/pipeline/run_lifecycle/reservation_reaper.py \
+       /app/pipeline/run_lifecycle/runbook_bootstrap.py \
+       /app/pipeline/run_lifecycle/report_controller_failure.py \
+    && rm -rf /app/pipeline/run_lifecycle/tests /app/pipeline/run_lifecycle/ops \
+       /app/pipeline/provider_base/tests \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/tests \
+       /app/pipeline/run_lifecycle/Dockerfile.control \
+       /app/pipeline/run_lifecycle/Dockerfile.worker \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-control \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-worker
 
-# The conformance engine validates published records against the committed
-# JSON Schema contracts (LLD v83 III.6 H3); they must exist in the image.
-COPY Website/schemas /app/Website/schemas
+# The conformance engine validates published records against exactly three
+# committed JSON Schema contracts (LLD v83 III.6 H3, medicare_conformance_engine
+# _CONTRACTS); only those three ship -- not the firm's whole schema directory.
+COPY Website/schemas/ChatHealthyProviderMedicareSchema.json /app/Website/schemas/
+COPY Website/schemas/ChatHealthySpecialtyMedicareSchema.json /app/Website/schemas/
+COPY Website/schemas/ChatHealthyFdaProductToDiagnosisResolutionSchema.json /app/Website/schemas/
 COPY brain/machine_artifacts/content/pipeline_config.json /app/brain/machine_artifacts/content/pipeline_config.json
 COPY brain/machine_artifacts/content/pipeline_indexes.json /app/brain/machine_artifacts/content/pipeline_indexes.json
 COPY brain/machine_artifacts/content/pipeline_index_packages.json /app/brain/machine_artifacts/content/pipeline_index_packages.json

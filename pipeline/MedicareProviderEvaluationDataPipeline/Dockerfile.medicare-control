@@ -29,19 +29,36 @@ RUN pip install --no-cache-dir /app/ChatHealthyLib
 # provider_base (shared ingest engines Medicare reuses: source_fetch_engine,
 # staging_loader, archive_sources, and PipelineRuntime's staging helpers), and
 # the Medicare pipeline itself. provider_enrichment / provider_pipeline /
-# data_release are NOT imported by Medicare and are deliberately excluded.
+# data_release are excluded; the step registry attempts their module paths
+# at boot and skips each absence with a WARNING (steps/__init__), by design.
 COPY pipeline/__init__.py /app/pipeline/__init__.py
 COPY pipeline/run_lifecycle /app/pipeline/run_lifecycle
 COPY pipeline/provider_base /app/pipeline/provider_base
 COPY pipeline/MedicareProviderEvaluationDataPipeline /app/pipeline/MedicareProviderEvaluationDataPipeline
 
 # Segregation (operator ruling 2026-10-22): the controller image cannot do the
-# worker's job. The worker entry programs are removed; the worker-only data
-# files (Website/schemas for conformance, the two index JSONs the steps apply)
-# are never copied in. The controller orchestrates and records; it runs no
-# step business logic (LLD v36 3.1.4).
+# worker's job. ALL worker entry programs are removed (pipeline_worker,
+# worker_host, and the ACA-path worker_runner); the worker-only data files
+# (the conformance schemas, the two index JSONs the steps apply, the ICD-10
+# catalog workbook) are never copied in or are removed; tests, operator tools
+# and stray Dockerfiles do not ship. The controller orchestrates and records;
+# it runs no step business logic (LLD v36 3.1.4).
 RUN rm /app/pipeline/run_lifecycle/pipeline_worker.py \
-       /app/pipeline/run_lifecycle/worker_host.py
+       /app/pipeline/run_lifecycle/worker_host.py \
+       /app/pipeline/run_lifecycle/worker_runner.py \
+       /app/pipeline/run_lifecycle/pipeline_runbook.py \
+       /app/pipeline/run_lifecycle/watchdog_runbook.py \
+       /app/pipeline/run_lifecycle/reservation_reaper.py \
+       /app/pipeline/run_lifecycle/runbook_bootstrap.py \
+       /app/pipeline/run_lifecycle/report_controller_failure.py \
+    && rm -rf /app/pipeline/run_lifecycle/tests /app/pipeline/run_lifecycle/ops \
+       /app/pipeline/provider_base/tests \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/tests \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/data \
+       /app/pipeline/run_lifecycle/Dockerfile.control \
+       /app/pipeline/run_lifecycle/Dockerfile.worker \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-control \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-worker
 COPY brain/machine_artifacts/content/pipeline_config.json /app/brain/machine_artifacts/content/pipeline_config.json
 
 ENV PYTHONPATH=/app
