@@ -7,7 +7,7 @@ LLD v83 III.6 with the III.7 hard-fail semantics, operator-ruled 2026-10-20).
 Three checks, each with its own ruled consequence:
 
   H1 -- Part D exactly-once arithmetic:
-        Sum(total_cms_record_count over molecule masters) + the no-molecule
+        Sum(record_count over ProviderMedicare records) + the no-molecule
         bucket == the run's staged Part D row count. A mismatch is a FINDING
         with the delta -- operationally visible, never a run kill.
   H2 -- FDA fold arithmetic:
@@ -73,7 +73,7 @@ def check_conformance(*, collections: dict,
         for doc in coll.find({}):
             checked += 1
             if source_name == "providermedicare":
-                master_record_count_sum += int(doc.get("total_cms_record_count") or 0)
+                master_record_count_sum += int(doc.get("record_count") or 0)
             elif source_name == "fda_drug":
                 fda_set_ids_sum += len(doc.get("set_ids") or [])
             errors = sorted(validator.iter_errors(doc), key=lambda e: e.path)
@@ -99,7 +99,7 @@ def check_conformance(*, collections: dict,
         represented = master_record_count_sum + int(no_molecule_rows)
         delta = represented - cms_partd_row_count
         partd_arithmetic = {
-            "sum_total_cms_record_count": master_record_count_sum,
+            "sum_record_count": master_record_count_sum,
             "no_molecule_rows": int(no_molecule_rows),
             "cms_partd_rows": cms_partd_row_count,
             "delta": delta,

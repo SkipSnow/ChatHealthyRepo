@@ -14,8 +14,7 @@ molecule_id and writes the molecule-keyed fdaProductToDiagnosisResolution).
 prepare_molecule_masters is the serial mode pre-pass: it stamps
 partition_state (the prescriber's billing/business state) onto the staged
 Part D rows, clears this data_version's published collections (full annual
-replace), writes the master stubs with state_aggregated decided globally, and
-measures the no-molecule bucket. Every step's timeout comes from
+replace) and measures the no-molecule bucket. Every step's timeout comes from
 step_timeouts.medicare in the durable configuration (required; H7/H9).
 """
 
@@ -24,6 +23,8 @@ from __future__ import annotations
 from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
+from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
+    PARTD_COLS)
 from pipeline.run_lifecycle.base_pipeline_orchestrator import BasePipelineOrchestrator
 from pipeline.run_lifecycle.step_spec import StepSpec
 
@@ -102,75 +103,66 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             aca_job_name="med-finalize-fda-molecules",
         ),
         StepSpec(
-            # [BASE 0/2] The serial mode pre-pass (LLD v83 III.10): stamps
-            # partition_state (billing/business state by NPI, III.3) onto the
-            # staged Part D rows, clears this data_version's published
-            # collections (decision #1), writes every master stub with
-            # state_aggregated decided from the GLOBAL per-molecule count and
-            # applied_partitions [], and measures/reports the no-molecule
-            # bucket (III.6).
-            name="prepare_molecule_masters",
+            # Serial: the annual full replace (REQ-B-015). Clears this
+            # data_version's published collections before the base fan-out; a
+            # clear inside a state worker would wipe its peers' records.
+            name="clear_published_collections",
             prerequisites=["medicare_load_staging"],
             parallelism="serial",
-            aca_job_name="med-prepare-molecule-masters",
+            aca_job_name="med-clear-published",
         ),
         StepSpec(
-            # [BASE 1/2] The master apply fan-out (LLD v83 III.3): partitions
-            # are billing/business state x entity type; each worker groups its
-            # partition's rows per molecule and applies ONE ATOMIC UPDATE per
-            # (molecule, partition) -- children + $inc totals, gated by the
-            # applied_partitions marker (re-application is a silent no-op).
+            # CMS_NPI_PrescriberBase: one worker per CMS state, reading the
+            # staged Part D rows and NO other source. Groups by (NPI,
+            # molecule) and applies one gated, mergeable contribution per
+            # group (REQ-B-001, REQ-B-006). The row carries its own partition
+            # key: no NPI's rows span two CMS states (0 of 28,023,892,
+            # measured 2026-10-23).
             name="build_providermedicare_base",
-            prerequisites=["prepare_molecule_masters"],
+            prerequisites=["clear_published_collections"],
             parallelism="process_pool",
             aca_job_name="med-build-providermedicare",
-            partition_key="partition_state",
+            partition_key="cms_state",
         ),
         StepSpec(
-            # [ENRICH] Serial: attaches each master's fda block from its
-            # molecule-keyed FDA record by _id (point lookup).
-            name="enrich_drugs",
-            prerequisites=["build_providermedicare_base", "finalize_fda_molecules"],
-            parallelism="serial",
-            aca_job_name="med-enrich-drugs",
-        ),
-        StepSpec(
-            # [ENRICH] Part B procedure coverage. Outside the three-collection
-            # scope (LLD v83 III.1); best-effort -- never fails the run.
-            name="enrich_procedures",
-            prerequisites=["build_providermedicare_base"],
+            # One enrichment pass per source-state partition over the base
+            # collection: the Provider collection's billing state, entity type
+            # and NUCC codes, an organization's CCN and size tier, and the FDA
+            # molecule block and indications. One sweep, not one per fact --
+            # the collection holds 26.7M records.
+            name="enrich",
+            prerequisites=["build_providermedicare_base",
+                           "finalize_fda_molecules"],
             parallelism="process_pool",
-            aca_job_name="med-enrich-procedures",
-            partition_key="provider_state",
+            aca_job_name="med-enrich",
+            partition_key="source_state",
         ),
         StepSpec(
-            # [ENRICH] Organizational CCN + coarse size. Outside scope;
-            # best-effort.
-            name="enrich_org_ccn_size",
-            prerequisites=["build_providermedicare_base"],
-            parallelism="process_pool",
-            aca_job_name="med-enrich-org-ccn-size",
-            partition_key="provider_state",
-        ),
-        StepSpec(
-            # [DERIVE] Serial staging-sourced NUCC rollup (LLD v83 III.10):
-            # specialty_total vs de-duplicated molecule_real_total,
-            # prescriber_count, and the max/min/median/avg statistics of every
-            # quantitative measure (III.4.3) computed as the final pass;
-            # provider_count from Provider_v_5.
+            # The NUCC rollup, read from the staged Part D rows.
             name="rollup_specialtymedicare",
-            prerequisites=["enrich_drugs", "enrich_procedures", "enrich_org_ccn_size"],
+            prerequisites=["enrich"],
             parallelism="process_pool",
             aca_job_name="med-rollup-specialtymedicare",
             partition_key="nucc_code",
         ),
         StepSpec(
-            # The III.6 conformance checks with the III.7 hard-fail semantics,
-            # version-scoped.
+            # The audits -- one per published collection. ProviderMedicare by
+            # deterministic cross-section sample recomputed against its source
+            # rows; the FDA and specialty collections in full.
             name="medicare_contract_conformance",
-            prerequisites=["rollup_specialtymedicare"],
+            prerequisites=["enrich", "rollup_specialtymedicare"],
             parallelism="serial",
-            aca_job_name="med-contract-conformance",
+            aca_job_name="med-audit-collections",
+        ),
+        StepSpec(
+            # Last: the partition keys the work needed and the served
+            # collection does not. After the audits, which still recompute a
+            # sampled record against the rows it was built from.
+            name="drop_transient_attributes",
+            prerequisites=["medicare_contract_conformance"],
+            parallelism="process_pool",
+            aca_job_name="med-drop-transient",
+            partition_key="source_state",
         ),
         StepSpec(
             name="quiesce_infrastructure",
@@ -215,27 +207,18 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         "medicare_source_archival": [],
         "medicare_load_staging": [],
         "index_fda_prescription_records": ["staging:openfda_labels"],
-        # The fan-out partitions by fda_record_number: unstamped staging would
-        # silently yield one do-nothing partition, so the gate demands stamps.
         "build_fda_label_resolution": ["fda_stamped"],
-        # build mode consumes the per-label transient + the RxNorm vocabulary;
-        # consume mode reads the published molecule collection instead.
         "finalize_fda_molecules": ["if_build_fda:transient",
                                    "if_build_fda:staging:rxnorm",
                                    "if_consume_fda:fda_published"],
-        "prepare_molecule_masters": ["staging:medicare_partd", "provider_spine"],
-        # The apply workers read staged Part D BY partition_state -- stamps only
-        # prepare_molecule_masters writes -- so the gate demands stamped rows,
-        # not merely staged rows (unstamped = silent empty build).
-        "build_providermedicare_base": ["partd_stamped", "masters"],
-        "enrich_drugs": ["masters", "fda_published"],
-        "enrich_procedures": ["masters", "staging:medicare_coverage_hcpc",
-                              "staging:medicare_coverage_icd10"],
-        "enrich_org_ccn_size": ["masters", "staging:medicare_pos"],
+        "clear_published_collections": [],
+        "build_providermedicare_base": ["staging:medicare_partd"],
+        "enrich": ["masters", "provider_spine", "fda_published",
+                   "staging:medicare_pos"],
         "rollup_specialtymedicare": ["staging:medicare_partd"],
-        "medicare_contract_conformance": ["staging:medicare_partd", "masters",
-                                          "specialty_published", "fda_published",
-                                          "if_build_fda:staging:openfda_labels"],
+        "medicare_contract_conformance": ["masters", "specialty_published",
+                                          "fda_published"],
+        "drop_transient_attributes": ["masters"],
         "quiesce_infrastructure": [],
     }
 
@@ -327,7 +310,38 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         # (state, county, state_entity).
         enums = dict(super()._partition_enumerators())
         enums["record_ranges"] = self._fda_record_ranges
+        enums["cms_states"] = self._cms_states
+        enums["source_states"] = self._source_states
         return enums
+
+    def _cms_states(self, ctx, **_) -> list[dict]:
+        """The CMS states present in the staged Part D rows -- the base task's
+        fan-out. Read from the data, not declared: the row carries its own
+        Prscrbr_State_Abrvtn and no NPI's rows span two states (0 of
+        28,023,892, measured 2026-10-23)."""
+        from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime  # noqa: PLC0415
+        reg = PipelineRuntime(ctx).registry
+        partd = reg.by_source_name("medicare_partd")
+        coll = ctx.mongo_client[partd.staging_db][
+            reg.staging_collection_name("medicare_partd")]
+        field = f"raw.{PARTD_COLS['state']}"
+        states = [d["_id"] for d in coll.aggregate(
+            [{"$group": {"_id": f"${field}"}}, {"$sort": {"_id": 1}}],
+            allowDiskUse=True) if d.get("_id")]
+        return [{"cms_state": s} for s in states]
+
+    def _source_states(self, ctx, **_) -> list[dict]:
+        """The source states carried on the built records -- the fan-out for
+        every step that reads the base collection."""
+        from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime  # noqa: PLC0415
+        reg = PipelineRuntime(ctx).registry
+        tgt = reg.by_source_name("providermedicare")
+        coll = ctx.mongo_client[tgt.public_data_db][
+            reg.public_data_collection_name("providermedicare")]
+        states = [d["_id"] for d in coll.aggregate(
+            [{"$group": {"_id": "$source_state"}}, {"$sort": {"_id": 1}}],
+            allowDiskUse=True) if d.get("_id")]
+        return [{"source_state": s} for s in states]
 
     def _fda_record_ranges(self, ctx, *, count: int, **_) -> list[dict]:
         """Even record-number ranges over this run's stamped prescription FDA

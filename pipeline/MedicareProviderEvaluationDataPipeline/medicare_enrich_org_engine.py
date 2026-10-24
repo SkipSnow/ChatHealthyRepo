@@ -103,7 +103,6 @@ def _band(beds: int | None, cutpoints: list[float]) -> int | None:
 
 def enrich_org_ccn_size(
     *,
-    state: str,
     providermedicare_coll,
     provider_spine_coll,
     pos_coll,
@@ -115,12 +114,13 @@ def enrich_org_ccn_size(
     written = 0
     orgs = 0
     sized = 0
-    # Version-scoped masters collection is the one truth -- no provenance
-    # run filter (Start At, operator design 2026-10-22).
-    for pm in providermedicare_coll.find(
-            {"prescriber_state": state, "entity_type": "O"}):
+    # Every organizational record (REQ-B-011, REQ-B-012). The record is keyed
+    # by (NPI, molecule) and carries no state, so this is one serial pass; a
+    # provider's CCN and size tier are the same on each of its records.
+    ccn_by_npi: dict[str, str | None] = {}
+    for pm in providermedicare_coll.find({"entity_type": "O"}):
         orgs += 1
-        npi = pm["_id"]
+        npi = str(pm.get("npi") or "")
         spine = provider_spine_coll.find_one({"npi": npi}) or \
             provider_spine_coll.find_one({"_id": npi}) or {}
         ccn = _extract_ccn(spine)
@@ -133,7 +133,7 @@ def enrich_org_ccn_size(
                 sized += 1
         if not setter:
             continue
-        ops.append(UpdateOne({"_id": npi}, {"$set": setter}))
+        ops.append(UpdateOne({"_id": pm["_id"]}, {"$set": setter}))
         if len(ops) >= batch_size:
             providermedicare_coll.bulk_write(ops, ordered=False)
             written += len(ops)
@@ -144,7 +144,7 @@ def enrich_org_ccn_size(
 
     _log.LogPipeline(
         "INFO",
-        "enrich_org_ccn_size[%s]: orgs=%d updated=%d size_tiered=%d pos_ccns=%d",
-        state, orgs, written, sized, len(ccn_beds),
+        "enrich_org_ccn_size: org_records=%d updated=%d size_tiered=%d pos_ccns=%d",
+        orgs, written, sized, len(ccn_beds),
     )
-    return {"state": state, "orgs": orgs, "updated": written, "size_tiered": sized}
+    return {"org_records": orgs, "updated": written, "size_tiered": sized}

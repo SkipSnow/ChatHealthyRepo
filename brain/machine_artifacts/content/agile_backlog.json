@@ -17750,7 +17750,7 @@
                     "story_id": "EPIC-010-F-007-S-002",
                     "orphan": false,
                     "name": "Construct the ProviderMedicare front-end collection",
-                    "description": "Construct the ProviderMedicare front-end-bound collection, keyed by NPI, one record per provider. Constructed from chatHealthy.ai's Provider collection (NPI, entity type, NUCC codes), Medicare Part B 'by Provider and Service' (billed procedures and volume), Medicare Part D 'by Provider and Drug' (prescribed drugs), the Medicare Coverage collection (procedure to covered diagnoses), FDA SPL/openFDA and RxNorm (drug molecule and label indications), a CMS provider-enrollment source that links each organizational NPI to its CCN, and the CMS Provider-of-Services file (certified bed count for size).",
+                    "description": "Construct the ProviderMedicare front-end-bound collection, keyed by NPI and molecule — one record per molecule per provider. Constructed from chatHealthy.ai's Provider collection (NPI, entity type, NUCC codes), Medicare Part B 'by Provider and Service' (billed procedures and volume), Medicare Part D 'by Provider and Drug' (prescribed drugs), the Medicare Coverage collection (procedure to covered diagnoses), FDA SPL/openFDA and RxNorm (drug molecule and label indications), a CMS provider-enrollment source that links each organizational NPI to its CCN, and the CMS Provider-of-Services file (certified bed count for size).",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
@@ -17759,8 +17759,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-001",
                           "orphan": false,
-                          "name": "One ProviderMedicare record per provider",
-                          "requirement": "ProviderMedicare is keyed by NPI, one record per provider in the Provider collection; a provider with no Medicare facts has a record with its Medicare facts empty.",
+                          "name": "One ProviderMedicare record per molecule per provider",
+                          "requirement": "ProviderMedicare is keyed by NPI and molecule — one record per molecule per provider in the Provider collection.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17816,8 +17816,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-004",
                           "orphan": false,
-                          "name": "Two distinct item collections",
-                          "requirement": "Each ProviderMedicare record carries a billed-procedures collection and a prescribed-drugs collection as two distinct arrays.",
+                          "name": "The record carries one molecule's prescribed-drug facts",
+                          "requirement": "Each ProviderMedicare record carries the prescribed-drug facts of the one molecule its key names.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17835,8 +17835,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-005",
                           "orphan": false,
-                          "name": "Each collection states its Medicare population",
-                          "requirement": "The billed-procedures collection is marked Original Medicare fee-for-service Part B; the prescribed-drugs collection is marked the Part D population including Medicare Advantage.",
+                          "name": "The record states its Medicare population",
+                          "requirement": "The prescribed-drug facts on each ProviderMedicare record are marked the Part D population including Medicare Advantage.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17854,8 +17854,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-006",
                           "orphan": false,
-                          "name": "Procedure facts carried",
-                          "requirement": "Each billed-procedure entry carries the HCPCS code, the year, the service count, and the distinct-beneficiary count, as the source gives them.",
+                          "name": "Drug facts carried",
+                          "requirement": "Each ProviderMedicare record carries, for the molecule its key names: the brand names as an array, the generic name or names as the source gives them, and the total claims and the total day supply as sums across every source row for that molecule and provider.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17873,8 +17873,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-007",
                           "orphan": false,
-                          "name": "Procedure code and display form",
-                          "requirement": "Each billed-procedure entry carries the HCPCS/CPT code and its descriptor, and separately carries the HCPCS Level II code and a plain-language label where the service has them.",
+                          "name": "Drug molecule carried",
+                          "requirement": "Each ProviderMedicare record carries the RxNorm ingredient (molecule) and RXCUI the drug name resolves to, held distinct from the source brand and generic names.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17892,8 +17892,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-008",
                           "orphan": false,
-                          "name": "Suppressed procedure value is null",
-                          "requirement": "A suppressed procedure value is present on the billed-procedure entry as an explicit null.",
+                          "name": "Suppressed drug value is null",
+                          "requirement": "A suppressed drug quantity is present on the ProviderMedicare record as an explicit null.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17911,8 +17911,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-009",
                           "orphan": false,
-                          "name": "Drug facts carried",
-                          "requirement": "Each prescribed-drug entry carries the brand name, the generic name, the year, the total claims, the days supply, and the beneficiary count, as the source gives them. There is one generic sub-record per molecule, held as a separate record, carrying all of chatHealthy.ai's mapped indications for that molecule.",
+                          "name": "chatHealthy.ai indications carried",
+                          "requirement": "Each ProviderMedicare record carries the chatHealthy.ai indication or indications the NormalizedIndicationMap associates with the molecule its key names; a molecule may carry many.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17930,8 +17930,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-010",
                           "orphan": false,
-                          "name": "Drug molecule carried",
-                          "requirement": "Each prescribed-drug entry carries the RxNorm ingredient (molecule) and RXCUI the drug name resolves to, held distinct from the source brand and generic names.",
+                          "name": "Carried indication keeps its trust",
+                          "requirement": "Each indication carried on a ProviderMedicare record keeps the trust of the molecule-to-indication association it came from in the NormalizedIndicationMap.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17949,8 +17949,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-011",
                           "orphan": false,
-                          "name": "Suppressed drug value is null",
-                          "requirement": "A suppressed drug value is present on the prescribed-drug entry as an explicit null.",
+                          "name": "Organizational record carries its CCN",
+                          "requirement": "An organizational provider's ProviderMedicare record carries the CCN paired to its NPI in the facility enrollment reference, and carries an absent CCN where the NPI is not enrolled.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17968,8 +17968,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-012",
                           "orphan": false,
-                          "name": "Allowed diagnoses carried",
-                          "requirement": "Each billed procedure carries the set of ICD-10-CM codes the Medicare Coverage collection gives as supporting medical necessity for its HCPCS code.",
+                          "name": "Organizational record carries a size tier",
+                          "requirement": "An organizational provider's ProviderMedicare record carries a size as one of five ordered tiers derived from the certified bed count, and carries an absent tier where no CCN or bed count resolves.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -17987,8 +17987,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-013",
                           "orphan": false,
-                          "name": "Justification marked rule-based with its source",
-                          "requirement": "Each procedure justification carries a rule-based marker and the identifier of the coverage article or policy it was drawn from.",
+                          "name": "Individual record carries only individual-relevant fields",
+                          "requirement": "An individual provider's ProviderMedicare record carries only the fields relevant to an individual.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -18006,179 +18006,8 @@
                         {
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-014",
                           "orphan": false,
-                          "name": "Justification trust and aggregate",
-                          "requirement": "Each procedure justification carries a trust value, and the ProviderMedicare record carries the justification both per procedure and aggregated across the provider.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-015",
-                          "orphan": false,
-                          "name": "Unjustifiable procedure carries absent justification",
-                          "requirement": "A billed procedure with no coverage rule carries an absent justification, and a finding is recorded for it.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-016",
-                          "orphan": false,
-                          "name": "chatHealthy.ai indications carried",
-                          "requirement": "Each prescribed drug on a ProviderMedicare record carries the chatHealthy.ai indication or indications the NormalizedIndicationMap associates with the drug's molecule; a molecule may carry many.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-017",
-                          "orphan": false,
-                          "name": "Carried indication keeps its trust",
-                          "requirement": "Each indication carried on a prescribed drug keeps the trust of the molecule-to-indication association it came from in the NormalizedIndicationMap.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-018",
-                          "orphan": false,
-                          "name": "Organizational record carries its CCN",
-                          "requirement": "An organizational provider's record carries the CCN paired to its NPI in the facility enrollment reference, and carries an absent CCN where the NPI is not enrolled.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-019",
-                          "orphan": false,
-                          "name": "Organizational record carries a size tier",
-                          "requirement": "An organizational provider's record carries a size as one of five ordered tiers derived from the certified bed count, and carries an absent tier where no CCN or bed count resolves.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-020",
-                          "orphan": false,
-                          "name": "Individual record carries only individual-relevant fields",
-                          "requirement": "An individual provider's record carries only the fields relevant to an individual.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-021",
-                          "orphan": false,
-                          "name": "Procedure diagnoses resolved to their indications",
-                          "requirement": "Each billed procedure's supporting ICD-10-CM diagnosis codes are resolved, through the NormalizedIndicationMap, to the indication or indications that own those codes, and those indications are carried on the record.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-022",
-                          "orphan": false,
-                          "name": "Provider indications carried",
-                          "requirement": "Each ProviderMedicare record carries the set of indications its prescribed molecules and its billed-procedure diagnosis codes resolve to in the NormalizedIndicationMap.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-023",
-                          "orphan": false,
                           "name": "Controlled finding vocabulary",
-                          "requirement": "Per-record findings use a fixed set of reasons covering at least: a source row whose NPI is in no Provider-collection record; a billed procedure with no coverage rule; a drug with no RxNorm molecule; an organization with no CCN; and an organization with no size tier.",
+                          "requirement": "Every finding this construction records names exactly one reason drawn from a closed list, and no value outside that list appears. The list is: npi_not_in_provider_collection, recorded for a Part D source row whose prescriber NPI matches no record in the Provider collection; drug_without_rxnorm_molecule, recorded for a source drug name that resolves to no RxNorm ingredient; organization_without_ccn, recorded for an organizational NPI with no CCN in the enrollment reference; and organization_without_size_tier, recorded for an organizational NPI whose CCN yields no certified bed count. Each condition records its own reason and no other.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -18194,13 +18023,11 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-024",
-                          "orphan": false,
-                          "name": "Treated-indication behavior carried with volume, individual and facility grain",
-                          "requirement": "The record expresses which indications the provider treats and in what volume, derived along two paths - each prescribed drug resolved to its indications, and each billed procedure's Medicare volume resolved through its coverage to the indications it serves - carried at the individual-provider grain and, for an institutional provider, at the facility grain.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "not_started",
+                          "approval": "approved",
                           "depends_on": [],
+                          "orphan": false,
                           "tests": {
                             "test": [
                               {
@@ -18210,45 +18037,9 @@
                               }
                             ]
                           },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-026",
-                          "orphan": false,
-                          "name": "Coverage condition scope",
-                          "requirement": "The procedure justification rests on the covered-diagnosis condition as its scope: the set of ICD-10-CM codes the Medicare Coverage collection gives as supporting medical necessity for the procedure's HCPCS code.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
-                          "req_id": "EPIC-010-F-007-S-002-REQ-B-027",
-                          "orphan": false,
-                          "name": "Every inferred fact is auditable to the rule that set its trust",
-                          "requirement": "Every inferred fact on the record is auditable to the trust rule that set its trust, as defined by EPIC-010-F-002.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
+                          "req_id": "EPIC-010-F-007-S-002-REQ-B-015",
+                          "name": "Each year's load fully replaces the collection",
+                          "requirement": "Each year's construction fully replaces the ProviderMedicare collection: no record from a prior year is retained, and no record accumulates facts across years."
                         }
                       ]
                     }

@@ -10,7 +10,6 @@ Pure functions only -- fabricated CMS rows and label results, no Mongo, no I/O
   - fda_molecule_union: set_ids, indication dedup + ICD-10 code union,
     drug_class SET, brand-key union, trust aggregate
   - molecule_id: the shared CMS/FDA surrogate minting
-  - aggregate_contribution + raw_children_for: one partition's contribution
   - accumulate_provider_molecule_totals + rollup_specialty_v83: specialty vs
     de-duplicated real totals, prescriber counts, per-provider statistics
   - the partition marker label
@@ -29,11 +28,6 @@ from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization impo
     normalize_brand,
     partd_child,
     rollup_specialty_v83,
-)
-from pipeline.MedicareProviderEvaluationDataPipeline.medicare_providermedicare_engine import (
-    aggregate_contribution,
-    partition_label,
-    raw_children_for,
 )
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_enrich_drugs_engine import (
     fda_block_from,
@@ -171,31 +165,6 @@ def test_union_drug_class_is_a_set_and_trust_aggregates():
 
 
 # ------------------------------------------- partition contribution + children
-def test_partition_label_shape():
-    assert partition_label("DE", 1) == "DE:1"
-    assert partition_label("ALL", 2) == "ALL:2"
-
-
-def test_aggregate_contribution_sums_allages_and_visible_ge65_only():
-    rows = [_row(clms=10, ge65_clms=6),
-            _row(clms=5, ge65_sup="*")]       # GE65 suppressed: excluded, counted
-    c = aggregate_contribution(rows)
-    assert c["tot_clms"] == 15
-    assert c["ge65_tot_clms"] == 6            # visible rows only
-    assert c["ge65_usage_suppressed_count"] == 1
-    assert c["record_count"] == 2
-
-
-def test_raw_children_carry_business_state_and_cms_state_verbatim():
-    rows = [_row(state="FL")]                  # CMS says FL ...
-    children = raw_children_for(rows, "DE", {"1003000126": ["207Q00000X"]})
-    child = children[0]
-    assert child["state"] == "DE"              # ... partition basis is business state
-    assert child["cms_state"] == "FL"          # CMS column kept verbatim, source only
-    assert child["nucc_codes"] == ["207Q00000X"]
-
-
-# ------------------------------------------------------------- rollup (v83)
 def test_rollup_specialty_vs_real_dedup_and_stats():
     rows = [
         _row(npi="A", generic="ATORVASTATIN", clms=10, fills=1, supply=1, cost=1),

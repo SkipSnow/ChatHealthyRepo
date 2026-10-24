@@ -216,6 +216,32 @@
               }
             }
           }
+        },
+        "audit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "volume_bands",
+            "sampled_record_cap",
+            "mismatch_is_fatal"
+          ],
+          "description": "Levers for the published-collection audits. The ProviderMedicare collection is too large to re-read in full, so its audit draws a deterministic cross-section -- ICD-10 chapter by prescribing-volume band by contributing-row depth -- and recomputes each sampled record from the source rows it was built from. The smaller published collections are audited whole.",
+          "properties": {
+            "volume_bands": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "How many prescribing-volume bands molecules are ranked into, so the sample spans the high-volume molecules and the orphans alike. Bands are computed from the year's own data."
+            },
+            "sampled_record_cap": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum records drawn. When the cross-section has more non-empty cells than this, cells fill in a fixed priority order -- deepest fold first, then orphan volume, then chapter spread -- so the thin, risky cells are never the ones dropped."
+            },
+            "mismatch_is_fatal": {
+              "type": "boolean",
+              "description": "Whether a sampled record whose recomputed facts disagree with the published record ends the run or is recorded as a finding."
+            }
+          }
         }
       }
     },

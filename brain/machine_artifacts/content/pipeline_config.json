@@ -70,36 +70,6 @@
           ]
         }
       },
-      "build_providermedicare_base": {
-        "partition_source": {
-          "type": "named_enumerator",
-          "name": "state_entity",
-          "params": {
-            "key": "partition_state"
-          }
-        },
-        "parallelism_cap": 104
-      },
-      "enrich_procedures": {
-        "partition_source": {
-          "type": "named_enumerator",
-          "name": "state",
-          "params": {
-            "key": "provider_state"
-          }
-        },
-        "parallelism_cap": 52
-      },
-      "enrich_org_ccn_size": {
-        "partition_source": {
-          "type": "named_enumerator",
-          "name": "state",
-          "params": {
-            "key": "provider_state"
-          }
-        },
-        "parallelism_cap": 52
-      },
       "rollup_specialtymedicare": {
         "partition_source": {
           "type": "config_list",
@@ -120,6 +90,27 @@
           }
         },
         "parallelism_cap": 400
+      },
+      "build_providermedicare_base": {
+        "partition_source": {
+          "type": "named_enumerator",
+          "name": "cms_states"
+        },
+        "parallelism_cap": 60
+      },
+      "enrich": {
+        "partition_source": {
+          "type": "named_enumerator",
+          "name": "source_states"
+        },
+        "parallelism_cap": 60
+      },
+      "drop_transient_attributes": {
+        "partition_source": {
+          "type": "named_enumerator",
+          "name": "source_states"
+        },
+        "parallelism_cap": 60
       }
     }
   },
@@ -133,14 +124,13 @@
       "index_fda_prescription_records": 3600,
       "build_fda_label_resolution": 14400,
       "finalize_fda_molecules": 3600,
-      "prepare_molecule_masters": 7200,
       "build_providermedicare_base": 21600,
-      "enrich_drugs": 3600,
-      "enrich_procedures": 7200,
-      "enrich_org_ccn_size": 3600,
       "rollup_specialtymedicare": 14400,
       "medicare_contract_conformance": 7200,
-      "quiesce_infrastructure": 1800
+      "quiesce_infrastructure": 1800,
+      "clear_published_collections": 1800,
+      "enrich": 21600,
+      "drop_transient_attributes": 7200
     },
     "provider": {
       "prepare_infrastructure": 1800,
@@ -560,7 +550,12 @@
           "backoff_base_s": 2
         }
       },
-      "worker_start_stagger_s": 5
+      "worker_start_stagger_s": 5,
+      "audit": {
+        "volume_bands": 3,
+        "sampled_record_cap": 100,
+        "mismatch_is_fatal": false
+      }
     },
     {
       "env": "qa",
@@ -954,7 +949,12 @@
           "backoff_base_s": 2
         }
       },
-      "worker_start_stagger_s": 5
+      "worker_start_stagger_s": 5,
+      "audit": {
+        "volume_bands": 3,
+        "sampled_record_cap": 100,
+        "mismatch_is_fatal": false
+      }
     },
     {
       "env": "prod",
@@ -1348,7 +1348,12 @@
           "backoff_base_s": 2
         }
       },
-      "worker_start_stagger_s": 5
+      "worker_start_stagger_s": 5,
+      "audit": {
+        "volume_bands": 3,
+        "sampled_record_cap": 100,
+        "mismatch_is_fatal": false
+      }
     }
   ]
 }

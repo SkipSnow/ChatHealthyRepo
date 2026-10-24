@@ -24,9 +24,8 @@ from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization impo
     rollup_specialty_v83,
 )
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_providermedicare_engine import (
-    aggregate_contribution,
-    partition_label,
-    raw_children_for,
+    fold_rows,
+    record_id,
 )
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_enrich_drugs_engine import (
     fda_block_from,
@@ -96,67 +95,42 @@ def test_fda_molecule_document_conforms():
     _assert_valid(_fda_doc(), "ChatHealthyFdaProductToDiagnosisResolutionSchema.json")
 
 
-def _master_stub(mid: str, state_aggregated: bool):
-    """The exact stub prepare_molecule_masters writes."""
+def _providermedicare_record(npi: str, mid: str, rows: list[dict]) -> dict:
+    """The exact record build_providermedicare_base writes (REQ-B-001)."""
     return {
-        "_id": mid,
+        "_id": record_id(npi, mid),
+        "npi": npi,
         "molecule_id": mid,
-        "fda": {"indications": [], "drug_class": [],
-                "trust": {"max": None, "min": None, "median": None, "avg": None}},
-        "totals": {"tot_clms": 0, "tot_30day_fills": 0,
-                   "tot_day_suply": 0, "tot_drug_cst": 0},
-        "total_cms_record_count": 0,
-        "ge65_usage_suppressed_count": 0,
-        "state_aggregated": state_aggregated,
-        "applied_partitions": [],
-        "children": [],
-        "provenance": {"source_run_id": "run-x",
-                       "source_collection": "StagingMedicarePartD_v_1",
-                       "built_at": datetime.datetime.utcnow().isoformat()},
+        "entity_type": "I",
+        "nucc_codes": ["207Q00000X"],
+        "medicare_population": "Part D including Medicare Advantage",
+        "source_state": "DE",
+        "contributed_by": ["DE"],
+        **fold_rows(rows),
     }
 
 
-def test_master_stub_conforms():
-    _assert_valid(_master_stub(molecule_id("atorvastatin"), False),
-                  "ChatHealthyProviderMedicareSchema.json")
-
-
-def test_master_after_raw_apply_and_enrich_conforms():
+def test_providermedicare_record_conforms():
     mid = molecule_id("atorvastatin")
-    doc = _master_stub(mid, state_aggregated=False)
-    rows = [_row(), _row(npi="1104000127")]
-    contrib = aggregate_contribution(rows)
-    # the raw-mode apply, replayed client-side exactly as the engine's update
-    doc["children"] = raw_children_for(rows, "DE", {"1003000126": ["207Q00000X"],
-                                                    "1104000127": []})
-    doc["applied_partitions"].append(partition_label("DE", 1))
-    for k in ("tot_clms", "tot_30day_fills", "tot_day_suply", "tot_drug_cst"):
-        doc["totals"][k] += contrib[k]
-    doc["total_cms_record_count"] += contrib["record_count"]
-    doc["ge65_usage_suppressed_count"] += contrib["ge65_usage_suppressed_count"]
-    # the enrich attach
+    doc = _providermedicare_record("1003000126", mid, [_row()])
+    _assert_valid(doc, "ChatHealthyProviderMedicareSchema.json")
+
+
+def test_providermedicare_record_after_enrich_conforms():
+    mid = molecule_id("atorvastatin")
+    doc = _providermedicare_record("1003000126", mid, [_row(), _row()])
     doc["fda"] = fda_block_from(_fda_doc())
     _assert_valid(doc, "ChatHealthyProviderMedicareSchema.json")
 
 
-def test_master_after_aggregate_apply_conforms():
+def test_two_providers_of_one_molecule_are_two_conforming_records():
     mid = molecule_id("atorvastatin")
-    doc = _master_stub(mid, state_aggregated=True)
-    contrib = aggregate_contribution([_row(), _row(npi="1104000127")])
-    child = {"state": "DE", "record_count": contrib["record_count"],
-             "tot_clms": contrib["tot_clms"],
-             "tot_30day_fills": contrib["tot_30day_fills"],
-             "tot_day_suply": contrib["tot_day_suply"],
-             "tot_drug_cst": contrib["tot_drug_cst"],
-             "ge65_tot_clms": contrib["ge65_tot_clms"],
-             "ge65_tot_30day_fills": contrib["ge65_tot_30day_fills"],
-             "ge65_tot_day_suply": contrib["ge65_tot_day_suply"],
-             "ge65_tot_drug_cst": contrib["ge65_tot_drug_cst"],
-             "ge65_usage_suppressed_count": contrib["ge65_usage_suppressed_count"]}
-    doc["children"] = [child]
-    doc["applied_partitions"] = [partition_label("DE", 1), partition_label("DE", 2)]
-    doc["total_cms_record_count"] = contrib["record_count"]
-    _assert_valid(doc, "ChatHealthyProviderMedicareSchema.json")
+    a = _providermedicare_record("1003000126", mid, [_row()])
+    b = _providermedicare_record("1104000127", mid,
+                                 [_row(npi="1104000127")])
+    assert a["_id"] != b["_id"]
+    for doc in (a, b):
+        _assert_valid(doc, "ChatHealthyProviderMedicareSchema.json")
 
 
 def test_specialty_document_conforms():

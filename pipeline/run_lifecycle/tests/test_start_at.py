@@ -190,7 +190,7 @@ def test_medicare_gate_is_called_before_every_step_including_finally():
 
 
 def test_medicare_gate_is_called_only_for_scheduled_steps_on_start_at():
-    start = "prepare_molecule_masters"
+    start = "enrich"
     orch = _MedicareWalkRecorder()
     orch.run(_med_args(start_at_step=start))
     assert orch.gated == _expected_walk(start) + MED_FINALLY_STEPS, (
@@ -199,18 +199,16 @@ def test_medicare_gate_is_called_only_for_scheduled_steps_on_start_at():
 
 
 def test_medicare_prereq_before_start_point_is_vouched_by_data_not_history():
-    # enrich_drugs requires build_providermedicare_base; starting AT
-    # enrich_drugs must pass ordering because the data gate answers for the
-    # earlier step's output -- completed_steps carries no history of it.
+    # enrich requires build_providermedicare_base; starting AT enrich must
+    # pass ordering because the data gate answers for the earlier step's
+    # output -- completed_steps carries no history of it.
     orch = _MedicareWalkRecorder()
-    manifest = orch.run(_med_args(start_at_step="enrich_drugs"))
+    manifest = orch.run(_med_args(start_at_step="enrich"))
     assert manifest.status == "succeeded"
     assert "build_providermedicare_base" not in manifest.completed_steps
-    assert orch.invoked == MED_ALWAYS_RUN + ["enrich_drugs",
-                                            "enrich_procedures",
-                                            "enrich_org_ccn_size",
-                                            "rollup_specialtymedicare",
-                                            "medicare_contract_conformance"] \
+    assert orch.invoked == MED_ALWAYS_RUN + [
+        "enrich", "rollup_specialtymedicare",
+        "medicare_contract_conformance", "drop_transient_attributes"] \
         + MED_FINALLY_STEPS
 
 
@@ -321,6 +319,7 @@ def test_medicare_no_data_steps_are_exactly_infra_fetch_load_and_quiesce():
                                  "medicare_fetch_all_sources",
                                  "medicare_source_archival",
                                  "medicare_load_staging",
+                                 "clear_published_collections",
                                  "quiesce_infrastructure"]
 
 

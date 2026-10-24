@@ -2,29 +2,115 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProviderMedicareSchema.json",
   "title": "ChatHealthy ProviderMedicare",
-  "description": "The molecule MASTER (EPIC-010-F-007, LLD v83 III.4.2): ONE document per molecule in the providerMedicarePartDQuantityRollUps collection, _id == molecule_id. Embeds one child per CMS Part D record when the molecule has <100 records (state_aggregated=false); one child per billing/business state when it has >=100 (state_aggregated=true). FDA facts are taken from the molecule-keyed FDA collection by molecule_id. The child state is the prescriber's billing/business address state (LLD v83 III.3); applied_partitions is the exactly-once bookkeeping marker, not a source-key ledger.",
+  "description": "One ProviderMedicare record: one molecule per provider (EPIC-010-F-007-S-002-REQ-B-001). _id is the pair {npi, molecule_id}. Built by CMS_NPI_PrescriberBase from the CMS Part D file alone -- brand names and generic names as arrays, total claims and total day supply as sums over every source row for that prescriber and molecule (REQ-B-006) -- then completed by enrichment from the Provider collection and the FDA molecule collection: billing state, entity type, NUCC codes (REQ-B-002, REQ-B-003), CCN and size tier for an organization (REQ-B-011, REQ-B-012), the FDA block and the indications (REQ-B-009, REQ-B-010). Each year's construction fully replaces the collection (REQ-B-015).",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "_id",
+    "npi",
     "molecule_id",
-    "fda",
-    "totals",
-    "total_cms_record_count",
-    "ge65_usage_suppressed_count",
-    "state_aggregated",
-    "children",
-    "applied_partitions",
-    "provenance"
+    "medicare_population",
+    "brand_names",
+    "generic_names",
+    "tot_clms",
+    "tot_day_suply",
+    "record_count"
   ],
   "properties": {
     "_id": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "npi",
+        "molecule_id"
+      ],
+      "description": "The record key: NPI and molecule (REQ-B-001).",
+      "properties": {
+        "npi": {
+          "type": "string",
+          "pattern": "^[0-9]{10}$"
+        },
+        "molecule_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "npi": {
       "type": "string",
-      "description": "== molecule_id; the collection is keyed on the molecule."
+      "pattern": "^[0-9]{10}$",
+      "description": "The prescriber NPI the key names."
     },
     "molecule_id": {
       "type": "string",
-      "description": "Proprietary molecule surrogate. Never shown to a user."
+      "minLength": 1,
+      "description": "The molecule the key names; the join key to fdaProductToDiagnosisResolution."
+    },
+    "entity_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "I",
+        "O",
+        null
+      ],
+      "description": "Individual or organization, from the Provider collection (REQ-B-002); null when the NPI is in no Provider record."
+    },
+    "nucc_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "NUCC taxonomy codes as the Provider collection gives them (REQ-B-003)."
+    },
+    "medicare_population": {
+      "type": "string",
+      "enum": [
+        "Part D including Medicare Advantage"
+      ],
+      "description": "The population the drug facts belong to (REQ-B-005)."
+    },
+    "brand_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every brand name the source gives for this molecule and provider (REQ-B-006)."
+    },
+    "generic_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The generic name or names as the source gives them (REQ-B-006)."
+    },
+    "tot_clms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Total claims summed across the folded source rows; null when every row's value is suppressed (REQ-B-006, REQ-B-008)."
+    },
+    "tot_day_suply": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Total day supply summed across the folded source rows; null when every row's value is suppressed."
+    },
+    "record_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How many Part D source rows folded into this record."
+    },
+    "rxcui": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The RXCUI the drug name resolves to, held distinct from the source names (REQ-B-007)."
     },
     "fda": {
       "type": "object",
@@ -96,251 +182,46 @@
         }
       }
     },
-    "totals": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "$inc sum of ALL-AGES usage over the children (additive; all-ages usage is never suppressed).",
-      "required": [
-        "tot_clms",
-        "tot_30day_fills",
-        "tot_day_suply",
-        "tot_drug_cst"
+    "indications": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "chatHealthy.ai indications for the molecule, each keeping the trust of its association (REQ-B-009, REQ-B-010)."
+    },
+    "ccn": {
+      "type": [
+        "string",
+        "null"
       ],
-      "properties": {
-        "tot_clms": {
-          "type": "number"
-        },
-        "tot_30day_fills": {
-          "type": "number"
-        },
-        "tot_day_suply": {
-          "type": "number"
-        },
-        "tot_drug_cst": {
-          "type": "number"
-        }
-      }
+      "description": "An organizational provider's CCN; null where the NPI is not enrolled (REQ-B-011)."
     },
-    "total_cms_record_count": {
-      "type": "integer",
-      "description": "Count of CMS Part D records for this molecule. Raw mode: equals the number of children; state-aggregate mode: equals the sum of the children's record_count. Basis of the conformance arithmetic (LLD v83 III.6)."
+    "size_tier": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 5,
+      "description": "An organizational provider's size, one of five ordered tiers; null where no CCN or bed count resolves (REQ-B-012)."
     },
-    "ge65_usage_suppressed_count": {
-      "type": "integer",
-      "description": "Count of CMS records whose 65+ usage is suppressed (GE65_Sprsn_Flag is all-or-nothing; one count)."
+    "source_state": {
+      "type": "string",
+      "description": "The CMS Prscrbr_State_Abrvtn of the rows this record was built from -- the fan-out key for the base and the enrichment steps. No NPI's rows carry more than one CMS state (measured: 0 of 28,023,892 rows). Transient: the DropTransientAttributes task removes it once enrichment and the audits are complete."
     },
-    "state_aggregated": {
-      "type": "boolean",
-      "description": "false = <100 CMS records, raw children; true = >=100, state-aggregate children. Decided globally by the mode pre-pass."
-    },
-    "applied_partitions": {
+    "contributed_by": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Exactly-once bookkeeping: the '<STATE>:<ENTITY>' partitions already applied to this master. A partition whose marker is present is disregarded on re-application (silent no-op). Initialized [] by the pre-pass."
+      "description": "The units of work whose contributions this record carries. The write is gated on a unit's marker being absent, which is what makes a re-driven unit a no-op."
     },
-    "children": {
-      "type": "array",
-      "description": "RAW children (state_aggregated=false) or STATE-AGGREGATE children (state_aggregated=true).",
-      "items": {
-        "oneOf": [
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "title": "raw cms-record child",
-            "required": [
-              "npi",
-              "state",
-              "nucc_codes",
-              "brnd_name",
-              "gnrc_name"
-            ],
-            "properties": {
-              "npi": {
-                "type": "string",
-                "description": "raw.Prscrbr_NPI."
-              },
-              "state": {
-                "type": "string",
-                "description": "The prescriber's BILLING/BUSINESS state (Provider_v_5.business_address.state by NPI; LLD v83 III.3) -- the partition basis."
-              },
-              "cms_state": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "raw.Prscrbr_State_Abrvtn verbatim -- source data only, never the partition basis."
-              },
-              "nucc_codes": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Provider NUCC taxonomy array from Provider_v_5 (by npi). CMS Prscrbr_Type not carried."
-              },
-              "brnd_name": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "gnrc_name": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "tot_clms": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "tot_30day_fills": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "tot_day_suply": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "tot_drug_cst": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "tot_benes": {
-                "type": [
-                  "integer",
-                  "null"
-                ],
-                "description": "As given; null when CMS suppresses. Never summed."
-              },
-              "ge65_tot_clms": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "ge65_tot_30day_fills": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "ge65_tot_day_suply": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "ge65_tot_drug_cst": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "ge65_tot_benes": {
-                "type": [
-                  "integer",
-                  "null"
-                ],
-                "description": "Null when GE65_Bene_Sprsn_Flag set. Never summed."
-              },
-              "suppression_flags": {
-                "type": "object",
-                "description": "Bene_Sprsn_Flag, GE65_Sprsn_Flag, GE65_Bene_Sprsn_Flag verbatim."
-              }
-            }
-          },
-          {
-            "type": "object",
-            "additionalProperties": false,
-            "title": "state-aggregate child",
-            "required": [
-              "state",
-              "record_count"
-            ],
-            "properties": {
-              "state": {
-                "type": "string",
-                "description": "The billing/business state this aggregate covers (LLD v83 III.3)."
-              },
-              "record_count": {
-                "type": "integer",
-                "description": "CMS records collapsed into this state (sums to total_cms_record_count)."
-              },
-              "tot_clms": {
-                "type": "number"
-              },
-              "tot_30day_fills": {
-                "type": "number"
-              },
-              "tot_day_suply": {
-                "type": "number"
-              },
-              "tot_drug_cst": {
-                "type": "number"
-              },
-              "ge65_tot_clms": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "description": "Sum of VISIBLE GE65 usage (a floor; suppressed rows excluded)."
-              },
-              "ge65_tot_30day_fills": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "ge65_tot_day_suply": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "ge65_tot_drug_cst": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "ge65_usage_suppressed_count": {
-                "type": "integer",
-                "description": "Records in this state whose GE65 usage was suppressed."
-              }
-            }
-          }
-        ]
-      }
-    },
-    "provenance": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "source_run_id",
-        "source_collection",
-        "built_at"
+    "billing_state": {
+      "type": [
+        "string",
+        "null"
       ],
-      "properties": {
-        "source_run_id": {
-          "type": "string"
-        },
-        "source_collection": {
-          "const": "StagingMedicarePartD_v_1"
-        },
-        "built_at": {
-          "type": "string"
-        }
-      }
+      "description": "The provider's billing state from the Provider collection, attached by enrichment; null when the NPI is in no Provider record."
     }
   }
 }
