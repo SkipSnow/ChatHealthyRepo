@@ -11,11 +11,23 @@ The FDA build is TWO formal steps (operator ruling 2026-10-20):
 build_fda_label_resolution (record-range fan-out -> per-label results in the
 transient collection) and finalize_fda_molecules (serial: groups by
 molecule_id and writes the molecule-keyed fdaProductToDiagnosisResolution).
-prepare_molecule_masters is the serial mode pre-pass: it stamps
-partition_state (the prescriber's billing/business state) onto the staged
-Part D rows, clears this data_version's published collections (full annual
-replace) and measures the no-molecule bucket. Every step's timeout comes from
-step_timeouts.medicare in the durable configuration (required; H7/H9).
+Both are gated by the build_fda_drug argument and are OFF by default: that
+collection costs real money in Google inference to produce, so it is rebuilt
+only when it is broken, and every other run reads it (operator ruling
+2026-10-24).
+
+The collection-building leg is four steps:
+clear_and_index_providermedicare_and_specialtymedicare (serial: the annual
+replace of the two collections this run rebuilds, and their indexes),
+build_providermedicare_base (one worker per CMS state, every state, because
+a provider's prescriptions are filed under the CMS prescriber state and we
+want the entire provider), enrich, then
+drop_transient_attributes_and_records, which settles the collection to the
+run's argued scope by the provider's one BILLING state before
+rollup_specialtymedicare rolls the settled set up to the NUCC grain.
+
+Every step's timeout comes from step_timeouts.medicare in the durable
+configuration (required; H7/H9).
 """
 
 from __future__ import annotations
@@ -103,23 +115,24 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             aca_job_name="med-finalize-fda-molecules",
         ),
         StepSpec(
-            # Serial: the annual full replace (REQ-B-015). Clears this
-            # data_version's published collections before the base fan-out; a
-            # clear inside a state worker would wipe its peers' records.
-            name="clear_published_collections",
+            # Serial: the annual full replace of the TWO collections it names
+            # (REQ-B-015), and their indexes, on the empty collections before
+            # the base fan-out. The FDA collection is not one of them. A clear
+            # inside a state worker would wipe its peers' records.
+            name="clear_and_index_providermedicare_and_specialtymedicare",
             prerequisites=["medicare_load_staging"],
             parallelism="serial",
             aca_job_name="med-clear-published",
         ),
         StepSpec(
-            # CMS_NPI_PrescriberBase: one worker per CMS state, reading the
-            # staged Part D rows and NO other source. Groups by (NPI,
-            # molecule) and applies one gated, mergeable contribution per
-            # group (REQ-B-001, REQ-B-006). The row carries its own partition
-            # key: no NPI's rows span two CMS states (0 of 28,023,892,
-            # measured 2026-10-23).
+            # CMS_NPI_PrescriberBase: one worker per CMS state, EVERY state,
+            # reading the staged Part D rows and NO other source. Groups by
+            # (NPI, molecule) and writes each record complete in one insert
+            # (REQ-B-001, REQ-B-006) -- the row carries its own partition key
+            # and no NPI's rows span two CMS states (0 of 28,023,892, measured
+            # 2026-10-23), so one worker owns every row of a record.
             name="build_providermedicare_base",
-            prerequisites=["clear_published_collections"],
+            prerequisites=["clear_and_index_providermedicare_and_specialtymedicare"],
             parallelism="process_pool",
             aca_job_name="med-build-providermedicare",
             partition_key="cms_state",
@@ -138,9 +151,23 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             partition_key="source_state",
         ),
         StepSpec(
-            # The NUCC rollup, read from the staged Part D rows.
-            name="rollup_specialtymedicare",
+            # Before the rollup (operator ruling 2026-10-24): drops every
+            # record whose provider's one BILLING state is not an argued state,
+            # or whose NPI is in no Provider record, then the source_state key
+            # itself. The base over-collects every CMS state on purpose, so a
+            # prescription filed out of state comes home to its provider; this
+            # is what settles the collection to the run's scope, and the
+            # rollup must roll up the settled set.
+            name="drop_transient_attributes_and_records",
             prerequisites=["enrich"],
+            parallelism="process_pool",
+            aca_job_name="med-drop-transient",
+            partition_key="source_state",
+        ),
+        StepSpec(
+            # The NUCC rollup of the settled ProviderMedicare collection.
+            name="rollup_specialtymedicare",
+            prerequisites=["drop_transient_attributes_and_records"],
             parallelism="process_pool",
             aca_job_name="med-rollup-specialtymedicare",
             partition_key="nucc_code",
@@ -148,21 +175,13 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         StepSpec(
             # The audits -- one per published collection. ProviderMedicare by
             # deterministic cross-section sample recomputed against its source
-            # rows; the FDA and specialty collections in full.
+            # rows, found by NPI and molecule since source_state is gone; the
+            # FDA and specialty collections in full.
             name="medicare_contract_conformance",
-            prerequisites=["enrich", "rollup_specialtymedicare"],
+            prerequisites=["drop_transient_attributes_and_records",
+                           "rollup_specialtymedicare"],
             parallelism="serial",
             aca_job_name="med-audit-collections",
-        ),
-        StepSpec(
-            # Last: the partition keys the work needed and the served
-            # collection does not. After the audits, which still recompute a
-            # sampled record against the rows it was built from.
-            name="drop_transient_attributes",
-            prerequisites=["medicare_contract_conformance"],
-            parallelism="process_pool",
-            aca_job_name="med-drop-transient",
-            partition_key="source_state",
         ),
         StepSpec(
             name="quiesce_infrastructure",
@@ -211,14 +230,15 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         "finalize_fda_molecules": ["if_build_fda:transient",
                                    "if_build_fda:staging:rxnorm",
                                    "if_consume_fda:fda_published"],
-        "clear_published_collections": [],
+        "clear_and_index_providermedicare_and_specialtymedicare": [],
         "build_providermedicare_base": ["staging:medicare_partd"],
-        "enrich": ["masters", "provider_spine", "fda_published",
+        "enrich": ["masters", "provider_collection", "fda_published",
                    "staging:medicare_pos"],
-        "rollup_specialtymedicare": ["staging:medicare_partd"],
+        "drop_transient_attributes_and_records": ["masters",
+                                                  "provider_collection"],
+        "rollup_specialtymedicare": ["masters", "provider_collection"],
         "medicare_contract_conformance": ["masters", "specialty_published",
                                           "fda_published"],
-        "drop_transient_attributes": ["masters"],
         "quiesce_infrastructure": [],
     }
 
@@ -285,7 +305,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             elif dep == "specialty_published":
                 tgt = reg.by_source_name("specialtymedicare")
                 coll = mongo[tgt.public_data_db][reg.public_data_collection_name("specialtymedicare")]
-            elif dep == "provider_spine":
+            elif dep == "provider_collection":
                 from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (  # noqa: PLC0415
                     parse_provider_source)
                 db_name, coll_name = parse_provider_source(ctx.provider_collection)

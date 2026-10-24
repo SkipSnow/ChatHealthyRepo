@@ -80,6 +80,22 @@ def provider_facts(provider_doc: dict) -> dict[str, Any]:
     }
 
 
+def _pages(target_coll, state: str, page_size: int):
+    """Yield the partition's records page by page, holding no cursor."""
+    last_id = None
+    while True:
+        query: dict[str, Any] = {"source_state": state}
+        if last_id is not None:
+            query["_id"] = {"$gt": last_id}
+        page = list(target_coll.find(
+            query, {"_id": 1, "npi": 1, "molecule_id": 1},
+            sort=[("_id", 1)], limit=page_size))
+        if not page:
+            return
+        last_id = page[-1]["_id"]
+        yield from page
+
+
 def enrich_partition(
     *,
     state: str,
@@ -89,8 +105,20 @@ def enrich_partition(
     pos_coll,
     record_discrepancy=None,
     batch_size: int = 500,
+    page_size: int = 1000,
 ) -> dict[str, Any]:
-    """Enrich one source-state partition of the base collection."""
+    """Enrich one source-state partition of the base collection.
+
+    The partition is read by key pages, never by one long-lived cursor. A
+    cursor held open across the per-record provider and FDA lookups goes idle
+    and the server reaps it -- which is what killed five partitions on
+    2026-10-23 with CursorNotFound after 45 minutes. Each page is drained in
+    one round trip and the server cursor is gone before any lookup runs; the
+    resume point is the page's last _id, so nothing is remembered server-side
+    between pages. _id is the {npi, molecule_id} subdocument, which BSON
+    orders field by field, so $gt on the whole _id is a total order matching
+    the source_state_1__id_1 index: every record is visited exactly once.
+    """
     ccn_beds, cutpoints = _build_pos_index(pos_coll)
 
     provider_cache: dict[str, dict] = {}
@@ -99,9 +127,7 @@ def enrich_partition(
     seen = written = without_provider = without_fda = sized = 0
     missing_npis: set[str] = set()
 
-    for rec in target_coll.find(
-            {"source_state": state},
-            {"_id": 1, "npi": 1, "molecule_id": 1}):
+    for rec in _pages(target_coll, state, page_size):
         seen += 1
         npi = str(rec.get("npi") or "")
         mid = rec.get("molecule_id")

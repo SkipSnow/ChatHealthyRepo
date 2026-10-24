@@ -28,18 +28,24 @@ def run_step(ctx) -> dict:
     from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (
         parse_provider_source)
     prov_db, prov_name = parse_provider_source(ctx.args.provider_collection)
-    provider_spine_coll = mongo[prov_db][prov_name]
+    provider_coll = mongo[prov_db][prov_name]
 
     partd = reg.by_source_name("medicare_partd")
     partd_coll = mongo[partd.staging_db][reg.staging_collection_name("medicare_partd")]
     spec = reg.by_source_name("specialtymedicare")
     target_coll = mongo[spec.public_data_db][reg.public_data_collection_name("specialtymedicare")]
+    # The settled ProviderMedicare collection supplies the scope: whatever
+    # drop_transient_attributes_and_records left standing.
+    masters = reg.by_source_name("providermedicare")
+    settled_coll = mongo[masters.public_data_db][
+        reg.public_data_collection_name("providermedicare")]
 
     result = rollup_specialtymedicare(
         run_id=ctx.run_id,
         partd_coll=partd_coll,
-        provider_spine_coll=provider_spine_coll,
+        provider_coll=provider_coll,
         target_coll=target_coll,
+        settled_coll=settled_coll,
     )
     _log.LogPipeline("INFO", "rollup_specialtymedicare: %s", result)
     return {"step": "rollup_specialtymedicare", **result}

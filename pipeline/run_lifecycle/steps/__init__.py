@@ -60,9 +60,9 @@ _STEP_MODULE_PATHS: dict[str, str] = {
     "build_fda_label_resolution": "pipeline.MedicareProviderEvaluationDataPipeline.steps.build_fda_label_resolution",
     "finalize_fda_molecules": "pipeline.MedicareProviderEvaluationDataPipeline.steps.finalize_fda_molecules",
     "build_providermedicare_base": "pipeline.MedicareProviderEvaluationDataPipeline.steps.build_providermedicare_base",
-    "clear_published_collections": "pipeline.MedicareProviderEvaluationDataPipeline.steps.clear_published_collections",
+    "clear_and_index_providermedicare_and_specialtymedicare": "pipeline.MedicareProviderEvaluationDataPipeline.steps.clear_and_index_providermedicare_and_specialtymedicare",
     "enrich": "pipeline.MedicareProviderEvaluationDataPipeline.steps.enrich",
-    "drop_transient_attributes": "pipeline.MedicareProviderEvaluationDataPipeline.steps.drop_transient_attributes",
+    "drop_transient_attributes_and_records": "pipeline.MedicareProviderEvaluationDataPipeline.steps.drop_transient_attributes_and_records",
     "rollup_specialtymedicare": "pipeline.MedicareProviderEvaluationDataPipeline.steps.rollup_specialtymedicare",
     "medicare_contract_conformance": "pipeline.MedicareProviderEvaluationDataPipeline.steps.medicare_contract_conformance",
 }

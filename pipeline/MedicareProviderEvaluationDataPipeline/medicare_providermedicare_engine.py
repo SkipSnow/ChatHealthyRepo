@@ -21,17 +21,16 @@ Derived from the data, measured 2026-10-23 against the staged rows:
   * Every source value is a string ('2830'), so quantities are coerced before
     they are summed.
 
-MANY ROWS, MANY UNITS OF WORK, ONE RECORD (operator ruling 2026-10-23). Which
-unit of work holds a record's rows is a runtime choice that may change, so the
-design never assumes a record has one writer. Every write is
-contribution_update: one atomic act that MERGES (arrays $addToSet, quantities
-$inc) so contributions from different units add up, GATED on the unit's own
-marker so a re-driven or twice-claimed unit applies exactly once. Mongo's
-single-document atomicity makes the gate and the merge indivisible, so neither
-a second contributor nor a replay can clobber or double-count.
+MANY ROWS, ONE WRITER, ONE WRITE (operator ruling 2026-10-24). A record's rows
+all carry one CMS state, so the worker holding that state holds every row of
+that record: it folds them in memory and writes the finished record once. No
+merge, no markers, no replay reconciliation -- this is an ETL process, not a
+banking transaction. A partition that dies fails the run, and the run is
+re-driven from the clear, against an empty collection.
 
-The record carries source_state only so the enrichment steps can fan out on
-it; the final task drops it.
+The record carries source_state only so the later steps can fan out on it;
+drop_transient_attributes_and_records drops it. The geography that matters is
+the provider's practice address, never the CMS prescriber state.
 """
 
 from __future__ import annotations
@@ -40,7 +39,6 @@ from collections import defaultdict
 from typing import Any
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
-from pymongo import UpdateOne
 
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
     PARTD_COLS,
@@ -56,19 +54,33 @@ _log = ChatHealthyLoggingService()
 _SUMMED = ("tot_clms", "tot_day_suply")
 
 
+def _staging_pages(partd_coll, state: str, page_size: int = 5000):
+    """Yield the state's staged rows page by page, holding no cursor."""
+    last_id = None
+    while True:
+        query: dict[str, Any] = {f"raw.{PARTD_COLS['state']}": state}
+        if last_id is not None:
+            query["_id"] = {"$gt": last_id}
+        page = list(partd_coll.find(query, sort=[("_id", 1)], limit=page_size))
+        if not page:
+            return
+        last_id = page[-1]["_id"]
+        yield from page
+
+
 def record_id(npi: str, mid: str) -> dict:
     """The record key: NPI and molecule (REQ-B-001)."""
     return {"npi": str(npi), "molecule_id": str(mid)}
 
 
 def fold_rows(rows: list[dict]) -> dict:
-    """Fold one unit of work's rows for one (NPI, molecule) into that record's
-    CONTRIBUTION (REQ-B-006).
+    """Fold every source row of one (NPI, molecule) into that record's drug
+    facts (REQ-B-006).
 
-    A contribution, not a finished record: the write merges it into whatever
-    is already there. Brand and generic names accumulate as first-seen-ordered
-    arrays with blanks dropped; the two quantities sum over this unit's rows,
-    coerced from the source's strings.
+    All of the record's rows are here, because they all carry one CMS state
+    and one worker holds that state. Brand and generic names accumulate as
+    first-seen-ordered arrays with blanks dropped; the two quantities sum over
+    the rows, coerced from the source's strings.
     """
     brands: list[str] = []
     generics: list[str] = []
@@ -95,36 +107,20 @@ def fold_rows(rows: list[dict]) -> dict:
     }
 
 
-def contribution_update(npi: str, mid: str, unit: str, facts: dict,
-                        source_state: str) -> UpdateOne:
-    """The one atomic write that applies a unit of work's contribution:
-    mergeable AND idempotent (operator ruling 2026-10-23).
+def record_document(npi: str, mid: str, facts: dict, source_state: str) -> dict:
+    """The finished record, written once by the one worker that holds its rows.
 
-    Mergeable -- arrays $addToSet, quantities $inc, so contributions from
-    different units add up instead of one replacing another.
-
-    Idempotent -- the filter requires this unit's marker to be ABSENT and the
-    update adds it, so a unit re-driven after a worker death, or claimed
-    twice, applies exactly once; a replay is a silent no-op.
-
-    source_state is $setOnInsert: it is the record's fan-out key for the
-    enrichment steps, established by whichever unit creates the record and
-    never rewritten.
+    source_state is the record's fan-out key for the steps after the base;
+    drop_transient_attributes_and_records removes it at the end.
     """
-    inc: dict[str, int] = {"record_count": facts["record_count"]}
-    for key in _SUMMED:
-        inc[key] = facts[key]
-    return UpdateOne(
-        {"_id": record_id(npi, mid), "contributed_by": {"$ne": unit}},
-        {"$addToSet": {"contributed_by": unit,
-                       "brand_names": {"$each": facts["brand_names"]},
-                       "generic_names": {"$each": facts["generic_names"]}},
-         "$inc": inc,
-         "$setOnInsert": {"npi": str(npi), "molecule_id": str(mid),
-                          "source_state": str(source_state),
-                          "medicare_population":
-                              "Part D including Medicare Advantage"}},
-        upsert=True)
+    return {
+        "_id": record_id(npi, mid),
+        "npi": str(npi),
+        "molecule_id": str(mid),
+        "source_state": str(source_state),
+        "medicare_population": "Part D including Medicare Advantage",
+        **facts,
+    }
 
 
 def build_prescriber_base(
@@ -138,17 +134,20 @@ def build_prescriber_base(
 
     Reads the staged Part D rows whose own Prscrbr_State_Abrvtn is this state
     -- no other source is consulted -- groups them by (NPI, molecule), and
-    applies one contribution per group. A row whose generic name mints no
+    inserts one finished record per group. A row whose generic name mints no
     molecule, or that carries no NPI, is counted and skipped: it cannot key a
     record, and the no-molecule bucket is reported for the audit's arithmetic.
+
+    The staging read is paged by _id rather than held on one cursor: the fold
+    is fast but 61 workers reading 28M rows is not, and a cursor idle past the
+    server's reaper comes back CursorNotFound.
     """
     rows_by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
     no_molecule_rows = 0
     no_npi_rows = 0
     total_rows = 0
 
-    cursor = partd_coll.find({f"raw.{PARTD_COLS['state']}": state})
-    for doc in cursor:
+    for doc in _staging_pages(partd_coll, state):
         raw = doc.get("raw") or {}
         total_rows += 1
         npi = str(raw.get(PARTD_COLS["npi"]) or "").strip()
@@ -162,22 +161,22 @@ def build_prescriber_base(
         rows_by_key[(npi, mid)].append(raw)
 
     unit = str(state)
-    ops: list[UpdateOne] = []
+    docs: list[dict] = []
     applied = 0
     for (npi, mid), group in rows_by_key.items():
-        ops.append(contribution_update(npi, mid, unit, fold_rows(group), state))
-        if len(ops) >= batch_size:
-            target_coll.bulk_write(ops, ordered=False)
-            applied += len(ops)
-            ops = []
-    if ops:
-        target_coll.bulk_write(ops, ordered=False)
-        applied += len(ops)
+        docs.append(record_document(npi, mid, fold_rows(group), state))
+        if len(docs) >= batch_size:
+            target_coll.insert_many(docs, ordered=False)
+            applied += len(docs)
+            docs = []
+    if docs:
+        target_coll.insert_many(docs, ordered=False)
+        applied += len(docs)
 
     result = {
         "partition": unit,
         "rows_read": total_rows,
-        "records_contributed": applied,
+        "records_written": applied,
         "no_molecule_rows": no_molecule_rows,
         "no_npi_rows": no_npi_rows,
     }

@@ -18,7 +18,9 @@ Three collections, three methods, chosen by size:
   * SpecialtyMedicare -- one record per NUCC code. Audited whole.
 
 Runs before the transient attributes are dropped, because the sampled records
-are recomputed from the source rows their source_state names.
+are recomputed from the source rows of their NPI. source_state is gone
+by then -- drop_transient_attributes_and_records runs before the audits --
+so the source rows are found by Prscrbr_NPI and filtered to the molecule.
 """
 
 from __future__ import annotations
@@ -86,7 +88,7 @@ def _audit_providermedicare(target_coll, partd_coll, levers: dict,
     """The deterministic cross-section: sample, recompute, validate."""
     candidates = list(target_coll.find(
         {}, {"_id": 1, "npi": 1, "molecule_id": 1, "record_count": 1,
-             "source_state": 1, "indications": 1,
+             "indications": 1,
              "brand_names": 1, "generic_names": 1,
              "tot_clms": 1, "tot_day_suply": 1}))
     prescriber_counts: dict[str, int] = defaultdict(int)

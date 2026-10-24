@@ -105,7 +105,7 @@
         },
         "parallelism_cap": 60
       },
-      "drop_transient_attributes": {
+      "drop_transient_attributes_and_records": {
         "partition_source": {
           "type": "named_enumerator",
           "name": "source_states"
@@ -128,9 +128,9 @@
       "rollup_specialtymedicare": 14400,
       "medicare_contract_conformance": 7200,
       "quiesce_infrastructure": 1800,
-      "clear_published_collections": 1800,
+      "clear_and_index_providermedicare_and_specialtymedicare": 1800,
       "enrich": 21600,
-      "drop_transient_attributes": 7200
+      "drop_transient_attributes_and_records": 7200
     },
     "provider": {
       "prepare_infrastructure": 1800,

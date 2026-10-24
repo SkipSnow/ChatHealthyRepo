@@ -63,7 +63,7 @@ MED_NO_DATA_STEPS = [name for name in MED_ALL_STEPS
 # prefixes it strips. A map entry outside this vocabulary would raise
 # not_implemented at run time; this file refuses it at commit time.
 KNOWN_KINDS = ("transient", "fda_published", "masters",
-               "specialty_published", "provider_spine",
+               "specialty_published", "provider_collection",
                "fda_stamped", "partd_stamped")
 CONDITIONAL_PREFIXES = ("if_build_fda:", "if_consume_fda:")
 
@@ -207,8 +207,9 @@ def test_medicare_prereq_before_start_point_is_vouched_by_data_not_history():
     assert manifest.status == "succeeded"
     assert "build_providermedicare_base" not in manifest.completed_steps
     assert orch.invoked == MED_ALWAYS_RUN + [
-        "enrich", "rollup_specialtymedicare",
-        "medicare_contract_conformance", "drop_transient_attributes"] \
+        "enrich", "drop_transient_attributes_and_records",
+        "rollup_specialtymedicare",
+        "medicare_contract_conformance"] \
         + MED_FINALLY_STEPS
 
 
@@ -319,7 +320,7 @@ def test_medicare_no_data_steps_are_exactly_infra_fetch_load_and_quiesce():
                                  "medicare_fetch_all_sources",
                                  "medicare_source_archival",
                                  "medicare_load_staging",
-                                 "clear_published_collections",
+                                 "clear_and_index_providermedicare_and_specialtymedicare",
                                  "quiesce_infrastructure"]
 
 

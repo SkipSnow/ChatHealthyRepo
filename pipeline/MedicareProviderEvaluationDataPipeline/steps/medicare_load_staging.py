@@ -36,6 +36,39 @@ _FORMAT_TOKEN = {
 }
 
 
+# The indexes each staged source needs, created by the step that creates the
+# collection. They cannot be declared by the deployment: the collection does
+# not exist when the chain deploys (operator ruling 2026-10-24).
+#
+#   prscrbr_state__id -- the base fans out on the row's own CMS state and
+#       pages by _id within it; without this, each of the 61 state workers
+#       scans all 28M rows.
+#   prscrbr_npi -- the audit recomputes a sampled record from the source rows
+#       of one NPI. The existing (run_id, raw.Prscrbr_NPI) index cannot serve
+#       a query that carries no run_id, and the query carries none by design:
+#       a drained-and-replaced staging is the one truth.
+STAGING_INDEXES: dict[str, list[dict]] = {
+    "medicare_partd": [
+        {"keys": [("raw.Prscrbr_State_Abrvtn", 1), ("_id", 1)],
+         "name": "prscrbr_state__id"},
+        {"keys": [("raw.Prscrbr_NPI", 1)], "name": "prscrbr_npi"},
+    ],
+}
+
+
+def _create_indexes(ctx, rt, source: str) -> list[str]:
+    """Create this source's staging indexes. Idempotent: an index that is
+    already there is not rebuilt."""
+    specs = STAGING_INDEXES.get(source)
+    if not specs:
+        return []
+    reg = rt.registry
+    entry = reg.by_source_name(source)
+    coll = ctx.mongo_client[entry.staging_db][
+        reg.staging_collection_name(source)]
+    return [coll.create_index(s["keys"], name=s["name"]) for s in specs]
+
+
 def run_step(ctx) -> dict:
     partition = ctx.config.get("partition") or {}
     source = partition.get("source") if isinstance(partition, dict) else None
@@ -118,6 +151,9 @@ def run_step(ctx) -> dict:
     config["data_version"] = int(ctx.args.data_version)
 
     result = load_staging(config, mongo=ctx.mongo_client, blob=ctx.blob_client) or {}
+    made = _create_indexes(ctx, rt, source)
+    if made:
+        result["indexes_created"] = made
     _log.LogPipeline("INFO", "medicare_load_staging[%s]: done result=%s", source, result)
     return result
 

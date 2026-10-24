@@ -13,14 +13,18 @@ shapes the fold exists for; 4.34% of the 26.7M records look like this.
 What is proven here:
   * the fold's arithmetic against hand-recomputed totals from those rows
   * that every source value is a string and is coerced before summing
-  * the write's SHAPE: mergeable ($addToSet / $inc) and gated on the unit
-    marker, which is what makes a re-driven unit a no-op
-  * replay: applying the same contribution twice cannot double-count, proven
-    by the filter the second update carries
+  * the record document the one owning worker writes: complete in a single
+    write, carrying its key, its scope key and its drug facts
+
+One writer, one write (operator ruling 2026-10-24). A record's rows all carry
+one CMS state, so the worker holding that state holds every row of that
+record: there is no merge to prove and no replay to reconcile. This is an ETL
+process -- a partition that dies fails the run and the run is re-driven from
+the clear, against an empty collection.
 
 The live write itself is proven by a run, not here -- Rule-065 forbids
 standing a fake in place of a Mongo collection, so these tests exercise the
-pure functions and the update documents they produce.
+pure functions and the documents they produce.
 """
 
 from __future__ import annotations
@@ -33,7 +37,7 @@ import pytest
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
     PARTD_COLS)
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_providermedicare_engine import (
-    contribution_update, fold_rows, record_id)
+    fold_rows, record_document, record_id)
 
 C = PARTD_COLS
 from pipeline.MedicareProviderEvaluationDataPipeline.tests.fixtures.partd_rows import (
@@ -132,62 +136,42 @@ def test_fold_of_a_single_row_is_that_row():
     assert facts["tot_clms"] == int(float(rows[0][C["total_claims"]]))
 
 
-# ------------------------------------- the write: mergeable and idempotent
+# ------------------------------------------ the write: one complete record
 
-def _update_for(fixture_name: str, npi: str, unit: str = "DE"):
+def _document_for(fixture_name: str, npi: str, state: str = "DE"):
     rows = _rows_for(fixture_name, npi)
     mid = _fixture(fixture_name)["molecule_id"]
-    return contribution_update(npi, mid, unit, fold_rows(rows), unit), rows, mid
+    return record_document(npi, mid, fold_rows(rows), state), rows, mid
 
 
-def test_write_is_gated_on_the_units_marker():
-    op, _, mid = _update_for(LEVOTHYROXINE, _npis(LEVOTHYROXINE)[0])
-    flt = op._filter
-    assert flt["_id"] == record_id(_npis(LEVOTHYROXINE)[0], mid)
-    assert flt["contributed_by"] == {"$ne": "DE"}, (
-        "without this gate a re-driven unit would apply twice")
+def test_the_document_is_keyed_by_npi_and_molecule():
+    doc, _, mid = _document_for(LEVOTHYROXINE, _npis(LEVOTHYROXINE)[0])
+    assert doc["_id"] == record_id(_npis(LEVOTHYROXINE)[0], mid)
+    assert doc["npi"] == _npis(LEVOTHYROXINE)[0]
+    assert doc["molecule_id"] == mid
 
 
-def test_write_merges_rather_than_replaces():
-    op, rows, _ = _update_for(METFORMIN, _npis(METFORMIN)[0])
-    doc = op._doc
-    assert "$set" not in doc, "a $set would clobber another unit's contribution"
-    assert set(doc["$inc"]) == {"record_count", "tot_clms", "tot_day_suply"}
-    assert doc["$inc"]["record_count"] == len(rows)
-    assert "$each" in doc["$addToSet"]["brand_names"]
+def test_the_document_is_complete_in_one_write():
+    doc, rows, _ = _document_for(METFORMIN, _npis(METFORMIN)[0])
+    assert doc["record_count"] == len(rows)
+    assert doc["tot_clms"] == sum(int(float(r[C["total_claims"]])) for r in rows)
+    assert doc["brand_names"] and doc["generic_names"]
+    assert doc["medicare_population"] == "Part D including Medicare Advantage"
 
 
-def test_identity_fields_are_set_only_on_insert():
-    op, _, mid = _update_for(ATORVASTATIN, _npis(ATORVASTATIN)[0])
-    soi = op._doc["$setOnInsert"]
-    assert soi["molecule_id"] == mid
-    assert soi["source_state"] == "DE"
-    assert soi["medicare_population"] == "Part D including Medicare Advantage"
+def test_no_merge_or_replay_scaffolding_survives():
+    doc, _, _ = _document_for(ATORVASTATIN, _npis(ATORVASTATIN)[0])
+    assert "contributed_by" not in doc, (
+        "the per-unit marker is gone: one worker owns every row of a record")
+    assert not [k for k in doc if k.startswith("$")]
 
 
-def test_replaying_the_same_unit_is_a_no_op_by_construction():
-    npi = _npis(LEVOTHYROXINE)[0]
-    first, _, _ = _update_for(LEVOTHYROXINE, npi, unit="DE")
-    replay, _, _ = _update_for(LEVOTHYROXINE, npi, unit="DE")
-    # Identical filter and document: the first application adds the marker,
-    # so the replay's filter can no longer match the record it created.
-    assert first._filter == replay._filter
-    assert first._doc == replay._doc
-    assert replay._filter["contributed_by"] == {"$ne": "DE"}
-    assert replay._doc["$addToSet"]["contributed_by"] == "DE"
-
-
-def test_a_second_unit_is_not_blocked_by_the_first_units_marker():
-    npi = _npis(METFORMIN)[0]
-    first, _, _ = _update_for(METFORMIN, npi, unit="DE")
-    second, _, _ = _update_for(METFORMIN, npi, unit="MT")
-    assert first._filter["contributed_by"] == {"$ne": "DE"}
-    assert second._filter["contributed_by"] == {"$ne": "MT"}
-    assert first._filter["_id"] == second._filter["_id"], (
-        "both units address the same record; the merge is what makes that safe")
+def test_the_scope_key_is_carried_for_the_later_steps():
+    doc, _, _ = _document_for(ATORVASTATIN, _npis(ATORVASTATIN)[0], state="MT")
+    assert doc["source_state"] == "MT"
 
 
 def test_no_beneficiary_count_reaches_the_record():
-    op, _, _ = _update_for(LEVOTHYROXINE, _npis(LEVOTHYROXINE)[0])
-    flat = json.dumps(op._doc, default=str).lower()
+    doc, _, _ = _document_for(LEVOTHYROXINE, _npis(LEVOTHYROXINE)[0])
+    flat = json.dumps(doc, default=str).lower()
     assert "bene" not in flat

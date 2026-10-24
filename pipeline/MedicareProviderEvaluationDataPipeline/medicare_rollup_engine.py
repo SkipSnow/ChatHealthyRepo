@@ -33,11 +33,11 @@ from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization impo
 _log = ChatHealthyLoggingService()
 
 
-def _nucc_map(provider_spine_coll, npis: list[str], chunk: int = 5000) -> dict[str, list[str]]:
-    """npi -> distinct NUCC codes from the Provider spine's taxonomies."""
+def _nucc_map(provider_coll, npis: list[str], chunk: int = 5000) -> dict[str, list[str]]:
+    """npi -> distinct NUCC codes from the Provider collection's taxonomies."""
     out: dict[str, list[str]] = {}
     for i in range(0, len(npis), chunk):
-        for doc in provider_spine_coll.find(
+        for doc in provider_coll.find(
                 {"npi": {"$in": npis[i:i + chunk]}},
                 {"npi": 1, "taxonomies.code": 1}):
             npi = str(doc.get("npi") or "").strip()
@@ -51,26 +51,71 @@ def _nucc_map(provider_spine_coll, npis: list[str], chunk: int = 5000) -> dict[s
     return out
 
 
+def _in_scope_npis(settled_coll) -> set[str]:
+    """The NPIs the settled ProviderMedicare collection still holds.
+
+    drop_transient_attributes_and_records runs before this step and removes
+    every record whose provider does not practise in an argued state. The
+    criterion is a property of the provider, not of the molecule, so what
+    survives is exactly the set of in-scope NPIs -- which is what makes this
+    rollup a rollup of the settled collection rather than of everything CMS
+    filed (operator ruling 2026-10-24).
+    """
+    return {str(d["_id"]) for d in settled_coll.aggregate(
+        [{"$group": {"_id": "$npi"}}], allowDiskUse=True) if d.get("_id")}
+
+
+def _staging_pages(partd_coll, projection, page_size: int = 5000):
+    """Yield staged rows page by page, holding no cursor: a cursor idle past
+    the server's reaper comes back CursorNotFound."""
+    last_id = None
+    while True:
+        query: dict[str, Any] = {}
+        if last_id is not None:
+            query["_id"] = {"$gt": last_id}
+        page = list(partd_coll.find(query, {**projection, "_id": 1},
+                                    sort=[("_id", 1)], limit=page_size))
+        if not page:
+            return
+        last_id = page[-1]["_id"]
+        yield from page
+
+
 def rollup_specialtymedicare(
     *,
     run_id: str,
     partd_coll,
-    provider_spine_coll,
+    provider_coll,
     target_coll,
+    settled_coll,
     batch_size: int = 200,
 ) -> dict[str, Any]:
-    """Build specialtyMedicarePartDQuantityRollUps for the run (serial)."""
+    """Build specialtyMedicarePartDQuantityRollUps for the run (serial).
+
+    The measures come from the staged Part D rows, which carry the 30-day
+    fills and the drug cost the R1 statistics need and the provider record
+    does not. The SCOPE comes from the settled ProviderMedicare collection: a
+    row whose NPI no longer appears there was dropped as out of scope and must
+    not reach the specialty profile.
+    """
     projection = {f"raw.{PARTD_COLS[k]}": 1 for k in
                   ("npi", "generic", "total_claims", "total_30day_fills",
                    "days_supply", "total_drug_cost")}
+    in_scope = _in_scope_npis(settled_coll)
+    npi_field = PARTD_COLS["npi"]
+
+    def _scoped_rows():
+        for doc in _staging_pages(partd_coll, projection):
+            raw = doc.get("raw") or {}
+            if str(raw.get(npi_field) or "").strip() in in_scope:
+                yield raw
+
     # No run_id filter: the drained-and-replaced staging is the one truth
     # (Start At, operator design 2026-10-22). run_id stays on provenance only.
-    rows = (doc.get("raw") or {}
-            for doc in partd_coll.find({}, projection))
-    acc = accumulate_provider_molecule_totals(rows)
+    acc = accumulate_provider_molecule_totals(_scoped_rows())
 
     npis = sorted({npi for npi, _ in acc})
-    nucc_by_npi = _nucc_map(provider_spine_coll, npis)
+    nucc_by_npi = _nucc_map(provider_coll, npis)
     by_nucc = rollup_specialty_v83(acc, nucc_by_npi)
 
     built_at = datetime.datetime.utcnow().isoformat()
@@ -82,10 +127,11 @@ def rollup_specialtymedicare(
             "_id": nucc,
             "nucc_code": nucc,
             "molecules": molecules,
-            "provider_count": provider_spine_coll.count_documents(
+            "provider_count": provider_coll.count_documents(
                 {"taxonomies.code": nucc}),
             "provenance": {
-                "aggregated_from": ["StagingMedicarePartD_v_1", "Provider_v_5"],
+                "aggregated_from": ["providerMedicarePartDQuantityRollUps",
+                                    "StagingMedicarePartD_v_1", "Provider_v_5"],
                 "run_id": run_id,
                 "built_at": built_at,
             },

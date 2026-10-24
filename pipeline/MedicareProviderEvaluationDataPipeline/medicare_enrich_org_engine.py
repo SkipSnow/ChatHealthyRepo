@@ -4,7 +4,7 @@
 """enrich_org_ccn_size engine (EPIC-010-F-007 / S-007).
 
 For each organizational ProviderMedicare record:
-  * CCN -- mined from the provider spine's Medicare OSCAR / certification
+  * CCN -- mined from the Provider collection's Medicare OSCAR / certification
     other-identifier slot (deterministic, no new acquisition).
   * size_tier -- a coarse institution size, derived as a data-driven quintile
     band (the same five-band mechanism as the day-supply tiers) of the certified
@@ -52,8 +52,8 @@ def _to_int(v: str):
         return None
 
 
-def _extract_ccn(spine: dict) -> str | None:
-    for oid in spine.get("other_identifiers") or []:
+def _extract_ccn(provider_record: dict) -> str | None:
+    for oid in provider_record.get("other_identifiers") or []:
         if not isinstance(oid, dict):
             continue
         code = str(oid.get("type_code") or "").strip()
@@ -104,7 +104,7 @@ def _band(beds: int | None, cutpoints: list[float]) -> int | None:
 def enrich_org_ccn_size(
     *,
     providermedicare_coll,
-    provider_spine_coll,
+    provider_coll,
     pos_coll,
     batch_size: int = 1000,
 ) -> dict[str, Any]:
@@ -121,9 +121,9 @@ def enrich_org_ccn_size(
     for pm in providermedicare_coll.find({"entity_type": "O"}):
         orgs += 1
         npi = str(pm.get("npi") or "")
-        spine = provider_spine_coll.find_one({"npi": npi}) or \
-            provider_spine_coll.find_one({"_id": npi}) or {}
-        ccn = _extract_ccn(spine)
+        provider_record = provider_coll.find_one({"npi": npi}) or \
+            provider_coll.find_one({"_id": npi}) or {}
+        ccn = _extract_ccn(provider_record)
         setter: dict[str, Any] = {}
         if ccn:
             setter["ccn"] = ccn
