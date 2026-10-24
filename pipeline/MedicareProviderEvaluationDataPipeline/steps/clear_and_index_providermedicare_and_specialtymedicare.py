@@ -51,11 +51,18 @@ def run_step(ctx) -> dict:
         entry = reg.by_source_name(source_name)
         coll = mongo[entry.public_data_db][
             reg.public_data_collection_name(source_name)]
-        cleared[source_name] = coll.delete_many({}).deleted_count
+        # DROP, not delete_many({}). An annual full replace keeps no record,
+        # so there is nothing to delete one document at a time: the first
+        # version of this step deleted row by row and took 24 minutes to clear
+        # 4.3M of 26.4M records, blowing the step's 1800s timeout and failing
+        # the run of 2026-10-24 20:35Z. A drop is one metadata operation.
+        cleared[source_name] = coll.estimated_document_count()
+        coll.drop()
         # The collection does not exist when the chain deploys, so no
         # deployment can declare its indexes: the pipeline creates the indexes
-        # its own steps need, here, serially, on an empty collection and
-        # before the first record is written.
+        # its own steps need, here, serially, on a collection the drop just
+        # emptied and before the first record is written. create_index
+        # recreates the dropped namespace.
         for spec in INDEXES.get(source_name, []):
             indexed[spec["name"]] = coll.create_index(
                 spec["keys"], name=spec["name"])
