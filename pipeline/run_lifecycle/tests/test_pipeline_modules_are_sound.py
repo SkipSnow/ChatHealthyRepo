@@ -510,3 +510,59 @@ def test_detector_catches_a_literal_lease():
     """The 24-hour reservation TTL nobody argued for."""
     defect = "def reserve(now):\n    return now + datetime.timedelta(hours=24)\n"
     assert _literal_leases(ast.parse(defect))
+
+
+# ------------------------------------------- configuration levers
+#
+# A lever is filled in by somebody else, so it can arrive as None even when
+# the .get() carries a default: the default covers a MISSING key, not a key
+# present and empty. int(None) killed run e4689013 at the first step, after
+# the cluster was already awake, from a line that read
+# int(config.get("cluster_wait_minutes", 20)) and looked perfectly safe.
+
+_CONFIG_RECEIVERS = ("config", "cfg", "conf", "settings", "levers", "args_snap")
+
+
+def _coerced_levers(tree: ast.AST) -> list[int]:
+    """Lines coercing a configuration value straight to a number."""
+    out = []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in ("int", "float", "round") and node.args):
+            continue
+        argument = node.args[0]
+        if not (isinstance(argument, ast.Call)
+                and getattr(argument.func, "attr", "") == "get"):
+            continue
+        receiver = argument.func.value
+        name = getattr(receiver, "id", None)
+        if name is None and isinstance(receiver, ast.Attribute):
+            name = receiver.attr
+        if name in _CONFIG_RECEIVERS:
+            out.append(node.lineno)
+    return out
+
+
+@pytest.mark.parametrize("path", SOURCES, ids=IDS)
+def test_no_configuration_lever_is_coerced_without_a_none_guard(path: Path):
+    """Read the lever, then coerce it only if there is a value."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    lines = _coerced_levers(tree)
+    assert not lines, (
+        _rel(path) + " coerces a configuration lever straight to a number at "
+        + str(lines) + ". A .get() default does not cover a key that is "
+        "present and None.")
+
+
+_LEVER_DEFECT = 'def go(config):\n    return int(config.get("cluster_wait_minutes", 20))\n'
+_LEVER_SOUND = 'def go(config):\n    value = config.get("cluster_wait_minutes")\n    return int(value) if value is not None else None\n'
+
+
+def test_detector_catches_the_lever_that_killed_a_run():
+    """int(config.get("cluster_wait_minutes", 20)) -- default and all."""
+    assert _coerced_levers(ast.parse(_LEVER_DEFECT)) == [2]
+
+
+def test_detector_clears_the_guarded_rewrite():
+    """The repair: take the value, coerce only if there is one."""
+    assert _coerced_levers(ast.parse(_LEVER_SOUND)) == []

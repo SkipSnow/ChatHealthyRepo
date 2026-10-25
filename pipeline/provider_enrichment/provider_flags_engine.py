@@ -323,7 +323,7 @@ def apply_provider_flags(
     provider_collection = config["provider_collection"]
     entity_kind_filter = config.get("entity_kind_filter")
     partition_state = (config.get("partition_state") or "").upper() or None
-    batch_size = int(config.get("batch_size", DEFAULT_BATCH))
+    batch_size = int(config.get("batch_size") if config.get("batch_size") is not None else DEFAULT_BATCH)
 
     if mongo is None:
         _raise_mongo_client_required()

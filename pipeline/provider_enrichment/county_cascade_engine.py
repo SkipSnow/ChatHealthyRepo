@@ -1316,10 +1316,10 @@ def run_county_cascade(
     run_id = config["run_id"]
     env_prefix = config["env"]
     partition_state = (config.get("partition_state") or "").upper() or None
-    sla_target = float(config.get("sla_target", DEFAULT_SLA))
+    sla_target = float(config.get("sla_target") if config.get("sla_target") is not None else DEFAULT_SLA)
     throttle_rates = config.get("throttle_rates") or {}
     concurrency = config.get("concurrency") or {}
-    batch_size = int(config.get("batch_size", DEFAULT_BATCH_SIZE))
+    batch_size = int(config.get("batch_size") if config.get("batch_size") is not None else DEFAULT_BATCH_SIZE)
     google_enabled = bool(config.get("google_maps_enabled"))
     google_api_key = config.get("google_maps_api_key") or os.environ.get("GOOGLE_MAPS_API_KEY", "")
 

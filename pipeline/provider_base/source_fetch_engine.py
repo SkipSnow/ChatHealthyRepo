@@ -593,8 +593,8 @@ def fetch_all_sources(
     transient_container = config.get(
         "transient_container", f"{env_prefix}-pipeline-transients"
     )
-    concurrency = int(config.get("fetch_concurrency", DEFAULT_FETCH_CONCURRENCY))
-    http_timeout = int(config.get("http_timeout_seconds", DEFAULT_HTTP_TIMEOUT_SEC))
+    concurrency = int(config.get("fetch_concurrency") if config.get("fetch_concurrency") is not None else DEFAULT_FETCH_CONCURRENCY)
+    http_timeout = int(config.get("http_timeout_seconds") if config.get("http_timeout_seconds") is not None else DEFAULT_HTTP_TIMEOUT_SEC)
     throttle_rates = config.get("throttle_rates") or {}
 
     base_sources = {n: s for n, s in sources.items() if not s.get("derived_from")}

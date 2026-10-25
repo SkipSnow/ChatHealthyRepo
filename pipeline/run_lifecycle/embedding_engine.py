@@ -144,8 +144,8 @@ def generate_specialty_embeddings(
     Returns candidate/updated/failed counts + model + dimensions.
     """
     specialty_collection = config["specialty_collection"]
-    batch_size = int(config.get("batch_size", DEFAULT_BATCH_SIZE))
-    max_in_flight = int(config.get("max_in_flight", DEFAULT_MAX_IN_FLIGHT))
+    batch_size = int(config.get("batch_size") if config.get("batch_size") is not None else DEFAULT_BATCH_SIZE)
+    max_in_flight = int(config.get("max_in_flight") if config.get("max_in_flight") is not None else DEFAULT_MAX_IN_FLIGHT)
 
     db_name, coll_name = specialty_collection.split(".", 1)
     coll = mongo[db_name][coll_name]

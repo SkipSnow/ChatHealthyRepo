@@ -181,7 +181,12 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
     the applier is the one shared with the front end."""
     from chathealthy_lib.mongo_indexes import apply_indexes  # noqa: PLC0415
     coll, client = _providers_collection_and_client(config.get("provider_collection"))
-    cluster_wait_minutes = int(config.get("cluster_wait_minutes", 20))
+    # None means "no limit" and is the normal case (operator ruling
+    # 2026-10-24). The key is PRESENT and None, so a .get() default never
+    # fires and int(None) raised -- which is how this killed a run at the
+    # first step on 2026-10-25 after the cluster was already awake.
+    _declared_wait = config.get("cluster_wait_minutes")
+    cluster_wait_minutes = int(_declared_wait) if _declared_wait else None
     _wait_for_cluster_ready(client, cluster_wait_minutes)
 
     # The full target index set for the provider collection: the record-declared

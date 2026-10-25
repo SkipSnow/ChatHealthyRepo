@@ -838,8 +838,8 @@ def load_staging(
 
     run_id = config["run_id"]
     env_prefix = config.get("env", "dev")
-    batch_size = int(config.get("batch_size", DEFAULT_BATCH_SIZE))
-    concurrency = int(config.get("staging_concurrency", DEFAULT_STAGING_CONCURRENCY))
+    batch_size = int(config.get("batch_size") if config.get("batch_size") is not None else DEFAULT_BATCH_SIZE)
+    concurrency = int(config.get("staging_concurrency") if config.get("staging_concurrency") is not None else DEFAULT_STAGING_CONCURRENCY)
     states: tuple[str, ...] = tuple(s for s in (config.get("states") or ()) if s)
     incremental: bool = bool(config.get("incremental"))
     dv = config.get("data_version")

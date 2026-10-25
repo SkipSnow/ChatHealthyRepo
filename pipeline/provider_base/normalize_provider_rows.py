@@ -315,7 +315,7 @@ def normalize_provider_rows_worker_fn(config: dict) -> dict:
     provider_collection = config.get(
         "provider_collection", "PipelinePublicHealthData.providers"
     )
-    batch_size = int(config.get("normalize_batch_size", 500))
+    batch_size = int(config.get("normalize_batch_size") if config.get("normalize_batch_size") is not None else 500)
 
     db_name, coll_name = provider_collection.split(".", 1)
     coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[db_name][coll_name]
@@ -382,9 +382,9 @@ def normalize_provider_rows_worker_fn(config: dict) -> dict:
 def normalize_provider_rows_orchestrator_fn(context):
     cfg = context.get_input() or {}
 
-    num_workers = int(cfg.get("num_workers", 100))
+    num_workers = int(cfg.get("num_workers") if cfg.get("num_workers") is not None else 100)
     provider_collection = cfg.get("provider_collection", "PipelinePublicHealthData.providers")
-    normalize_batch_size = int(cfg.get("normalize_batch_size", 500))
+    normalize_batch_size = int(cfg.get("normalize_batch_size") if cfg.get("normalize_batch_size") is not None else 500)
 
     worker_configs = [
         {
