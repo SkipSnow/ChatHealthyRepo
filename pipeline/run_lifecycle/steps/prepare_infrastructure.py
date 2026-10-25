@@ -112,7 +112,9 @@ def _execute(ctx) -> dict:
     ctx.config.setdefault("dataset_versions", cfg.get("dataset_versions", {}))
     ctx.config.setdefault("source_freshness", cfg.get("source_freshness", []))
     cluster = ctx.config.get("pipeline_cluster", "ChatHealthyDataPipelines")
-    duration = int(ctx.args.expected_duration_minutes)
+    # The runbook already wrote this run's reservation carrying the window
+    # the operator argued. This step must not write a second, shorter one.
+    duration = ctx.args.expected_duration_minutes
     # get_frontend_mongo, not get_mongo. The reservation says whether the
     # pipeline cluster is wanted, so it cannot live on the pipeline cluster --
     # and reservation_reaper reads it from the front end. Naming the pipeline
@@ -140,7 +142,10 @@ def _execute(ctx) -> dict:
     _log.LogPipeline("INFO", "prepare_infrastructure: reserved (%.1fs)", time.time() - t)
 
     t = time.time()
-    wait_minutes = int(ctx.config.get("cluster_wait_minutes", 20))
+    # No bound on waiting for the cluster (operator ruling 2026-10-24): a
+    # cluster coming back from rest takes as long as it takes, and failing the
+    # run for it destroys work that was about to start.
+    wait_minutes = ctx.config.get("cluster_wait_minutes")
     _log.LogPipeline("INFO", "prepare_infrastructure: ensuring indexes on %s "
               "(waits up to %d minute(s) for the cluster)",
               ctx.provider_collection, wait_minutes)

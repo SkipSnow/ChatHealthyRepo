@@ -109,18 +109,19 @@ def _pipeline_provider_index_specs() -> list:
 
 def _wait_for_cluster_ready(
     client: MongoClient,
-    timeout_minutes: int,
+    timeout_minutes: int | None,
     poll_seconds: int = 5,
 ) -> None:
-    """Poll the cluster every poll_seconds with admin.ping until it
-    answers cleanly, or raise TimeoutError after timeout_minutes.
+    """Poll the cluster every poll_seconds with admin.ping until it answers.
 
-    Sized to ride out Atlas paused->wake transitions (cluster goes
-    through REPAIRING and replicas come online one at a time). The
-    function is a deterministic timer, so it needs no retry machinery
-    of its own.
+    timeout_minutes is None by default and NOTHING ARGUES ONE (operator
+    ruling 2026-10-24): a cluster coming back from rest takes as long as it
+    takes -- Atlas goes through REPAIRING and brings replicas up one at a
+    time -- and failing the run for it destroys work that had not started.
+    Every attempt is logged, so a cluster that never returns is visible.
     """
-    deadline = time.time() + timeout_minutes * 60
+    deadline = (time.time() + timeout_minutes * 60
+                if timeout_minutes else None)
     attempts = 0
     while True:
         attempts += 1
@@ -132,8 +133,8 @@ def _wait_for_cluster_ready(
             )
             return
         except Exception as exc:
-            remaining = deadline - time.time()
-            if remaining <= 0:
+            remaining = (deadline - time.time()) if deadline else -1.0
+            if deadline and remaining <= 0:
                 raise ChatHealthyException(
                     mode="timeout",
                     component="ensure_provider_indexes_activity",

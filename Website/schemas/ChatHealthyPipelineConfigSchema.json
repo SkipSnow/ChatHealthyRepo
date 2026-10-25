@@ -23,23 +23,12 @@
     },
     "fan_out": {
       "$ref": "#/$defs/FanOut"
-    },
-    "step_timeouts": {
-      "type": "object",
-      "description": "Per-pipeline, per-step timeout_seconds (LLD v83 III.10/III.7 H9). Values are REQUIRED by the reader for every step a pipeline declares; a missing value is a hard fail (H7: no defaults).",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "integer",
-          "minimum": 1
-        }
-      }
     }
   },
   "$defs": {
     "FanOut": {
       "type": "object",
-      "description": "Per-pipeline, per-step fan-out declaration (LLD §I.3.4): the partition source that yields a step's partition values and the worker cap. Env-independent; declared once at the top level. Keyed by pipeline name, then step name.",
+      "description": "Per-pipeline, per-step fan-out declaration (LLD \u00a7I.3.4): the partition source that yields a step's partition values and the worker cap. Env-independent; declared once at the top level. Keyed by pipeline name, then step name.",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": {
@@ -167,18 +156,13 @@
         },
         "worker_liveness": {
           "type": "object",
-          "description": "Worker liveness thresholds (LLD v83 III.15): silent_after_s -- a running item with no beat for this long is reported SILENT (diagnostic); worker_max_silence_s -- past this the controller fails the item (hard-fail H10). Required by the reader; no defaults (H7).",
+          "description": "Worker liveness is REPORTED, never enforced (operator ruling 2026-10-24). silent_after_s decides when a quiet worker is worth a log line. worker_max_silence_s is gone with the verdict that killed a work item for being quiet.",
           "additionalProperties": false,
           "required": [
-            "silent_after_s",
-            "worker_max_silence_s"
+            "silent_after_s"
           ],
           "properties": {
             "silent_after_s": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "worker_max_silence_s": {
               "type": "integer",
               "minimum": 1
             }

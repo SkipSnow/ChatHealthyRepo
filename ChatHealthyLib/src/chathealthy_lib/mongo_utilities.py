@@ -142,11 +142,17 @@ _RETRYABLE_WRITE_LABEL = "RetryableWriteError"
 
 # Application-level retry policy. This sits ON TOP of the driver's own single
 # retryWrites attempt: the driver rides out a fast transient, this rides out a
-# sustained primary election. 1 initial attempt + 4 app retries.
-_WRITE_MAX_ATTEMPTS = 5
+# sustained primary election.
+#
+# IT NEVER GIVES UP (operator ruling 2026-10-24). A retryable write is one the
+# cluster could not take YET; abandoning it converts a transient election into
+# lost work, and it did so behind a 5-attempt, 120-second ceiling that fired
+# exactly when the election it was written for ran long. Backoff is capped so
+# the retries stay cheap, and the loop keeps trying until the write lands or
+# the failure turns out not to be retryable after all. The only limit in this
+# system is the run window the operator argues.
 _WRITE_BACKOFF_BASE_S = 1.0
 _WRITE_BACKOFF_CAP_S = 30.0
-_WRITE_DEADLINE_S = 120.0
 
 
 def is_retryable_write_error(exc: BaseException) -> bool:
@@ -256,13 +262,15 @@ def _convert_mongo_exception(exc: BaseException, elapsed_s: float,
 def _retrying(fn, *, idempotent: bool, op: str, db: str, coll: str):
     """Run `fn` and, when it fails with a retryable write error AND the caller
     declared the operation idempotent, re-run it with capped exponential
-    backoff + full jitter, bounded by an overall wall-clock deadline.
+    backoff + full jitter, for as long as it keeps failing retryably.
 
     A non-retryable failure, or any failure on a non-idempotent op, surfaces at
     once through the same _convert_mongo_exception path reads use (the driver's
-    own single retryWrites attempt has already happened underneath `fn`). When
-    the application retries are exhausted the failure surfaces as
-    mongo_write_interrupted carrying the attempt count and elapsed time.
+    own single retryWrites attempt has already happened underneath `fn`). There
+    is no attempt ceiling and no deadline: a write this code is allowed to
+    re-issue is re-issued until it lands. Every retry is logged with its
+    attempt number and elapsed time, so a cluster that never comes back is
+    visible rather than silent.
     """
     start = time.monotonic()
     attempt = 0
@@ -274,28 +282,13 @@ def _retrying(fn, *, idempotent: bool, op: str, db: str, coll: str):
             elapsed = time.monotonic() - start
             if not should_retry_write(exc, idempotent=idempotent):
                 raise
-            if attempt >= _WRITE_MAX_ATTEMPTS or elapsed >= _WRITE_DEADLINE_S:
-                raise ChatHealthyException(
-                    mode="mongo_write_interrupted",
-                    message=(f"mongo.{op} {db}.{coll} retryable write did not "
-                             f"complete after {attempt} attempt(s): "
-                             f"{type(exc).__name__}: {exc}"),
-                    component="ChatHealthyMongoUtilities",
-                    attempts=attempt,
-                    elapsed_s=round(elapsed, 3),
-                    op=op,
-                    db=db,
-                    coll=coll,
-                    exception=exc,
-                    mongo_detail=_exc_detail(exc),
-                ) from exc
             backoff = min(_WRITE_BACKOFF_CAP_S,
                           _WRITE_BACKOFF_BASE_S * (2 ** (attempt - 1)))
             sleep_s = random.uniform(0.0, backoff)
             log.info(
-                "mongo.%s RETRY db=%s coll=%s attempt=%d/%d code=%s "
+                "mongo.%s RETRY db=%s coll=%s attempt=%d code=%s "
                 "backoff_s=%.3f elapsed_s=%.3f exc=%s",
-                op, db, coll, attempt, _WRITE_MAX_ATTEMPTS,
+                op, db, coll, attempt,
                 getattr(exc, "code", None), sleep_s, elapsed,
                 type(exc).__name__,
             )

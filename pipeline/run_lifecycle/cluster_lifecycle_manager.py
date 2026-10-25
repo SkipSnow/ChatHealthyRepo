@@ -165,11 +165,16 @@ class ClusterLifecycleManager:
                   cluster_name, job_id, state_name)
 
     def reserve(self, cluster_name: str, job_id: str, requester: str,
-                expected_duration_minutes: int, expected_min_minutes: int = 0,
+                expected_duration_minutes: int | None, expected_min_minutes: int = 0,
                 reservation_class: str = "automated") -> dict:
         if reservation_class not in ("automated", "human"):
             raise ChatHealthyException(mode="value_error", message=f"reservation_class must be 'automated' or 'human', got {reservation_class!r}")
         now = datetime.now(timezone.utc)
+        # The window is the operator's. When none was argued here the run's
+        # own reservation -- written by the runbook from the trigger -- is the
+        # one that counts, and this call must not invent a shorter life for it
+        # (operator ruling 2026-10-24).
+        window = expected_duration_minutes
         doc = {
             "_id": job_id,
             "job_id": job_id,
@@ -178,18 +183,32 @@ class ClusterLifecycleManager:
             "expected_duration_minutes": expected_duration_minutes,
             "expected_min_minutes": expected_min_minutes,
             "start_time": now.isoformat(),
-            "expected_end_time": (now + timedelta(minutes=expected_duration_minutes)).isoformat(),
+            "expected_end_time": ((now + timedelta(minutes=window)).isoformat()
+                                  if window else None),
             # The reaper, Watchdog and Controller all reap/renew on expiry_at (a
             # naive-UTC wall clock). Stamp it at creation so EVERY reservation --
             # including a manual one with no Controller to renew it -- is a legal,
             # reapable claim. A row with no expiry_at is illegal and the reaper
             # reaps it rather than letting it hold the cluster up forever.
-            "expiry_at": datetime.utcnow() + timedelta(minutes=expected_duration_minutes),
+            "expiry_at": (datetime.utcnow() + timedelta(minutes=window)
+                          if window else None),
             "status": "active",
             "reservation_class": reservation_class,
         }
         coll = self._coll()
         if coll is None:
+            return doc
+        if window is None:
+            # No window argued here, so write NOTHING. The reaper treats a row
+            # with no future expiry_at as illegal and reaps it, which would be
+            # worse than the invented expiry this replaced: the run's real
+            # reservation is the one the runbook wrote from the operator's
+            # trigger, and it already stands.
+            _log.LogPipeline(
+                "INFO",
+                "reserve: no window argued for job=%s; leaving the run's own "
+                "reservation in place rather than writing a second one",
+                job_id)
             return doc
         try:
             coll.insert_one(doc)

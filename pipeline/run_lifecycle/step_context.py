@@ -20,7 +20,11 @@ def _utc_now() -> str:
 class PipelineArgs:
     states: list[str]
     env_prefix: str = "dev"
-    expected_duration_minutes: int = 120
+    # The run's window, argued by the operator at the trigger. None means
+    # "the operator argued none here" -- NOT two hours (operator ruling
+    # 2026-10-24). A silent 120 wrote a two-hour expiry on the reservation,
+    # and the reaper paused the data cluster under runs that outlived it.
+    expected_duration_minutes: int | None = None
     provider_collection: str | None = None
     metadata_collection: str = "admin.DataLoadMetadata"
     blob_container: str = "provider-data"

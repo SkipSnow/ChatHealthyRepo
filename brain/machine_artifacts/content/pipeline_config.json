@@ -114,47 +114,6 @@
       }
     }
   },
-  "step_timeouts": {
-    "medicare": {
-      "prepare_infrastructure": 1800,
-      "medicare_source_freshness_gate": 1800,
-      "medicare_fetch_all_sources": 7200,
-      "medicare_source_archival": 3600,
-      "medicare_load_staging": 14400,
-      "index_fda_prescription_records": 3600,
-      "build_fda_label_resolution": 14400,
-      "finalize_fda_molecules": 3600,
-      "build_providermedicare_base": 21600,
-      "rollup_specialtymedicare": 14400,
-      "medicare_contract_conformance": 7200,
-      "quiesce_infrastructure": 1800,
-      "clear_and_index_providermedicare_and_specialtymedicare": 1800,
-      "enrich": 21600,
-      "drop_transient_attributes_and_records": 7200
-    },
-    "provider": {
-      "prepare_infrastructure": 1800,
-      "source_freshness_gate": 1800,
-      "fetch_all_sources": 14400,
-      "source_archival": 3600,
-      "load_staging_parallel": 21600,
-      "load_f006_catalog": 1800,
-      "normalize_nucc": 3600,
-      "publish_smd_and_embed": 7200,
-      "normalize_npi_per_state_fanout": 21600,
-      "add_secondary_practices": 14400,
-      "provider_flags_enrichment": 14400,
-      "harvest_other_identifier_phrases": 14400,
-      "classify_other_identifier_phrases": 14400,
-      "apply_other_identifier_classifications": 14400,
-      "license_address_repair": 7200,
-      "county_enrichment": 21600,
-      "urban_flag": 7200,
-      "entity_second_branch": 14400,
-      "post_load_reconciliation": 7200,
-      "quiesce_infrastructure": 1800
-    }
-  },
   "pipeline_config": [
     {
       "env": "dev",
@@ -540,8 +499,7 @@
         "subscribers_secret": "notification-to-email"
       },
       "worker_liveness": {
-        "silent_after_s": 440,
-        "worker_max_silence_s": 3600
+        "silent_after_s": 440
       },
       "fda": {
         "crosswalk_batch_size": 25,
@@ -939,8 +897,7 @@
         "subscribers_secret": "notification-to-email"
       },
       "worker_liveness": {
-        "silent_after_s": 440,
-        "worker_max_silence_s": 3600
+        "silent_after_s": 440
       },
       "fda": {
         "crosswalk_batch_size": 25,
@@ -1338,8 +1295,7 @@
         "subscribers_secret": "notification-to-email"
       },
       "worker_liveness": {
-        "silent_after_s": 440,
-        "worker_max_silence_s": 3600
+        "silent_after_s": 440
       },
       "fda": {
         "crosswalk_batch_size": 25,

@@ -109,10 +109,16 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                         default=os.environ.get("LOAD_MODE", "full"),
                         choices=["full", "incremental"],
                         help="Full load or incremental. Defaults from LOAD_MODE env.")
+    # The run's ONE window, and the only time limit in the system. Argued per
+    # run by the operator (operator ruling 2026-10-24); no default, because a
+    # silent 120 is this code choosing the operator's limit for them.
+    _edm_env = os.environ.get("EXPECTED_DURATION_MINUTES", "").strip()
+    _edm_default = int(_edm_env) if _edm_env.isdigit() else None
     parser.add_argument("--expected-duration-minutes",
                         dest="expected_duration_minutes",
-                        type=int,
-                        default=int(os.environ.get("EXPECTED_DURATION_MINUTES", "120")))
+                        type=int, default=_edm_default,
+                        required=(_edm_default is None),
+                        help="The run's window in minutes. MANDATORY.")
     parser.add_argument("--log-level", dest="log_level",
                         default=os.environ.get("LOG_LEVEL", "INFO"))
     # Mandatory. May come from --data-version CLI arg or DATA_VERSION env.
@@ -211,7 +217,13 @@ def _control(ns):
     # Operator directive 2026-08-03: coord on pipeline cluster only.
     import threading  # noqa: PLC0415
     _hb_stop = threading.Event()
-    _RENEWAL_HOURS = 2  # each heartbeat pushes expiry_at 2h into the future
+    # The reservation is renewed to the END OF THE RUN'S OWN WINDOW -- the
+    # one the operator argues when the run is fired -- and to nothing else
+    # (operator ruling 2026-10-24). "now + 2 hours" was a number no
+    # requirement asked for: a stalled heartbeat let that lease lapse and the
+    # reaper took the cluster from a run that was still working.
+    _window_end = (datetime.datetime.utcnow()
+                   + datetime.timedelta(minutes=int(ns.expected_duration_minutes)))
     def _heartbeat() -> None:
         rid = ns.run_id or os.environ.get("RUN_ID", "")
         if not rid:
@@ -240,7 +252,7 @@ def _control(ns):
                 m["pipelineAdmin"]["cluster_lifecycle"].update_one(
                     {"_id": rid},
                     {"$set": {
-                        "expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS),
+                        "expiry_at": _window_end,
                         # What the reaper asks Azure about. expiry_at says only
                         # that nobody has waited long enough yet; this names the
                         # process whose absence ends the run now.

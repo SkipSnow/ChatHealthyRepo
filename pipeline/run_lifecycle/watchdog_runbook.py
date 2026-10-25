@@ -727,13 +727,25 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
                     time_created.replace("Z", "+00:00")
                 ).replace(tzinfo=None)
                 age_min = (datetime.datetime.utcnow() - created).total_seconds() / 60
-                if age_min > MISSING_MANIFEST_GRACE_MINUTES:
-                    log("delete_missing_manifest_past_grace",
+                # AGE ALONE NEVER DELETES A BOX (operator ruling 2026-10-24).
+                # This was the one branch that deleted a VM on elapsed time
+                # with no liveness verdict at all: a run whose manifest write
+                # had not landed lost its host at 30 minutes while it was
+                # still working. The age now only decides when it is worth
+                # ASKING; the answer comes from the job verdict, the same
+                # question the other checks ask.
+                if age_min <= MISSING_MANIFEST_GRACE_MINUTES:
+                    log("skip_missing_manifest_within_grace",
                         vm=vm_name, run_id=run_id, age_min=age_min)
-                    _delete_vm_and_nic(vm, tok)
                     return
-                log("skip_missing_manifest_within_grace",
+                verdict = ChatHealthyPipelineJobStatus(mongo).verdict(run_id)
+                if not verdict.has_stopped:
+                    log("skip_missing_manifest_not_proven_stopped",
+                        vm=vm_name, run_id=run_id, age_min=age_min)
+                    return
+                log("delete_missing_manifest_proven_stopped",
                     vm=vm_name, run_id=run_id, age_min=age_min)
+                _delete_vm_and_nic(vm, tok)
                 return
         except Exception as exc:  # noqa: BLE001
             log("missing_manifest_check_error", vm=vm_name, run_id=run_id,

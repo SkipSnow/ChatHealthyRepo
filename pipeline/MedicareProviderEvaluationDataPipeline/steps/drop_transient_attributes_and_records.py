@@ -123,24 +123,29 @@ def run_step(ctx, page_size: int = 1000) -> dict:
     absent_npis = 0
     for page in _pages(target_coll, str(state), page_size):
         seen += len(page)
-        doomed = []
-        for rec in page:
-            npi = str(rec.get("npi") or "")
-            if npi not in keep_cache:
-                doc = (provider_coll.find_one(
-                           {"npi": npi}, {"business_address.state": 1})
-                       or provider_coll.find_one(
-                           {"_id": npi}, {"business_address.state": 1}))
+        # One provider query per PAGE, not per record. A find_one per distinct
+        # NPI is ~1M round trips across the collection and is what blew this
+        # step's budget on 2026-10-24; the page's unknown NPIs are resolved in
+        # a single $in.
+        unknown = {str(r.get("npi") or "") for r in page} - set(keep_cache)
+        unknown.discard("")
+        if unknown:
+            found: dict[str, dict] = {}
+            for doc in provider_coll.find(
+                    {"npi": {"$in": sorted(unknown)}},
+                    {"npi": 1, "business_address.state": 1}):
+                found[str(doc.get("npi") or "")] = doc
+            for npi in unknown:
+                doc = found.get(npi)
                 if doc is None:
                     keep_cache[npi] = False
                     absent_npis += 1
-                else:
-                    keep_cache[npi] = (wanted is None
-                                       or in_scope(doc, wanted))
-                    if not keep_cache[npi]:
-                        out_of_scope_npis += 1
-            if not keep_cache[npi]:
-                doomed.append(rec["_id"])
+                    continue
+                keep_cache[npi] = wanted is None or in_scope(doc, wanted)
+                if not keep_cache[npi]:
+                    out_of_scope_npis += 1
+        doomed = [r["_id"] for r in page
+                  if not keep_cache.get(str(r.get("npi") or ""), False)]
         if doomed:
             dropped += target_coll.delete_many(
                 {"_id": {"$in": doomed}}).deleted_count

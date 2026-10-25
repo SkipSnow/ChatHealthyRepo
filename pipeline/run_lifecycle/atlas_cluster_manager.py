@@ -49,7 +49,6 @@ IDLE_TIER     = "M10"    # autoscale floor (used in resize payload; cluster is p
 IDLE_MAX      = "M20"    # autoscale ceiling (used in resize payload)
 
 POLL_INTERVAL = 15       # seconds between state checks
-TIMEOUT_MIN   = 30       # give up after this many minutes
 
 
 def _auth():
@@ -155,16 +154,21 @@ def resize_cluster(cluster_name: str, instance_size: str, max_size: str, lock_ti
 
 
 def wait_for_idle(cluster_name: str) -> None:
-    deadline = time.time() + TIMEOUT_MIN * 60
-    while time.time() < deadline:
+    """Wait until the cluster reports IDLE. NO DEADLINE (operator ruling
+    2026-10-24): a resume, a scale or a storage change takes as long as Atlas
+    takes, and giving up on it fails a run that was about to work. Every poll
+    that finds a non-IDLE state is logged, so a cluster that never arrives is
+    visible rather than silently fatal."""
+    waited = 0
+    while True:
         state = get_cluster_state(cluster_name)
         if state == "IDLE":
             return
+        if waited and waited % (10 * POLL_INTERVAL) == 0:
+            log.LogPipeline("INFO", "%s still %s after %ds; waiting",
+                            cluster_name, state, waited)
         time.sleep(POLL_INTERVAL)
-    raise ChatHealthyException(
-        mode="timeout",
-        component="atlas_cluster_manager",
-        message=f"{cluster_name} did not reach IDLE within {TIMEOUT_MIN} minutes")
+        waited += POLL_INTERVAL
 
 
 def pause_cluster(cluster_name: str) -> None:

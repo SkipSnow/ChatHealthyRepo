@@ -98,9 +98,12 @@ def _resume_cluster() -> None:
         opener.open(req, timeout=90).read()
     except urllib.error.HTTPError as exc:
         _log.LogPipeline("INFO", "resume PATCH returned %s (may already be un-pausing)", exc.code)
-    # Wait until a write lands (a ping can answer while write-locked).
-    deadline = time.time() + 600
-    while time.time() < deadline:
+    # Wait until a write lands (a ping can answer while write-locked). NO
+    # DEADLINE (operator ruling 2026-10-24): a cluster coming back from rest
+    # takes as long as it takes, and giving up on it destroyed the run that
+    # was about to succeed. Every attempt is logged, so a cluster that never
+    # returns is visible rather than silent.
+    while True:
         try:
             client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
             client["pipelineAdmin"]["cluster_readiness"].replace_one(
@@ -112,9 +115,6 @@ def _resume_cluster() -> None:
         except Exception as exc:  # noqa: BLE001
             _log.LogPipeline("INFO", "cluster not ready yet (%s); waiting", type(exc).__name__)
             time.sleep(10)
-    raise ChatHealthyException(
-        mode="cluster_unavailable", component="provider_verification",
-        message="pipeline cluster did not accept a write within 600s")
 
 
 def _resolve_provider_collection():

@@ -98,10 +98,12 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     # Read only this state's staging rows. staging_load filters by
     # state_scope at ingest, so with state_scope=ALL every state's rows
     # are present here; per-state fanout partitions them for parallel
-    # normalize. Wrap in pymongo.timeout(3600) to override the client-
-    # level timeoutMS (120s) — big states take longer than 2 min to
-    # iterate + build + validate + write. no_cursor_timeout=True also
-    # prevents server-side cursor idle kill.
+    # normalize. NO TIME BOUND on the read (operator ruling 2026-10-24):
+    # this loop iterates, builds, validates and writes an entire state, and
+    # nothing may decide it has taken too long. It previously ran inside
+    # pymongo.timeout(3600), which would have killed the largest states'
+    # work outright at one hour. no_cursor_timeout=True keeps the server's
+    # own 10-minute idle-cursor reaper off it.
     # The drain (business_address.state) and this read (the raw NPPES state
     # column) must select the same providers. "ALL" is the catch-all worker:
     # both sides read it as "business state is none of ALL_US_STATES" -- the
@@ -111,51 +113,49 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     else:
         staging_state = state
     query = {"run_id": rt.run_id, f"raw.{_NPPES_STATE_COLUMN}": staging_state}
-    with pymongo.timeout(3600):
-        for row in rt.staging_coll("nppes_npi").find(query, no_cursor_timeout=True):
-            raw = row.get("raw") or {}
-            npi = str(row.get("npi") or raw.get("NPI") or "").strip()
-            if not npi:
-                continue
-            npi = npi.zfill(10)
-            if npi in seen_npis:
-                skipped_dup += 1
-                continue
-            seen_npis.add(npi)
+    for row in rt.staging_coll("nppes_npi").find(query, no_cursor_timeout=True):
+        raw = row.get("raw") or {}
+        npi = str(row.get("npi") or raw.get("NPI") or "").strip()
+        if not npi:
+            continue
+        npi = npi.zfill(10)
+        if npi in seen_npis:
+            skipped_dup += 1
+            continue
+        seen_npis.add(npi)
 
-            doc = build_provider_record(
-                raw, npi=npi, run_id=rt.run_id, nucc_catalog=nucc,
+        doc = build_provider_record(
+            raw, npi=npi, run_id=rt.run_id, nucc_catalog=nucc,
+        )
+        ok, errors = validate_provider_record(doc)
+        if not ok:
+            violations += 1
+            rt.record_discrepancy(
+                npi=npi,
+                reason="schema_violation",
+                step="normalize_npi_per_state_fanout",
+                state=state,
+                entity_kind=rt.entity_kind(doc),
+                detail={"errors": errors},
             )
-            ok, errors = validate_provider_record(doc)
-            if not ok:
-                violations += 1
-                rt.record_discrepancy(
-                    npi=npi,
-                    reason="schema_violation",
-                    step="normalize_npi_per_state_fanout",
-                    state=state,
-                    entity_kind=rt.entity_kind(doc),
-                    detail={"errors": errors},
-                )
-                continue
+            continue
 
-            # A full run has just drained this state, so no row can match:
-            # ReplaceOne would pay for a lookup that cannot succeed, once per
-            # record. Insert what we know is new; replace only when there may
-            # genuinely be something to replace.
-            ops.append(InsertOne(doc) if not ctx.args.incremental
-                       else ReplaceOne({"npi": npi}, doc, upsert=True))
-            if len(ops) >= batch_size:
-                result = rt.providers_coll.bulk_write(ops, ordered=False, idempotent=False)
-                inserted += (result.inserted_count + result.upserted_count
-                             + result.modified_count)
-                ops = []
-
-        if ops:
+        # A full run has just drained this state, so no row can match:
+        # ReplaceOne would pay for a lookup that cannot succeed, once per
+        # record. Insert what we know is new; replace only when there may
+        # genuinely be something to replace.
+        ops.append(InsertOne(doc) if not ctx.args.incremental
+                   else ReplaceOne({"npi": npi}, doc, upsert=True))
+        if len(ops) >= batch_size:
             result = rt.providers_coll.bulk_write(ops, ordered=False, idempotent=False)
             inserted += (result.inserted_count + result.upserted_count
                          + result.modified_count)
+            ops = []
 
+    if ops:
+        result = rt.providers_coll.bulk_write(ops, ordered=False, idempotent=False)
+        inserted += (result.inserted_count + result.upserted_count
+                     + result.modified_count)
     _log.LogPipeline(
         "INFO",
         "per_state_normalize state=%s drained=%d inserted=%d unique_npis=%d "

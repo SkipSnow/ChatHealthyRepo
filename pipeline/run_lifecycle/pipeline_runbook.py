@@ -158,11 +158,14 @@ _HOSTNAME = socket.gethostname()
 # Shared trigger constants (identical in both source runbooks).
 _VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 DEBUG_LEVEL_DEFAULT = "INFO"
-RESERVATION_TTL_HOURS = 24
-# A cluster resume must not wait forever: one that never reaches IDLE aborts
-# with a fatal report rather than hang the run indefinitely.
-RESUME_TIMEOUT_SECONDS = 1200
-_PIPELINE_LOCK_TTL_HOURS = 12
+# The reservation and the per-pipeline lock last as long as the RUN'S OWN
+# WINDOW -- the one the operator argues at the trigger -- and not one minute
+# more or less (operator ruling 2026-10-24). They used to carry 24h and 12h,
+# numbers no requirement asked for: when either lapsed under a run that was
+# still working, the reaper deleted the reservation and PAUSED the data
+# cluster out from under it, and the lock self-healed into a second
+# concurrent run. A fallback is used only when the trigger argues no window.
+_WINDOW_FALLBACK_MINUTES = 24 * 60
 ATLAS_ADMIN_BASE = os.environ.get(
     "AUTOMATION_ATLAS_ADMIN_BASE", "https://cloud.mongodb.com/api/atlas/v2"
 )
@@ -288,6 +291,7 @@ def _pipeline_lock_id(pipeline_name: str) -> str:
 
 def _acquire_pipeline_lock(
     mongo, pipeline_name: str, run_id: str, vm_name: str,
+    window_minutes: int,
 ) -> dict | None:
     """Atomically acquire the per-pipeline lock. Returns None on success (we
     hold the lock); returns the blocking lock document if another fire already
@@ -309,7 +313,7 @@ def _acquire_pipeline_lock(
         "run_id": run_id,
         "vm_name": vm_name,
         "acquired_at": now.isoformat(),
-        "expires_at": (now + timedelta(hours=_PIPELINE_LOCK_TTL_HOURS)).isoformat(),
+        "expires_at": (now + timedelta(minutes=window_minutes)).isoformat(),
     }
     try:
         coll.insert_one(doc)
@@ -461,13 +465,14 @@ def _reservation_short_id(run_id: str) -> str:
     return run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
 
 
-def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
+def _create_reservation(mongo, run_id: str, vm_name: str,
+                        window_minutes: int) -> None:
     """Write the pipeline-run reservation on the front cluster's
     admin.cluster_lifecycle. Controller inherits it and cancels in its
     main.finally; reservation_reaper reaps expiry_at < now otherwise."""
     coll = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
     now = datetime.datetime.utcnow()
-    expiry = now + datetime.timedelta(hours=RESERVATION_TTL_HOURS)
+    expiry = now + datetime.timedelta(minutes=window_minutes)
     coll.replace_one(
         {"_id": run_id},
         {
@@ -1028,6 +1033,12 @@ def _run_provider() -> int:
     run_id = str(uuid.uuid4())
     os.environ["RUN_ID"] = run_id
     webhook_body = _parse_webhook_input_provider()
+    # THE run's window, argued by the operator at the trigger. Every lease
+    # this runbook writes lasts exactly this long and not a minute more
+    # (operator ruling 2026-10-24). A scheduled fire that argues none falls
+    # back, and the fallback is stated once, here.
+    window_minutes = int((webhook_body or {}).get(
+        "expected_duration_minutes") or _WINDOW_FALLBACK_MINUTES)
     if webhook_body:
         invocation_mode = webhook_body.get("invocation_mode", "webhook")
     load_mode = webhook_body.get("load_mode", LOAD_MODE_DEFAULT) if webhook_body else LOAD_MODE_DEFAULT
@@ -1086,6 +1097,7 @@ def _run_provider() -> int:
             _vm_name_for_lock = f"vm-chpipeline-{_reservation_short_id(run_id)}"
             blocking = _acquire_pipeline_lock(
                 mongo, PIPELINE_NAME, run_id, _vm_name_for_lock,
+                window_minutes,
             )
             if blocking is not None:
                 is_duplicate_abend = True
@@ -1128,12 +1140,13 @@ def _run_provider() -> int:
             log("mongo_idle_then_vm_provisioned",
                 run_id=run_id,
                 vm_id=vm_id)
-            _create_reservation(mongo, run_id, vm_name_for_teardown)
+            _create_reservation(mongo, run_id, vm_name_for_teardown,
+                                window_minutes)
             reservation_created = True
             log("reservation_created",
                 run_id=run_id,
                 vm_name=vm_name_for_teardown,
-                ttl_hours=RESERVATION_TTL_HOURS)
+                window_minutes=window_minutes)
         except urllib.error.HTTPError as exc:
             body = ""
             try:
@@ -1493,7 +1506,7 @@ def _resolve_states(raw) -> list[str]:
 
 
 def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
-                                ttl_hours: int) -> None:
+                                window_minutes: int) -> None:
     """The one and only place that manages the pipeline data cluster for a run.
 
     1. Reserve the run FIRST -- before the (tens-of-minutes) resume -- so the
@@ -1536,7 +1549,6 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
     r.raise_for_status()
     log("atlas_resume_patch_dispatched", cluster=PIPELINE_CLUSTER)
     import time as _time  # noqa: PLC0415
-    deadline = _time.monotonic() + RESUME_TIMEOUT_SECONDS
     while True:
         g = requests.get(base, auth=auth, headers=headers, timeout=30)
         g.raise_for_status()
@@ -1544,14 +1556,9 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
         if state == "IDLE":
             log("atlas_resume_cluster_idle", cluster=PIPELINE_CLUSTER)
             return
-        if _time.monotonic() >= deadline:
-            raise ChatHealthyException(
-                mode="atlas_resume_timeout",
-                message=f"cluster {PIPELINE_CLUSTER} did not reach IDLE within "
-                        f"{RESUME_TIMEOUT_SECONDS // 60} minutes (last state "
-                        f"{state or 'unknown'}); aborting rather than waiting "
-                        f"indefinitely.",
-                component="pipeline_runbook")
+        # No deadline (operator ruling 2026-10-24): a cluster coming back
+        # from rest takes as long as it takes, and every wait is logged, so a
+        # cluster that never returns is visible rather than silently fatal.
         log("atlas_resume_waiting", cluster=PIPELINE_CLUSTER, state=state or "unknown")
         _time.sleep(20)
 
@@ -1649,6 +1656,9 @@ def _run_medicare() -> int:
         # Step 3 -- run.
         body = _extract_request_body()
         invocation_mode = body.get("invocation_mode", "webhook") if body else "scheduled"
+        # THE run's window, argued by the operator at the trigger.
+        window_minutes = int((body or {}).get(
+            "expected_duration_minutes") or _WINDOW_FALLBACK_MINUTES)
         try:
             data_version = int((body or {}).get("data_version"))
         except (TypeError, ValueError):
@@ -1689,7 +1699,8 @@ def _run_medicare() -> int:
             build_fda_drug=build_fda_drug, debug_level=debug_level,
             states=states, start_at_step=start_at_step)
 
-        blocking = _acquire_pipeline_lock(mongo, PIPELINE_NAME, run_id, vm_name)
+        blocking = _acquire_pipeline_lock(mongo, PIPELINE_NAME, run_id, vm_name,
+                                          window_minutes)
         if blocking is not None:
             log("pipeline_already_running_abend", attempted_run_id=run_id,
                 live_run_id=blocking.get("run_id"))
@@ -1699,7 +1710,7 @@ def _run_medicare() -> int:
                                 invocation_mode, states, start_at_step)
         log("run_manifest_written", run_id=run_id)
 
-        _reserve_and_resume_cluster(mongo, run_id, vm_name, RESERVATION_TTL_HOURS)
+        _reserve_and_resume_cluster(mongo, run_id, vm_name, window_minutes)
         reservation_created = True
 
         # provider_collection's authoritative parse + existence check happens on

@@ -88,13 +88,6 @@ def load_pipeline_config(mongo_client=None, env_prefix: str = "dev") -> dict[str
             # step. A per-env block MAY still carry its own "fan_out" to override.
             if "fan_out" not in merged:
                 merged["fan_out"] = payload.get("fan_out") or {}
-            # step_timeouts (LLD v83 III.10 / hard-fail H9): per-pipeline,
-            # per-step timeout_seconds, env-independent like fan_out, declared
-            # once at the top level and injected here. REQUIRED values -- the
-            # orchestrator hard-fails when a step it runs has no entry (H7:
-            # no defaults).
-            if "step_timeouts" not in merged:
-                merged["step_timeouts"] = payload.get("step_timeouts") or {}
             return merged
     envs_present = [
         r.get("env") for r in records if isinstance(r, dict) and r.get("env")

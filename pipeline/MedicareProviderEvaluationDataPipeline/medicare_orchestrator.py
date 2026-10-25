@@ -26,8 +26,8 @@ drop_transient_attributes_and_records, which settles the collection to the
 run's argued scope by the provider's one BILLING state before
 rollup_specialtymedicare rolls the settled set up to the NUCC grain.
 
-Every step's timeout comes from step_timeouts.medicare in the durable
-configuration (required; H7/H9).
+No step carries a time budget. A run's only window is the one argued when
+the run is fired (operator ruling 2026-10-24).
 """
 
 from __future__ import annotations

@@ -76,9 +76,17 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--states", dest="states",
                         default=os.environ.get("STATES", "ALL"),
                         help="Comma-separated state list or ALL (provider fan-out scope)")
+    # The run's ONE window, and the only time limit in the system. It is
+    # argued per run by the operator (operator ruling 2026-10-24), so there is
+    # no default: a silent 120 would be this code choosing the operator's
+    # limit for them, which is how the invented limits got here.
+    _edm_env = os.environ.get("EXPECTED_DURATION_MINUTES", "").strip()
+    _edm_default = int(_edm_env) if _edm_env.isdigit() else None
     parser.add_argument("--expected-duration-minutes", dest="expected_duration_minutes",
-                        type=int,
-                        default=int(os.environ.get("EXPECTED_DURATION_MINUTES", "120")))
+                        type=int, default=_edm_default,
+                        required=(_edm_default is None),
+                        help="The run's window in minutes. MANDATORY: the "
+                             "operator argues it; nothing else may invent one.")
     parser.add_argument("--log-level", dest="log_level",
                         default=os.environ.get("LOG_LEVEL", "INFO"))
     _dv_env = os.environ.get("DATA_VERSION", "").strip()
@@ -174,7 +182,14 @@ def _control(ns) -> int:
     # thread dies with the process.
     import threading  # noqa: PLC0415
     _hb_stop = threading.Event()
-    _RENEWAL_HOURS = 2
+    # The reservation is renewed to the END OF THE RUN'S OWN WINDOW -- the one
+    # the operator argues when the run is fired -- and to nothing else
+    # (operator ruling 2026-10-24: one limit, and it is the operator's). This
+    # used to renew to "now + 2 hours", a number no requirement asked for: a
+    # stalled heartbeat thread would let that lease lapse and the reaper would
+    # take the data cluster out from under a run that was still working.
+    _window_end = (datetime.datetime.utcnow()
+                   + datetime.timedelta(minutes=int(ns.expected_duration_minutes)))
 
     def _heartbeat() -> None:
         rid = ns.run_id or os.environ.get("RUN_ID", "")
@@ -194,7 +209,7 @@ def _control(ns) -> int:
                 m["pipelineAdmin"]["cluster_lifecycle"].update_one(
                     {"_id": rid},
                     {"$set": {
-                        "expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS),
+                        "expiry_at": _window_end,
                         "controller_pid": os.getpid(),
                     }},
                 )
