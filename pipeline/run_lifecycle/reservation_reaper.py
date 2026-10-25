@@ -419,6 +419,22 @@ class CorrectionPass:
             self.done(item)
 
     def _run_verdict(self, run_id, run):
+        """No verdict on a run whose controller has not reported a host yet.
+
+        A VM that does not exist YET is not a VM that died. The run record's
+        own vm_name is written by the controller once it is up; until then the
+        only host name anywhere is the one the runbook wrote on the
+        reservation BEFORE provisioning, and judging against that turns a
+        normal start into a dead controller. It did exactly that on
+        2026-10-25: the runbook was still waiting for Atlas to come back from
+        rest -- it logged REPAIRING through the whole thing -- and the run was
+        marked failed because the box it had not created yet was not there.
+
+        This is the rule the docstring above already states: a run that names
+        no host cannot be judged and is left alone rather than guessed at.
+        """
+        if not run.get("vm_name"):
+            return None
         return self._status.verdict(run_id)
 
 
