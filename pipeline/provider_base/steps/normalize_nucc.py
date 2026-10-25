@@ -50,53 +50,55 @@ def execute(ctx) -> dict:
     # production shape) and add the F-105 flags per LLD 8.4 / spec.
     update_ops: list[UpdateOne] = []
     staging_codes: set[str] = set()
-    for row in coll.find({"run_id": run_id}, {"_id": 1, "raw": 1}):
-        raw = row.get("raw") or {}
-        code = raw.get("Code")
-        if not code:
-            continue
-        staging_codes.add(code)
-        f105_entry = f105.get(code, {})
-        # For supplemented codes, F-105 is the authoritative source for
-        # display_name and description peers (raw.* fields carry stale
-        # values from prior normalize runs). For NUCC-authoritative codes
-        # (non-supplement), raw.* is the authority.
-        is_supp = bool(f105_entry.get("is_supplemented"))
-        if is_supp:
-            display_name = _derive_display_name(f105_entry)
-            grouping = f105_entry.get("grouping") or raw.get("Grouping") or ""
-            classification = f105_entry.get("classification") or raw.get("Classification") or ""
-            specialization = f105_entry.get("specialization") or raw.get("Specialization") or ""
-            definition = f105_entry.get("definition") or raw.get("Definition") or ""
-        else:
-            display_name = raw.get("Display Name") or ""
-            grouping = raw.get("Grouping") or ""
-            classification = raw.get("Classification") or ""
-            specialization = raw.get("Specialization") or ""
-            definition = raw.get("Definition") or ""
-        set_doc = {
-            "code": code,
-            "Code": code,
-            "Grouping": grouping,
-            "Classification": classification,
-            "Specialization": specialization,
-            "Definition": definition,
-            "Notes": raw.get("Notes") or "",
-            "Display Name": display_name,
-            "Section": raw.get("Section") or "",
-            "is_supplemented": is_supp,
-            "can_prescribe": bool(f105_entry.get("can_prescribe", False)),
-            "is_homeopathic": bool(f105_entry.get("is_homeopathic", False)),
-            "is_disqualified": bool(f105_entry.get("is_disqualified", False)),
-        }
-        if is_supp:
-            # Also refresh raw.Display Name so subsequent re-normalize
-            # runs read the authoritative label (not the stale prior).
-            set_doc["raw.Display Name"] = display_name
-        update_ops.append(UpdateOne({"_id": row["_id"]}, {"$set": set_doc}))
-        if len(update_ops) >= 500:
-            coll.bulk_write(update_ops, ordered=False)
-            update_ops = []
+    with coll.find({"run_id": run_id}, {"_id": 1, "raw": 1},
+                   no_cursor_timeout=True) as cursor:
+     for row in cursor:
+         raw = row.get("raw") or {}
+         code = raw.get("Code")
+         if not code:
+             continue
+         staging_codes.add(code)
+         f105_entry = f105.get(code, {})
+         # For supplemented codes, F-105 is the authoritative source for
+         # display_name and description peers (raw.* fields carry stale
+         # values from prior normalize runs). For NUCC-authoritative codes
+         # (non-supplement), raw.* is the authority.
+         is_supp = bool(f105_entry.get("is_supplemented"))
+         if is_supp:
+             display_name = _derive_display_name(f105_entry)
+             grouping = f105_entry.get("grouping") or raw.get("Grouping") or ""
+             classification = f105_entry.get("classification") or raw.get("Classification") or ""
+             specialization = f105_entry.get("specialization") or raw.get("Specialization") or ""
+             definition = f105_entry.get("definition") or raw.get("Definition") or ""
+         else:
+             display_name = raw.get("Display Name") or ""
+             grouping = raw.get("Grouping") or ""
+             classification = raw.get("Classification") or ""
+             specialization = raw.get("Specialization") or ""
+             definition = raw.get("Definition") or ""
+         set_doc = {
+             "code": code,
+             "Code": code,
+             "Grouping": grouping,
+             "Classification": classification,
+             "Specialization": specialization,
+             "Definition": definition,
+             "Notes": raw.get("Notes") or "",
+             "Display Name": display_name,
+             "Section": raw.get("Section") or "",
+             "is_supplemented": is_supp,
+             "can_prescribe": bool(f105_entry.get("can_prescribe", False)),
+             "is_homeopathic": bool(f105_entry.get("is_homeopathic", False)),
+             "is_disqualified": bool(f105_entry.get("is_disqualified", False)),
+         }
+         if is_supp:
+             # Also refresh raw.Display Name so subsequent re-normalize
+             # runs read the authoritative label (not the stale prior).
+             set_doc["raw.Display Name"] = display_name
+         update_ops.append(UpdateOne({"_id": row["_id"]}, {"$set": set_doc}))
+         if len(update_ops) >= 500:
+             coll.bulk_write(update_ops, ordered=False)
+             update_ops = []
     if update_ops:
         coll.bulk_write(update_ops, ordered=False)
 

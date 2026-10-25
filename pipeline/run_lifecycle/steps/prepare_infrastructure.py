@@ -131,8 +131,9 @@ def _execute(ctx) -> dict:
               cluster, time.time() - t)
 
     t = time.time()
-    _log.LogPipeline("INFO", "prepare_infrastructure: reserving %s for %d minute(s)",
-              cluster, duration)
+    _log.LogPipeline("INFO", "prepare_infrastructure: reserving %s for %s",
+              cluster, f"{duration} minute(s)" if duration
+              else "the window the run already holds")
     reservation = ops.reserve(
         cluster_name=cluster,
         job_id=ctx.run_id,
@@ -147,8 +148,9 @@ def _execute(ctx) -> dict:
     # run for it destroys work that was about to start.
     wait_minutes = ctx.config.get("cluster_wait_minutes")
     _log.LogPipeline("INFO", "prepare_infrastructure: ensuring indexes on %s "
-              "(waits up to %d minute(s) for the cluster)",
-              ctx.provider_collection, wait_minutes)
+              "(waits for the cluster: %s)", ctx.provider_collection,
+              f"up to {wait_minutes} minute(s)" if wait_minutes
+              else "no limit")
     idx = ensure_provider_indexes_fn({
         "provider_collection": ctx.provider_collection,
         "cluster_wait_minutes": wait_minutes,

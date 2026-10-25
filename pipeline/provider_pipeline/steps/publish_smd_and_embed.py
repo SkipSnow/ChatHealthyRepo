@@ -130,21 +130,22 @@ def execute(ctx) -> dict:
 
     copied = 0
     batch: list[dict] = []
-    for row in src.find({"run_id": rt.run_id}):
-        pub = {
-            k: v
-            for k, v in row.items()
-            if k not in ("_id", "_source_row_index", "raw")
-        }
-        # Ensure run_id is set on every published row. Same field name
-        # provider records use; matches _loaded_metadata.run_id so an
-        # operator can trace any row back to its metadata doc.
-        pub["run_id"] = rt.run_id
-        batch.append(pub)
-        if len(batch) >= 500:
-            smd_loaded.insert_many(batch, ordered=False, idempotent=False)
-            copied += len(batch)
-            batch = []
+    with src.find({"run_id": rt.run_id}, no_cursor_timeout=True) as cursor:
+     for row in cursor:
+         pub = {
+             k: v
+             for k, v in row.items()
+             if k not in ("_id", "_source_row_index", "raw")
+         }
+         # Ensure run_id is set on every published row. Same field name
+         # provider records use; matches _loaded_metadata.run_id so an
+         # operator can trace any row back to its metadata doc.
+         pub["run_id"] = rt.run_id
+         batch.append(pub)
+         if len(batch) >= 500:
+             smd_loaded.insert_many(batch, ordered=False, idempotent=False)
+             copied += len(batch)
+             batch = []
     if batch:
         smd_loaded.insert_many(batch, ordered=False, idempotent=False)
         copied += len(batch)

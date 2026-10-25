@@ -195,13 +195,20 @@ class MigratedCollection:
         destination = self._destination()
         written = 0
         batch: list[dict] = []
-        for document in source.find({}, batch_size=_BATCH):
-            batch.append(document)
-            if len(batch) >= _BATCH:
-                destination.insert_many(batch, ordered=False, idempotent=False)
-                written += len(batch)
-                batch = []
-                yield written
+        # The body inserts into the DESTINATION cluster every _BATCH
+        # documents, so this cursor sits idle across a remote write and the
+        # server reaps it at ten minutes; the next getMore then raises
+        # CursorNotFound and leaves the destination half-populated
+        # (operator ruling 2026-10-25: a cursor is never held across work).
+        with source.find({}, batch_size=_BATCH,
+                         no_cursor_timeout=True) as cursor:
+          for document in cursor:
+             batch.append(document)
+             if len(batch) >= _BATCH:
+                 destination.insert_many(batch, ordered=False, idempotent=False)
+                 written += len(batch)
+                 batch = []
+                 yield written
         if batch:
             destination.insert_many(batch, ordered=False, idempotent=False)
             written += len(batch)

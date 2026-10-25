@@ -391,38 +391,39 @@ def apply_provider_flags(
     _scan_started = _time.time()
     _log.LogPipeline("INFO", "provider_flags[%s]: scanning %s query=%s",
               _state_label, provider_collection, query)
-    for doc in coll.find(query, projection):
-        matched += 1
-        if matched % 100_000 == 0:
-            _log.LogPipeline("INFO", "provider_flags[%s]: %s matched, %s modified, "
-                      "%s unresolved (%.0fs)", _state_label,
-                      f"{matched:,}", f"{modified:,}", f"{unresolved:,}",
-                      _time.time() - _scan_started)
-        flags = _apply_flags_to_doc(
-            doc,
-            catalog=catalog,
-            discrepancy_sink=_sink,
-        )
-        if flags is None:
-            if (doc.get("primary_taxonomy_code") or "").strip():
-                # Had a primary code not present in the catalog -- the sink
-                # already recorded the unresolved_taxonomy_code finding.
-                unresolved += 1
-            else:
-                # No primary taxonomy -- nothing to classify; flags left
-                # absent. Not a finding.
-                no_primary_taxonomy += 1
-            continue
-        # Clear any stale is_disqualified from prior engine versions --
-        # no source-file field currently drives it, so we do not stamp it.
-        ops.append(UpdateOne(
-            {"_id": doc["_id"]},
-            {"$set": flags, "$unset": {"is_disqualified": ""}},
-        ))
-        if len(ops) >= batch_size:
-            result = coll.bulk_write(ops, ordered=False)
-            modified += (result.modified_count or 0)
-            ops = []
+    with coll.find(query, projection, no_cursor_timeout=True) as cursor:
+     for doc in cursor:
+         matched += 1
+         if matched % 100_000 == 0:
+             _log.LogPipeline("INFO", "provider_flags[%s]: %s matched, %s modified, "
+                       "%s unresolved (%.0fs)", _state_label,
+                       f"{matched:,}", f"{modified:,}", f"{unresolved:,}",
+                       _time.time() - _scan_started)
+         flags = _apply_flags_to_doc(
+             doc,
+             catalog=catalog,
+             discrepancy_sink=_sink,
+         )
+         if flags is None:
+             if (doc.get("primary_taxonomy_code") or "").strip():
+                 # Had a primary code not present in the catalog -- the sink
+                 # already recorded the unresolved_taxonomy_code finding.
+                 unresolved += 1
+             else:
+                 # No primary taxonomy -- nothing to classify; flags left
+                 # absent. Not a finding.
+                 no_primary_taxonomy += 1
+             continue
+         # Clear any stale is_disqualified from prior engine versions --
+         # no source-file field currently drives it, so we do not stamp it.
+         ops.append(UpdateOne(
+             {"_id": doc["_id"]},
+             {"$set": flags, "$unset": {"is_disqualified": ""}},
+         ))
+         if len(ops) >= batch_size:
+             result = coll.bulk_write(ops, ordered=False)
+             modified += (result.modified_count or 0)
+             ops = []
 
     if ops:
         result = coll.bulk_write(ops, ordered=False)

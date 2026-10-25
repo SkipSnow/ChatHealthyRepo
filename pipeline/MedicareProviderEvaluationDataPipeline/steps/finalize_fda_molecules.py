@@ -123,23 +123,27 @@ def run_step(ctx) -> dict:
     by_molecule: dict[str, list[dict]] = {}
     orphans = 0
     labels = 0
-    for lr in transient_coll.find({}):
-        labels += 1
-        mid = molecule_id(lr.get("molecule"))
-        if not mid:
-            orphans += 1
-            transient_coll.update_one(
-                {"_id": lr["_id"]},
-                {"$set": {"orphan": True,
-                          "orphan_reason": "no_molecule_id: no clean molecule "
-                                           "name was recovered for this label"}})
-            rt.record_discrepancy(
-                reason="FDA_all_other_Attribute_failures",
-                step="finalize_fda_molecules", artifact="fda",
-                record_key=str(lr.get("set_id") or lr.get("_id") or ""),
-                detail={"kind": "label_orphaned_no_molecule"})
-            continue
-        by_molecule.setdefault(mid, []).append(lr)
+    # Held across the molecule writes below. The FDA collection costs real
+    # money to rebuild, so losing this loop to the cursor reaper is
+    # expensive as well as slow.
+    with transient_coll.find({}, no_cursor_timeout=True) as cursor:
+     for lr in cursor:
+         labels += 1
+         mid = molecule_id(lr.get("molecule"))
+         if not mid:
+             orphans += 1
+             transient_coll.update_one(
+                 {"_id": lr["_id"]},
+                 {"$set": {"orphan": True,
+                           "orphan_reason": "no_molecule_id: no clean molecule "
+                                            "name was recovered for this label"}})
+             rt.record_discrepancy(
+                 reason="FDA_all_other_Attribute_failures",
+                 step="finalize_fda_molecules", artifact="fda",
+                 record_key=str(lr.get("set_id") or lr.get("_id") or ""),
+                 detail={"kind": "label_orphaned_no_molecule"})
+             continue
+         by_molecule.setdefault(mid, []).append(lr)
 
     # The LOCAL RxNorm identity join (LLD v83 III.9/III.10): the staged
     # vocabulary's ingredient RXCUIs, folded by the same molecule_id.
