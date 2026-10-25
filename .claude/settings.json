@@ -37,15 +37,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/boot_probe.py\" --event SessionStart"
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/boot_probe.py\" --event SessionStart"
           },
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/capture_brain_hashes.py\""
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/capture_brain_hashes.py\""
           },
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook SessionStart"
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook SessionStart"
           }
         ]
       }
@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PostCompact"
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PostCompact"
           }
         ]
       }
@@ -65,11 +65,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/boot_probe.py\" --event UserPromptSubmit"
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/boot_probe.py\" --event UserPromptSubmit"
           },
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook UserPromptSubmit"
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook UserPromptSubmit"
           }
         ]
       }
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook Stop"
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook Stop"
           }
         ]
       }
@@ -89,7 +89,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PreToolUse"
+            "command": "python \"c:\\CHATHealthyLLC/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PreToolUse"
           }
         ]
       }

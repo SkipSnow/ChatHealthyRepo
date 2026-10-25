@@ -603,6 +603,7 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
                           invocation_mode: str,
                           data_version: int,
+                          window_minutes: int,
                           google_maps_enabled: bool = False,
                           debug_level: str = DEBUG_LEVEL_DEFAULT) -> str:
     """Return the base64-encoded cloud-init user_data blob for the provider
@@ -682,6 +683,7 @@ runcmd:
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='chathealthydatapipeline-pri.mdwahg.mongodb.net' \\
       -e RUN_ID='{run_id}' \\
       -e DATA_VERSION='{data_version}' \\
+      -e EXPECTED_DURATION_MINUTES='{window_minutes}' \\
       -e GOOGLE_MAPS_ENABLED='{"1" if google_maps_enabled else "0"}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\
       -e INVOCATION_MODE='{invocation_mode}' \\
@@ -759,6 +761,7 @@ def _get_ssh_pubkey() -> str:
 
 def _provision_vm(run_id: str, load_mode: str, state_scope,
                   invocation_mode: str,
+                  window_minutes: int,
                   data_version: int = 0,
                   google_maps_enabled: bool = False,
                   debug_level: str = DEBUG_LEVEL_DEFAULT) -> dict:
@@ -807,7 +810,7 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
     )
     user_data_b64 = _cloud_init_user_data(
         run_id, load_mode, state_scope, invocation_mode,
-        data_version, google_maps_enabled, debug_level,
+        data_version, window_minutes, google_maps_enabled, debug_level,
     )
     vm_body = {
         "location": VM_LOCATION,
@@ -923,6 +926,7 @@ def _atlas_resume_pipeline_cluster() -> dict:
 def _wake_mongo_then_provision_vm(
     run_id: str, load_mode: str, state_scope,
     invocation_mode: str,
+    window_minutes: int,
     data_version: int = 0,
     google_maps_enabled: bool = False,
     debug_level: str = DEBUG_LEVEL_DEFAULT,
@@ -933,7 +937,7 @@ def _wake_mongo_then_provision_vm(
     no VM at all."""
     atlas = _atlas_resume_pipeline_cluster()
     vm = _provision_vm(
-        run_id, load_mode, state_scope, invocation_mode,
+        run_id, load_mode, state_scope, invocation_mode, window_minutes,
         data_version, google_maps_enabled, debug_level,
     )
     return {"vm": vm, "atlas": atlas}
@@ -1131,7 +1135,7 @@ def _run_provider() -> int:
         vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
         try:
             result = _wake_mongo_then_provision_vm(
-                run_id, load_mode, state_scope, invocation_mode,
+                run_id, load_mode, state_scope, invocation_mode, window_minutes,
                 data_version, google_maps_enabled, debug_level,
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
@@ -1336,7 +1340,8 @@ def _controller_cloud_init(run_id: str, data_version: int,
                            build_fda_drug: bool, vm_name: str,
                            debug_level: str, states: list[str],
                            provider_collection: str,
-                           start_at_step: str | None) -> str:
+                           start_at_step: str | None,
+                           window_minutes: int) -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
     VMs, then self-delete. The Controller presents pipelineController for ARM
@@ -1384,7 +1389,8 @@ runcmd:
       -e CH_LOG_DESTINATION='stderr,mongo' -e CH_LOG_LEVEL='{debug_level}' -e CH_LOG_DB='{CH_LOG_DB}' \\
       -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{MONGO_HOST_FRONTEND}' \\
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{MONGO_HOST_PIPELINE}' \\
-      -e RUN_ID='{run_id}' -e DATA_VERSION='{data_version}' -e ENV_PREFIX='{ENV_PREFIX}' \\
+      -e RUN_ID='{run_id}' -e DATA_VERSION='{data_version}' -e ENV_PREFIX='{ENV_PREFIX}' \
+      -e EXPECTED_DURATION_MINUTES='{window_minutes}' \\
       -e PIPELINE_NAME='medicare' -e GOOGLE_MAPS_ENABLED='0' \\
       -e PIPELINE_LOG_ACCOUNT_URL='{PIPELINE_LOG_ACCOUNT_URL}' \\
       -e AZURE_VM_NAME='{vm_name}' \\
@@ -1426,13 +1432,15 @@ def _provision_controller_vm(run_id: str, data_version: int,
                              build_fda_drug: bool, debug_level: str,
                              states: list[str],
                              provider_collection: str,
-                             start_at_step: str | None) -> dict:
+                             start_at_step: str | None,
+                             window_minutes: int) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
     user_data = _controller_cloud_init(run_id, data_version, build_fda_drug,
                                        vm_name, debug_level, states,
-                                       provider_collection, start_at_step)
+                                       provider_collection, start_at_step,
+                                       window_minutes)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
@@ -1522,11 +1530,12 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
         {"_id": run_id, "run_id": run_id, "vm_name": vm_name,
          "cluster_name": ATLAS_PIPELINE_CLUSTER, "requester": "pipeline_runbook",
          "start_time": now,
-         "expiry_at": now + datetime.timedelta(hours=ttl_hours),
+         "expiry_at": now + datetime.timedelta(minutes=window_minutes),
          "reservation_class": "pipeline_run", "pipeline_name": PIPELINE_NAME,
          "status": "active"},
         upsert=True)
-    log("reservation_created", run_id=run_id, vm_name=vm_name, ttl_hours=ttl_hours)
+    log("reservation_created", run_id=run_id, vm_name=vm_name,
+        window_minutes=window_minutes)
 
     missing = [n for n, v in (("ATLAS_PROJECT_ID", ATLAS_PROJECT_ID),
                               ("ATLAS_PIPELINE_PUBLIC_KEY", ATLAS_PIPELINE_PUBLIC_KEY),
@@ -1718,7 +1727,7 @@ def _run_medicare() -> int:
         # where the pipeline package exists; the sandbox trigger cannot run it.
         _provision_controller_vm(run_id, data_version, build_fda_drug,
                                  debug_level, states, provider_collection,
-                                 start_at_step)
+                                 start_at_step, window_minutes)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
         log("runbook_exit", run_id=run_id)

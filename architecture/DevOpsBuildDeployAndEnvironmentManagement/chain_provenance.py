@@ -198,6 +198,104 @@ def running_from_git() -> str:
     return os.environ.get(ENV_MARKER, "").strip()
 
 
+# What every chain run needs regardless of what it was asked to build: the
+# chain itself, the records it reads, the contracts it validates against, and
+# the library it imports. Everything else a run touches is declared by the
+# packages it was asked for.
+_CHAIN_ALWAYS = (
+    "architecture/DevOpsBuildDeployAndEnvironmentManagement/",
+    "brain/machine_artifacts/content/",
+    "Website/schemas/",
+    "ChatHealthyLib/src/",
+    # The chain itself inlines this into every website build, so it is the
+    # chain's dependency rather than any package's and belongs here rather
+    # than in a package's declared files.
+    "architecture/CommonFrontEndFeatures/",
+)
+
+
+def _argv_values(argv: list[str], flag: str) -> list[str]:
+    """The comma-separated values given to one flag, in either spelling."""
+    out: list[str] = []
+    for index, token in enumerate(argv):
+        if token == flag and index + 1 < len(argv):
+            out.extend(v.strip() for v in argv[index + 1].split(",") if v.strip())
+        elif token.startswith(flag + "="):
+            out.extend(v.strip() for v in token[len(flag) + 1:].split(",")
+                       if v.strip())
+    return out
+
+
+def _dockerfile_copy_sources(canonical: Path, branch: str,
+                             dockerfile: str) -> list[str]:
+    """The repository paths a Dockerfile COPYs in.
+
+    A docker package declares its Dockerfile and a build context, and the
+    context is what the image actually needs. Reading the COPY lines is how
+    the context is derived from the record rather than guessed: the last word
+    of a COPY is its destination, everything before it is a source, and a
+    source that names no path in this repository is skipped.
+    """
+    code, body = _git(canonical, "show", f"origin/{branch}:{dockerfile}")
+    if code != 0:
+        return []
+    sources: list[str] = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped[:5].upper().startswith("COPY"):
+            continue
+        words = [w for w in stripped.split() if not w.startswith("--")]
+        for word in words[1:-1]:
+            if word and not word.startswith(("$", "/")):
+                sources.append(word)
+    return sources
+
+
+def _paths_this_run_needs(canonical: Path, branch: str,
+                          argv: list[str]) -> list[str]:
+    """The sparse-checkout path set for this invocation.
+
+    Read from deployment_architecture.json as origin/<branch> carries it. A
+    run that names no package -- a deploy, which reads the record for every
+    package of its targets -- gets its targets' whole declared file set.
+    """
+    import json  # noqa: PLC0415
+
+    wanted: set[str] = set(_CHAIN_ALWAYS)
+    code, blob = _git(canonical, "show",
+                      f"origin/{branch}:brain/machine_artifacts/content/"
+                      f"deployment_architecture.json")
+    if code != 0:
+        # The record is what narrows the checkout; without it the run gets
+        # the whole repository rather than a wrong subset.
+        return ["/*"]
+    try:
+        record = json.loads(blob)
+    except ValueError:
+        return ["/*"]
+
+    targets = set(_argv_values(argv, "--target"))
+    packages = set(_argv_values(argv, "--package"))
+    for target in record.get("DeploymentTargetRecord", []):
+        if targets and target.get("target_id") not in targets:
+            continue
+        for environment in target.get("environments", []):
+            for package in environment.get("packages", []):
+                if packages and package.get("package_id") not in packages:
+                    continue
+                for declared in package.get("files", []):
+                    location = declared.get("source_location")
+                    if location:
+                        wanted.add(location)
+                config = package.get("config") or {}
+                dockerfile = config.get("dockerfile")
+                if dockerfile:
+                    wanted.add(dockerfile)
+                    wanted.update(_dockerfile_copy_sources(
+                        canonical, branch, dockerfile))
+    return sorted(wanted)
+
+
 def reexec_from_branch(env: str, entry_relative_path: str,
                        argv: list[str]) -> int | None:
     """Re-run this program out of a fresh checkout of origin/<branch>.
@@ -250,14 +348,37 @@ def reexec_from_branch(env: str, entry_relative_path: str,
             message=f"origin/{branch} could not be resolved: {head[:300]}")
 
     checkout = Path(tempfile.mkdtemp(prefix=f"chain_{env}_{branch}_"))
-    code, out = _git(canonical, "worktree", "add", "--detach", "--force",
-                     str(checkout), f"origin/{branch}")
+    # ONLY THE FILES THIS RUN NEEDS (operator ruling 2026-10-25). The whole
+    # repository used to land here on every build and every deploy; what a run
+    # needs is the chain itself and the files the packages it was asked for
+    # declare in deployment_architecture.json. The path set is computed from
+    # the record AS THE BRANCH CARRIES IT, never from the working copy, so a
+    # local edit still cannot influence a cloud run.
+    wanted = _paths_this_run_needs(canonical, branch, argv)
+    code, out = _git(canonical, "worktree", "add", "--no-checkout", "--detach",
+                     "--force", str(checkout), f"origin/{branch}")
     if code != 0:
         raise ChatHealthyException(
             mode="aborted",
             component="chain_provenance",
             message=f"origin/{branch} could not be checked out at {checkout}: "
                     f"{out[:300]}")
+    code, out = _git(checkout, "sparse-checkout", "set", "--no-cone", *wanted)
+    if code != 0:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="chain_provenance",
+            message=f"the checkout at {checkout} could not be narrowed to the "
+                    f"{len(wanted)} path(s) this run needs: {out[:300]}")
+    code, out = _git(checkout, "checkout")
+    if code != 0:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="chain_provenance",
+            message=f"origin/{branch} could not be materialised at {checkout}: "
+                    f"{out[:300]}")
+    _log.info(f"[chain] checked out {len(wanted)} declared path(s), not the "
+              f"whole repository")
 
     entry = checkout / entry_relative_path
     if not entry.is_file():
