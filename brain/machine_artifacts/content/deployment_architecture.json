@@ -729,7 +729,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "9d32d2c148f5c2fd39741829fc50653d26d4a9116900d46d579e4281c14c96e5",
+          "content_hash": "da3d8a726cd1d40a92d34f60b08b75fe7c87ef1d53ec7b264f4cb2b44e6e8985",
           "package": "json_schemas"
         },
         {
@@ -746,6 +746,14 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "14242dd3f4d56834cd9123ba1e928410e20188c54078e17a81e57dce1eef3ce4",
+          "package": "json_schemas"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/schemas/ChatHealthyFdaProductToDiagnosisResolutionSchema.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "75897dc31ad2f145008bf4bdef1b73b76b1a5481a74a22f3a8dd371ba4840a39",
           "package": "json_schemas"
         },
         {
@@ -769,7 +777,7 @@
           "source_location": "Website/schemas/ChatHealthyPipelineConfigSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "6e2c4a4d7395e7411a45abff4c2dfa3379cd5c5faa601a472fb70eda6a1d9a71",
+          "content_hash": "2835e8d59a60f7711565fff822bd14f65a2490590cfa6bd26649ebf45deac44b",
           "package": "json_schemas"
         },
         {
@@ -778,6 +786,14 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "616126da1e0c99e8dcfbcfe46b7ab99e1ea0f7f4bc3b0eb55ecef019e9478052",
+          "package": "json_schemas"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/schemas/ChatHealthyProviderMedicareSchema.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "bd966856b1189c46aec2fbc5d305ad0e24e48883b435e0156ea47b9f2a28cc5d",
           "package": "json_schemas"
         },
         {
@@ -810,6 +826,14 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "54fd5cc2646997efcde206488575a4ecaabf1fec6089e72a8d22a797b82bcad3",
+          "package": "json_schemas"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/schemas/ChatHealthySpecialtyMedicareSchema.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "032756b32c917a187fd0fdaf40190f888116b100b1cc1c46a488014c7995a7dd",
           "package": "json_schemas"
         },
         {
@@ -1220,7 +1244,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d8876fe35577f3efbeaef611d117a0620ffe2a7e51384c19f501fe855fc9242c",
+          "content_hash": "199d14bf2f22b7a6a2205e208793ef213908025d91db8c2e31741fa29b569f53",
           "package": "service_runtime"
         },
         {
@@ -1235,7 +1259,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "643ab89598ce3540f8a1f74abf588b147c1cd3390eaf5dbb7b05d37922983d54",
+          "content_hash": "dca95461d15c87b18de7aae2f6810a1b01d64e6c44c54483201449a0b6e5f945",
           "package": "service_runtime"
         },
         {
@@ -1712,7 +1736,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d8876fe35577f3efbeaef611d117a0620ffe2a7e51384c19f501fe855fc9242c",
+          "content_hash": "199d14bf2f22b7a6a2205e208793ef213908025d91db8c2e31741fa29b569f53",
           "package": "service_runtime"
         },
         {
@@ -1727,7 +1751,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "643ab89598ce3540f8a1f74abf588b147c1cd3390eaf5dbb7b05d37922983d54",
+          "content_hash": "dca95461d15c87b18de7aae2f6810a1b01d64e6c44c54483201449a0b6e5f945",
           "package": "service_runtime"
         },
         {
@@ -2890,7 +2914,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d8876fe35577f3efbeaef611d117a0620ffe2a7e51384c19f501fe855fc9242c",
+          "content_hash": "199d14bf2f22b7a6a2205e208793ef213908025d91db8c2e31741fa29b569f53",
           "package": "service_runtime"
         },
         {
@@ -2905,7 +2929,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "643ab89598ce3540f8a1f74abf588b147c1cd3390eaf5dbb7b05d37922983d54",
+          "content_hash": "dca95461d15c87b18de7aae2f6810a1b01d64e6c44c54483201449a0b6e5f945",
           "package": "service_runtime"
         },
         {
@@ -3551,7 +3575,7 @@
           "source_location": "pipeline/run_lifecycle/cluster_lifecycle_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "875ea94ad156e6c60fcb792d9061a1dbf352342fbc937c5ef541cf2d2448b63c",
+          "content_hash": "f6b96c08f3e84c6134959244cdbba77e9adc16b1dc961d97972d337fd177919c",
           "package": "service_runtime"
         },
         {
@@ -3567,7 +3591,7 @@
           "source_location": "pipeline/run_lifecycle/ensure_provider_indexes_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "913bf0ac90b21cefcfde023fdd24b0adad376d7ec7feaf5822667fc8c12ae574",
+          "content_hash": "5470c3244517b13d2b491c66cbbf3c8df175ecd34bc69f2e4cd05a23052706c7",
           "package": "service_runtime"
         },
         {
@@ -3583,7 +3607,7 @@
           "source_location": "pipeline/provider_base/normalize_provider_rows.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "01e965b76bb8a5d38a566dc97890d5bc127c4b9b68dea90ea08b2a81c6d45590",
+          "content_hash": "28f710b315176144fd16bd17664f12f6537b55bfadf01a95f2b9632f9d9162df",
           "package": "service_runtime"
         },
         {
@@ -3647,7 +3671,7 @@
           "source_location": "pipeline/provider_base/provider_normalize_engine.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e478ee045803bd2c6065fded8071aacc374d3ea1b3269c8bf98a3082bbe7a83d",
+          "content_hash": "1eb6a3912e245be37797adbf336993a162c16bb2dc8d6a4bb0702ddbdc533fe9",
           "package": "service_runtime"
         },
         {
@@ -3655,7 +3679,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c1bc2be3bb3fcc66692daeb12d450fa4da7fb5003679394fdff0f7c0c8416f67",
+          "content_hash": "7f44bca2ae60ad0a8ba2fcffc6587d32fc0f9ec93a83b2bcc3159c96d3c26bb4",
           "package": "service_runtime"
         },
         {
@@ -3703,7 +3727,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a36edc65df8506522c5a72bbab3896757b7d0c6e85fe1c067ba43fe0957eff9",
+          "content_hash": "a85f00454fbfde2fefaec9667f0cd8a7ae501b508f543e8424b4d011f10e8b10",
           "package": "service_runtime"
         },
         {
@@ -3711,7 +3735,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69",
+          "content_hash": "0ca347267fa763e8a55584e767f1ec56a3ad32446a48e74aecb6e6ab6f8f86d1",
           "package": "service_runtime"
         },
         {
@@ -3719,7 +3743,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "22a572b7b34639ecab56fac50f9ad8b886dfb431ca87336290277e14108f8605",
+          "content_hash": "4514a4cfcc428b3fcfbd41e055343c58db35807384292db17fd21cd1aae05043",
           "package": "service_runtime"
         },
         {
@@ -3735,7 +3759,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d2570ac16cabc869ca4ebde8700ef421637bd54da6bc5d01dd429f48fab1915d",
+          "content_hash": "c18a0980328ea853c83a09a57ff5074692d2b1d6907b38e8b6a68dcb2a285b91",
           "package": "service_runtime"
         },
         {
@@ -3751,7 +3775,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c5dfa91a823940a9ce640edcec451ac69e396ba039168483fdd9b9e90e5e2367",
+          "content_hash": "31a3f5de7263d97a393efa8d7ad2c233983bdcffe26446094b1c276f9705cc5c",
           "package": "service_runtime"
         },
         {
@@ -3791,7 +3815,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e96f9c4ec815af0e11419e39325580764393bf1a041ee07dff8dbdd536d9540a",
+          "content_hash": "9e7dc756741cf283358345e1ffbe14cb3578fb9b5874deaf44c5d5e4a1d54bdc",
           "package": "service_runtime"
         },
         {
@@ -3912,7 +3936,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c5dfa91a823940a9ce640edcec451ac69e396ba039168483fdd9b9e90e5e2367",
+          "content_hash": "31a3f5de7263d97a393efa8d7ad2c233983bdcffe26446094b1c276f9705cc5c",
           "package": "service_runtime"
         },
         {
@@ -3920,7 +3944,7 @@
           "source_location": "pipeline/run_lifecycle/embedding_engine.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "08cc2a02c781a28c8a53f23818411274ffea180963efc88a37cfe8f5d50cfd98",
+          "content_hash": "5ac470f9b62caf4aec016337b0e434cd1c47e89f345dad579bc5e8d055e69c1f",
           "package": "service_runtime"
         },
         {
@@ -3936,7 +3960,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c1bc2be3bb3fcc66692daeb12d450fa4da7fb5003679394fdff0f7c0c8416f67",
+          "content_hash": "7f44bca2ae60ad0a8ba2fcffc6587d32fc0f9ec93a83b2bcc3159c96d3c26bb4",
           "package": "service_runtime"
         },
         {
@@ -3952,7 +3976,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a36edc65df8506522c5a72bbab3896757b7d0c6e85fe1c067ba43fe0957eff9",
+          "content_hash": "a85f00454fbfde2fefaec9667f0cd8a7ae501b508f543e8424b4d011f10e8b10",
           "package": "service_runtime"
         },
         {
@@ -3960,7 +3984,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69",
+          "content_hash": "0ca347267fa763e8a55584e767f1ec56a3ad32446a48e74aecb6e6ab6f8f86d1",
           "package": "service_runtime"
         },
         {
@@ -3968,7 +3992,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "22a572b7b34639ecab56fac50f9ad8b886dfb431ca87336290277e14108f8605",
+          "content_hash": "4514a4cfcc428b3fcfbd41e055343c58db35807384292db17fd21cd1aae05043",
           "package": "service_runtime"
         },
         {
@@ -3984,7 +4008,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d2570ac16cabc869ca4ebde8700ef421637bd54da6bc5d01dd429f48fab1915d",
+          "content_hash": "c18a0980328ea853c83a09a57ff5074692d2b1d6907b38e8b6a68dcb2a285b91",
           "package": "service_runtime"
         },
         {
@@ -4039,7 +4063,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e96f9c4ec815af0e11419e39325580764393bf1a041ee07dff8dbdd536d9540a",
+          "content_hash": "9e7dc756741cf283358345e1ffbe14cb3578fb9b5874deaf44c5d5e4a1d54bdc",
           "package": "service_runtime"
         },
         {
@@ -4047,7 +4071,7 @@
           "source_location": "pipeline/provider_pipeline/steps/publish_smd_and_embed.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a3cbfe05240c9c440056b7d30a1f7f9dc4b858830e1a97fc6dc2d933324b94c7",
+          "content_hash": "50682fc0273dc0f0fa657d616b13cbc1e8c09c3701863a2704f0a1ba989bf080",
           "package": "service_runtime"
         },
         {
@@ -4114,7 +4138,7 @@
                   "feature_id": "EPIC-008-F-012",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "08e1d849267af16e76685de2916ccf048a3cf6edb7902564ff50cf2e8c1eabde",
+                  "content_hash": "3e233bc551d33fb62d462ee822d786d46b879c94c8ce0e3261fe59f0187b0e51",
                   "package": "reservation_reaper"
                 }
               ],
@@ -4233,7 +4257,7 @@
                   "source_location": "pipeline/run_lifecycle/pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "140707e124b7b40fc6ce2ccd89ef864117657fb8574c68413ed39342556d4923",
+                  "content_hash": "4c1fb2617163145183e94da75512c7b05c4fa79763cfc21e2e812f05d08d3fd0",
                   "package": "pipeline_runbook"
                 }
               ],
@@ -4323,7 +4347,7 @@
                   "feature_id": "EPIC-008-F-012",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "af5682bc852cd4aa22e3432299346a0171c499213d5f5b0b469b71c8d35361e9",
+                  "content_hash": "37fcfdaeddb77aaf490c7e900a8de6f94a31d49fb3caa41a13aae3d443060f1e",
                   "package": "watchdog_runbook"
                 }
               ],
@@ -5306,7 +5330,7 @@
                   "feature_id": "EPIC-008-F-012",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "1a5f77e45c1005dec0efcbccc82a00f0aa93090ed195e55d424ce3ba3353c436",
+                  "content_hash": "acbfbf77abe423265d96ba16567bf7ea49065c870eb48af0c24bf915f6edcd68",
                   "package": "pipeline_vm_image"
                 },
                 {
@@ -5338,7 +5362,7 @@
                   "feature_id": "EPIC-010-F-007",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "5115622dfed83d15b054b1988521858c5f431525d44f2ddfb174f8c4827f1cb2",
+                  "content_hash": "c524d1fbe7899266945b6df328cf3e68ca7445243261fafe2c720959a3028eeb",
                   "package": "medicare_control_image"
                 }
               ],
@@ -5362,7 +5386,7 @@
                   "feature_id": "EPIC-010-F-007",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "aede204f98808ca4c97bbfd4b98f90c6ed34b5d4388a2a39b5b9c9a4798d15c4",
+                  "content_hash": "deca2137d87982585227b684c99272254669c4bc80f5dee321d0ed5b4cf6e757",
                   "package": "medicare_worker_image"
                 }
               ],
@@ -6014,7 +6038,7 @@
                   "feature_id": "EPIC-010-F-102",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "534528fa3e0b46cd1fb0efcfdb957d87ee39452513b2f3d4a3a7a1c74f85cb22",
+                  "content_hash": "977bde46bf9e88522a1f4c70222d4d01f06602df1ac0ab2b899bb85a94317018",
                   "package": "data_migration"
                 }
               ],
