@@ -30,20 +30,17 @@ _IDENTITY_FIELDS = ("rxcui", "unii", "substance_name")
 
 
 def fda_block_from(fda_doc: dict) -> dict:
-    """The master's fda block from the molecule's FDA record (LLD v83
-    III.4.2): indications as assembled, drug_class as the SET, identity as the
-    unioned rxcui/unii/substance_name, usage, and the trust aggregate."""
+    """The record's fda block: drug_class as the SET, and identity as the
+    unioned standard identifiers.
+
+    Indications and the usage text are molecule-level and live on the FDA
+    record, reachable by the identity carried here. A record holds each
+    molecule-level fact once.
+    """
     molecule = fda_doc.get("molecule") or {}
-    block: dict[str, Any] = {
-        "indications": fda_doc.get("indications") or [],
+    return {
         "drug_class": list((fda_doc.get("drug_class") or {}).get("classes") or []),
         "identity": {k: list(molecule.get(k) or []) for k in _IDENTITY_FIELDS},
-        "trust": dict(fda_doc.get("trust") or
-                      {"max": None, "min": None, "median": None, "avg": None}),
     }
-    usage = (fda_doc.get("usage") or {}).get("summarized_usage")
-    if usage:
-        block["usage"] = usage
-    return block
 
 

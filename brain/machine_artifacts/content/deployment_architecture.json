@@ -5555,15 +5555,27 @@
                   {
                     "name": "run_partition_state",
                     "keys": [
-                      ["run_id", 1],
-                      ["partition_state", 1]
+                      [
+                        "run_id",
+                        1
+                      ],
+                      [
+                        "partition_state",
+                        1
+                      ]
                     ]
                   },
                   {
                     "name": "run_prscrbr_npi",
                     "keys": [
-                      ["run_id", 1],
-                      ["raw.Prscrbr_NPI", 1]
+                      [
+                        "run_id",
+                        1
+                      ],
+                      [
+                        "raw.Prscrbr_NPI",
+                        1
+                      ]
                     ]
                   }
                 ]
@@ -5582,8 +5594,14 @@
                   {
                     "name": "run_rendering_state",
                     "keys": [
-                      ["run_id", 1],
-                      ["raw.Rndrng_Prvdr_State_Abrvtn", 1]
+                      [
+                        "run_id",
+                        1
+                      ],
+                      [
+                        "raw.Rndrng_Prvdr_State_Abrvtn",
+                        1
+                      ]
                     ]
                   }
                 ]
@@ -5598,26 +5616,7 @@
                 "db": "PipelinePublicHealthData",
                 "collection": "fdaProductToDiagnosisResolution",
                 "version_source": "run_data_version",
-                "indexes": [
-                  {
-                    "name": "fda_brand_exact_keys",
-                    "keys": [
-                      ["brand_exact_keys", 1]
-                    ]
-                  },
-                  {
-                    "name": "fda_brand_keys",
-                    "keys": [
-                      ["brand_keys", 1]
-                    ]
-                  },
-                  {
-                    "name": "fda_generic_keys",
-                    "keys": [
-                      ["generic_keys", 1]
-                    ]
-                  }
-                ]
+                "indexes": []
               }
             }
           ],

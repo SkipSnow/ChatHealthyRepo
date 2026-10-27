@@ -15,6 +15,8 @@ import datetime
 import json
 from pathlib import Path
 
+from pipeline.MedicareProviderEvaluationDataPipeline.medicare_store_contract import (
+    json_view)
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
     PARTD_COLS,
     _stats_over,
@@ -42,6 +44,9 @@ def _validator(name: str):
 
 
 def _assert_valid(doc: dict, schema_file: str) -> None:
+    # The contract describes the JSON view, in which an exact decimal is a
+    # string; the record carries Decimal. json_view renders one from the other.
+    doc = json_view(doc)
     errors = sorted(_validator(schema_file).iter_errors(doc), key=lambda e: e.path)
     assert not errors, f"{schema_file}: {list(errors[0].path)}: {errors[0].message}"
 
@@ -142,7 +147,9 @@ def test_specialty_document_conforms():
     doc = {
         "_id": nucc,
         "nucc_code": nucc,
-        "molecules": [by_nucc[nucc][mid] for mid in sorted(by_nucc[nucc])],
+        # keyed by molecule: the rollup fans out by molecule and each
+        # worker writes only the keys it owns
+        "molecules": {mid: by_nucc[nucc][mid] for mid in by_nucc[nucc]},
         "provider_count": 2,
         "provenance": {"aggregated_from": ["StagingMedicarePartD_v_1", "Provider_v_5"],
                        "run_id": "run-x",

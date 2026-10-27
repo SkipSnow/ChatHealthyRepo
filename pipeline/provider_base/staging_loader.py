@@ -366,6 +366,36 @@ def _iter_rrf_rxnconso_rows(local_path: str) -> Iterator[dict[str, str]]:
             }
 
 
+# RxNorm RRF relationship file (RXNREL.RRF): pipe-delimited, HEADERLESS,
+# fixed 16-column layout per the RxNorm Technical Documentation, each line
+# ending in a trailing pipe. RELA names the relationship, and the two RXCUI
+# columns are its ends -- which is how a brand reaches its ingredient.
+_RXNREL_COLUMNS = (
+    "RXCUI1", "RXAUI1", "STYPE1", "REL", "RXCUI2", "RXAUI2", "STYPE2",
+    "RELA", "RUI", "SRUI", "SAB", "SL", "RG", "DIR", "SUPPRESS", "CVF",
+)
+
+
+def _iter_rrf_rows(local_path: str, columns: tuple[str, ...]
+                   ) -> Iterator[dict[str, str]]:
+    """One RRF file as dicts under its documented column names."""
+    with open(local_path, "r", encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            line = line.rstrip("\r\n")
+            if not line:
+                continue
+            parts = line.split("|")
+            # trailing pipe yields one empty tail cell; drop exactly that one
+            if parts and parts[-1] == "":
+                parts = parts[:-1]
+            yield {columns[i] if i < len(columns) else f"_col{i}": v
+                   for i, v in enumerate(parts)}
+
+
+def _iter_rrf_rxnrel_rows(local_path: str) -> Iterator[dict[str, str]]:
+    yield from _iter_rrf_rows(local_path, _RXNREL_COLUMNS)
+
+
 def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dict[str, Any]]:
     fmt = spec.get("format", "csv").lower()
     if fmt == "csv":
@@ -383,6 +413,8 @@ def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dic
         yield from _iter_xlsx_rows(local_path)
     elif fmt == "rrf_rxnconso":
         yield from _iter_rrf_rxnconso_rows(local_path)
+    elif fmt == "rrf_rxnrel":
+        yield from _iter_rrf_rxnrel_rows(local_path)
     else:
         raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: unsupported format {fmt!r}")
 
@@ -427,6 +459,15 @@ def _wrap_row(
         fips = _first_present(row, ("FIPS", "fips"))
         if fips:
             doc["fips"] = fips.zfill(5)
+    if source_name == "medicare_partd":
+        # The specialty rollup fans out by molecule, so the molecule is a
+        # stamped, indexed field on the row rather than something each of
+        # 300 workers recomputes over 28M rows to find its own.
+        from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (  # noqa: PLC0415
+            molecule_id)
+        mid = molecule_id(_first_present(row, ("Gnrc_Name", "gnrc_name")))
+        if mid:
+            doc["molecule_id"] = mid
     return doc
 
 

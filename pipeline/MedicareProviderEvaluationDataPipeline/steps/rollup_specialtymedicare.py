@@ -40,12 +40,18 @@ def run_step(ctx) -> dict:
     settled_coll = mongo[masters.public_data_db][
         reg.public_data_collection_name("providermedicare")]
 
+    partition = ctx.config.get("partition") or {}
+    molecule_ids = (partition.get("molecule_ids")
+                    if isinstance(partition, dict) else None)
+
     result = rollup_specialtymedicare(
         run_id=ctx.run_id,
+        molecule_ids=molecule_ids,
         partd_coll=partd_coll,
         provider_coll=provider_coll,
         target_coll=target_coll,
         settled_coll=settled_coll,
+        record_discrepancy=rt.record_discrepancy,
     )
     _log.LogPipeline("INFO", "rollup_specialtymedicare: %s", result)
     return {"step": "rollup_specialtymedicare", **result}

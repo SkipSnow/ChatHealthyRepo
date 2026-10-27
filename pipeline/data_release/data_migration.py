@@ -120,6 +120,43 @@ _FRONT_END = "ChatHealthyFrontEnd"
 _ACKNOWLEDGEMENT_TYPE = "data_migration_acknowledgement"
 
 
+# The published collection names, mapped to the source name their contract is
+# declared under. A collection absent from this map declares no contract and
+# its destination is created without a validator.
+_SOURCE_NAME_OF = {
+    "providerMedicarePartDQuantityRollUps": "providermedicare",
+    "specialtyMedicarePartDQuantityRollUps": "specialtymedicare",
+    "fdaProductToDiagnosisResolution": "fda_drug",
+}
+
+
+def _insert_batch(destination, batch: list[dict],
+                  refusals: list | None) -> int:
+    """Insert one batch; return how many the destination accepted.
+
+    UNORDERED, so a document the destination's validator refuses leaves its
+    conforming batch-mates written. Each refusal is appended to the caller's
+    list, by key, so a migration says which records the contract rejects
+    rather than failing whole or claiming a clean copy.
+    """
+    from pymongo.errors import BulkWriteError  # noqa: PLC0415
+    try:
+        destination.insert_many(batch, ordered=False, idempotent=False)
+        return len(batch)
+    except BulkWriteError as exc:
+        errors = (exc.details or {}).get("writeErrors") or []
+        if refusals is None:
+            raise
+        for err in errors:
+            index = err.get("index")
+            key = (batch[index].get("_id")
+                   if isinstance(index, int) and 0 <= index < len(batch)
+                   else None)
+            refusals.append({"_id": key, "code": err.get("code"),
+                             "message": err.get("errmsg")})
+        return len(batch) - len(errors)
+
+
 class MigratedCollection:
     """One collection, moved once, under its own name."""
 
@@ -181,6 +218,28 @@ class MigratedCollection:
                     f"ChatHealthyFrontEnd.PublicHealthData; nothing was written"),
                 collection=self._collection_name)
 
+    def create_destination_with_its_contract(self) -> str | None:
+        """Create the destination carrying the same contract as its source.
+
+        A port from one collection to another is the only thing that proves
+        existing records conform, and it proves nothing unless the
+        destination refuses what the contract forbids. The collection is
+        created explicitly with the validator, because a validator added
+        after records exist governs nothing already written. Returns the
+        contract's file name, or None for a collection that declares none.
+        """
+        from pipeline.MedicareProviderEvaluationDataPipeline.medicare_store_contract import (  # noqa: PLC0415
+            PUBLISHED_CONTRACTS, validator_for)
+        source_name = _SOURCE_NAME_OF.get(self._collection_name)
+        if source_name is None or source_name not in PUBLISHED_CONTRACTS:
+            return None
+        self._destination_database().create_collection(
+            self._collection_name,
+            validator=validator_for(source_name),
+            validationAction="error",
+            validationLevel="strict")
+        return PUBLISHED_CONTRACTS[source_name]
+
     def source_indexes(self) -> list[dict]:
         """Every ordinary index on the source except _id_, which Mongo makes
         itself. Atlas Search indexes are not here: list_indexes cannot see
@@ -188,9 +247,14 @@ class MigratedCollection:
         return [dict(index) for index in self._source().list_indexes()
                 if index.get("name") != "_id_"]
 
-    def copy(self):
+    def copy(self, refusals: list | None = None):
         """Copy every document across, yielding the running count as each
-        batch lands. Yields rather than logs so the class stays silent."""
+        batch lands. Yields rather than logs so the class stays silent.
+
+        refusals, when given, is the caller's list: each document the
+        destination's validator refuses is appended to it, by key. The class
+        holds no state of its own.
+        """
         source = self._source()
         destination = self._destination()
         written = 0
@@ -205,14 +269,34 @@ class MigratedCollection:
           for document in cursor:
              batch.append(document)
              if len(batch) >= _BATCH:
-                 destination.insert_many(batch, ordered=False, idempotent=False)
-                 written += len(batch)
+                 written += _insert_batch(destination, batch, refusals)
                  batch = []
                  yield written
         if batch:
-            destination.insert_many(batch, ordered=False, idempotent=False)
-            written += len(batch)
+            written += _insert_batch(destination, batch, refusals)
         yield written
+        """Insert one batch; return (accepted, refused).
+
+        UNORDERED, so a document the destination's validator refuses leaves
+        its conforming batch-mates written. A refusal is reported, by key, so
+        a migration says which records the contract rejects rather than
+        failing whole or claiming a clean copy.
+        """
+        from pymongo.errors import BulkWriteError  # noqa: PLC0415
+        try:
+            destination.insert_many(batch, ordered=False, idempotent=False)
+            return len(batch), 0
+        except BulkWriteError as exc:
+            details = exc.details or {}
+            errors = details.get("writeErrors") or []
+            for err in errors:
+                index = err.get("index")
+                key = None
+                if isinstance(index, int) and 0 <= index < len(batch):
+                    key = batch[index].get("_id")
+                self.refusals.append({"_id": key, "code": err.get("code"),
+                                      "message": err.get("errmsg")})
+            return len(batch) - len(errors), len(errors)
 
     @staticmethod
     def _constrains(index: dict) -> bool:
@@ -487,6 +571,20 @@ def main() -> int:
                   collection)
 
 
+def _report_refusals(collection: str, refusals: list) -> None:
+    """What the destination's contract refused, by key."""
+    if not refusals:
+        _log.LogPipeline(
+            "INFO", "data_migration contract refused nothing collection=%s",
+            collection)
+        return
+    _log.LogPipeline(
+        "ERROR",
+        "data_migration contract refused collection=%s refused=%d first_keys=%s",
+        collection, len(refusals),
+        [r.get("_id") for r in refusals[:10]])
+
+
 def _migrate(body: dict, collection: str) -> int:
     approval_id = str(body.get("approval_id") or "")
 
@@ -531,6 +629,13 @@ def _migrate(body: dict, collection: str) -> int:
 
     _log.LogPipeline("INFO", "data_migration start collection=%s expected=%d", collection, expected)
 
+    # The destination is created carrying the same contract as its source, so
+    # a record the contract forbids is refused by the insert that carries it.
+    contract = migrated.create_destination_with_its_contract()
+    _log.LogPipeline(
+        "INFO", "data_migration destination created collection=%s contract=%s",
+        collection, contract or "<none declared>")
+
     # Constraints first, on an empty collection, so every duplicate is
     # refused by the insert that carries it rather than discovered afterwards.
     for name in migrated.build_constraint_indexes():
@@ -540,8 +645,9 @@ def _migrate(body: dict, collection: str) -> int:
     _log.LogPipeline("INFO", "data_migration copying collection=%s expected=%d",
               collection, expected)
     written = 0
+    refusals: list[dict] = []
     try:
-        for written in migrated.copy():
+        for written in migrated.copy(refusals):
             _log.LogPipeline("INFO", "data_migration progress collection=%s written=%d of %d",
                       collection, written, expected)
     except BulkWriteError as exc:
@@ -550,9 +656,14 @@ def _migrate(body: dict, collection: str) -> int:
                    collection, written, expected, str(exc)[:400])
         return 1
 
+    _report_refusals(collection, refusals)
+
     if written != expected:
-        _log.LogPipeline("ERROR", "data_migration INCOMPLETE collection=%s written=%d expected=%d",
-                   collection, written, expected)
+        _log.LogPipeline(
+            "ERROR",
+            "data_migration INCOMPLETE collection=%s written=%d expected=%d "
+            "refused_by_contract=%d",
+            collection, written, expected, len(refusals))
         return 1
 
     _log.LogPipeline("INFO", "data_migration copy complete collection=%s written=%d",

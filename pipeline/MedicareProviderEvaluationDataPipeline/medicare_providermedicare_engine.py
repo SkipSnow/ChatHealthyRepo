@@ -39,12 +39,16 @@ from collections import defaultdict
 from typing import Any
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from pymongo.errors import BulkWriteError
 
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
     PARTD_COLS,
+    _bson,
     molecule_id,
     partd_child,
 )
+from pipeline.MedicareProviderEvaluationDataPipeline.medicare_store_contract import (
+    record_refused_writes)
 
 _log = ChatHealthyLoggingService()
 
@@ -107,6 +111,17 @@ def fold_rows(rows: list[dict]) -> dict:
     }
 
 
+def identity_facts(identity: dict) -> dict:
+    """The external identity as a record carries it."""
+    out: dict[str, Any] = {}
+    if identity.get("rxcui_in"):
+        out["rxcui_in"] = identity["rxcui_in"]
+        out["identity_path"] = identity.get("path")
+        if identity.get("unii"):
+            out["unii"] = identity["unii"]
+    return out
+
+
 def record_document(npi: str, mid: str, facts: dict, source_state: str) -> dict:
     """The finished record, written once by the one worker that holds its rows.
 
@@ -123,11 +138,41 @@ def record_document(npi: str, mid: str, facts: dict, source_state: str) -> dict:
     }
 
 
+def record_key(document: dict) -> str:
+    """The business key of a base record as a finding carries it: the NPI and
+    the molecule, which together are the record (REQ-B-001)."""
+    return f"{document.get('npi')}:{document.get('molecule_id')}"
+
+
+def _insert_conforming(target_coll, docs: list[dict], *, record_discrepancy) -> int:
+    """Insert a batch and return how many documents the store accepted.
+
+    UNORDERED, so a document the collection's validator refuses does not
+    abandon the ones that conform. Each refused document becomes its own
+    per-record finding carrying its NPI and molecule; the store's error never
+    leaves this function as itself.
+    """
+    try:
+        target_coll.insert_many(docs, ordered=False)
+        return len(docs)
+    except BulkWriteError as exc:
+        refused = record_refused_writes(
+            details=exc.details,
+            keys=[record_key(d) for d in docs],
+            artifact="providermedicare",
+            step="build_providermedicare_base",
+            record_discrepancy=record_discrepancy,
+            exception=exc,
+        )
+        return len(docs) - refused
+
+
 def build_prescriber_base(
     *,
     state: str,
     partd_coll,
     target_coll,
+    record_discrepancy,
     batch_size: int = 500,
 ) -> dict[str, Any]:
     """Build one CMS-state partition of the base collection.
@@ -136,13 +181,15 @@ def build_prescriber_base(
     -- no other source is consulted -- groups them by (NPI, molecule), and
     inserts one finished record per group. A row whose generic name mints no
     molecule, or that carries no NPI, is counted and skipped: it cannot key a
-    record, and the no-molecule bucket is reported for the audit's arithmetic.
+    record, and the no-molecule bucket is reported in the step's summary.
 
     The staging read is paged by _id rather than held on one cursor: the fold
     is fast but 61 workers reading 28M rows is not, and a cursor idle past the
     server's reaper comes back CursorNotFound.
     """
     rows_by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    # The CMS names each molecule arrived under, for the identity ladder.
+    names_by_mid: dict[str, tuple] = {}
     no_molecule_rows = 0
     no_npi_rows = 0
     total_rows = 0
@@ -159,29 +206,47 @@ def build_prescriber_base(
             no_molecule_rows += 1
             continue
         rows_by_key[(npi, mid)].append(raw)
+        if mid not in names_by_mid:
+            names_by_mid[mid] = (raw.get(PARTD_COLS["brand"]),
+                                 raw.get(PARTD_COLS["generic"]))
 
     unit = str(state)
     docs: list[dict] = []
     applied = 0
+    offered = 0
+    # No identity resolution here. The FDA finalize step is serial, so it
+    # builds the RxNorm index ONCE and resolves every molecule; enrichment
+    # fetches each molecule's FDA document anyway and copies the identity
+    # from it. Resolving here would have had each of 61 state workers build
+    # the same 1.2M-row index.
     for (npi, mid), group in rows_by_key.items():
-        docs.append(record_document(npi, mid, fold_rows(group), state))
+        doc = record_document(npi, mid, fold_rows(group), state)
+        # _bson at the write boundary: the fold sums in Decimal, the store
+        # takes Decimal128.
+        docs.append(_bson(doc))
         if len(docs) >= batch_size:
-            target_coll.insert_many(docs, ordered=False)
-            applied += len(docs)
+            offered += len(docs)
+            applied += _insert_conforming(
+                target_coll, docs, record_discrepancy=record_discrepancy)
             docs = []
     if docs:
-        target_coll.insert_many(docs, ordered=False)
-        applied += len(docs)
+        offered += len(docs)
+        applied += _insert_conforming(
+            target_coll, docs, record_discrepancy=record_discrepancy)
 
     result = {
         "partition": unit,
         "rows_read": total_rows,
         "records_written": applied,
+        "records_refused_by_contract": offered - applied,
         "no_molecule_rows": no_molecule_rows,
         "no_npi_rows": no_npi_rows,
+        "distinct_molecules": len(names_by_mid),
     }
     _log.LogPipeline(
         "INFO",
-        "CMS_NPI_PrescriberBase[%s]: rows=%d records=%d no_molecule=%d no_npi=%d",
-        unit, total_rows, applied, no_molecule_rows, no_npi_rows)
+        "CMS_NPI_PrescriberBase[%s]: rows=%d records=%d refused=%d "
+        "no_molecule=%d no_npi=%d",
+        unit, total_rows, applied, offered - applied, no_molecule_rows,
+        no_npi_rows)
     return result

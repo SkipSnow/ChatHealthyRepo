@@ -51,6 +51,7 @@ def run_step(ctx) -> dict:
         state=str(state),
         partd_coll=partd_coll,
         target_coll=target_coll,
+        record_discrepancy=rt.record_discrepancy,
     )
     _log.LogPipeline("INFO", "CMS_NPI_PrescriberBase[%s]: %s",
                      result.get("partition"), result)

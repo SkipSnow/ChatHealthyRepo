@@ -28,7 +28,7 @@
   "$defs": {
     "FanOut": {
       "type": "object",
-      "description": "Per-pipeline, per-step fan-out declaration (LLD \u00a7I.3.4): the partition source that yields a step's partition values and the worker cap. Env-independent; declared once at the top level. Keyed by pipeline name, then step name.",
+      "description": "Per-pipeline, per-step fan-out declaration (LLD §I.3.4): the partition source that yields a step's partition values and the worker cap. Env-independent; declared once at the top level. Keyed by pipeline name, then step name.",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": {
@@ -200,32 +200,6 @@
               }
             }
           }
-        },
-        "audit": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "volume_bands",
-            "sampled_record_cap",
-            "mismatch_is_fatal"
-          ],
-          "description": "Levers for the published-collection audits. The ProviderMedicare collection is too large to re-read in full, so its audit draws a deterministic cross-section -- ICD-10 chapter by prescribing-volume band by contributing-row depth -- and recomputes each sampled record from the source rows it was built from. The smaller published collections are audited whole.",
-          "properties": {
-            "volume_bands": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "How many prescribing-volume bands molecules are ranked into, so the sample spans the high-volume molecules and the orphans alike. Bands are computed from the year's own data."
-            },
-            "sampled_record_cap": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Maximum records drawn. When the cross-section has more non-empty cells than this, cells fill in a fixed priority order -- deepest fold first, then orphan volume, then chapter spread -- so the thin, risky cells are never the ones dropped."
-            },
-            "mismatch_is_fatal": {
-              "type": "boolean",
-              "description": "Whether a sampled record whose recomputed facts disagree with the published record ends the run or is recorded as a finding."
-            }
-          }
         }
       }
     },
@@ -308,7 +282,8 @@
                     "dkan_catalog",
                     "static_page_latest",
                     "json_manifest",
-                    "sharded_manifest"
+                    "sharded_manifest",
+                    "uts_release"
                   ]
                 }
               },
@@ -438,6 +413,35 @@
                       "minLength": 1
                     }
                   }
+                },
+                {
+                  "title": "uts_release",
+                  "additionalProperties": false,
+                  "required": [
+                    "mode",
+                    "release_type"
+                  ],
+                  "properties": {
+                    "mode": {
+                      "const": "uts_release"
+                    },
+                    "release_type": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The UTS release type, e.g. rxnorm-full-monthly-release. The releases endpoint names the current release of that type and the download endpoint serves it."
+                    },
+                    "api_key_env": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "The environment variable holding the UTS API key. The variable is named here; the key itself never enters a declaration."
+                    },
+                    "releases_url": {
+                      "type": "string"
+                    },
+                    "download_url": {
+                      "type": "string"
+                    }
+                  }
                 }
               ]
             },
@@ -497,7 +501,8 @@
             "zip_containing_csv",
             "zip_containing_json",
             "zip_containing_icd10cm_order",
-            "rrf_rxnconso"
+            "rrf_rxnconso",
+            "rrf_rxnrel"
           ]
         },
         "staging_name": {

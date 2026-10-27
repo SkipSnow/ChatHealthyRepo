@@ -673,7 +673,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-003",
-                          "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) â€” if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
+                          "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) \u00e2\u20ac\u201d if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -708,7 +708,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Enforce HTTPS-only â€” no HTTP URLs in code, CORS, or config",
+                          "name": "Enforce HTTPS-only \u00e2\u20ac\u201d no HTTP URLs in code, CORS, or config",
                           "depends_on": []
                         },
                         {
@@ -772,10 +772,10 @@
                         }
                       ]
                     },
-                    "description": "HTTPS everywhere â€” reject HTTP on all services",
+                    "description": "HTTPS everywhere \u00e2\u20ac\u201d reject HTTP on all services",
                     "orphan": false,
                     "approval": "approved",
-                    "name": "HTTPS everywhere â€” reject HTTP on all services"
+                    "name": "HTTPS everywhere \u00e2\u20ac\u201d reject HTTP on all services"
                   }
                 ]
               },
@@ -880,7 +880,7 @@
                 "story": [
                   {
                     "story_id": "EPIC-002-F-003-S-001",
-                    "name": "GUID â€” stable per-session auth credential",
+                    "name": "GUID \u00e2\u20ac\u201d stable per-session auth credential",
                     "description": "The stable 32-char session identifier carried inside the security token. Manufactured once per page session and preserved across every cross-service hop.",
                     "size": "M",
                     "status": "done",
@@ -892,7 +892,7 @@
                   },
                   {
                     "story_id": "EPIC-002-F-003-S-002",
-                    "name": "NONCE â€” fresh-per-hop replay defense",
+                    "name": "NONCE \u00e2\u20ac\u201d fresh-per-hop replay defense",
                     "description": "The 17-char timestamp stamped freshly by every server on receive. Defends against replay per NIST 800-53 SC-23. Distinct from the GUID; only the nonce changes per hop.",
                     "size": "M",
                     "status": "done",
@@ -931,7 +931,7 @@
                   },
                   {
                     "story_id": "EPIC-002-F-003-S-003",
-                    "name": "Security Token â€” signed wire envelope",
+                    "name": "Security Token \u00e2\u20ac\u201d signed wire envelope",
                     "description": "The wire object and its content exchanged between services: { origin, token (CH{nonce}{created}{guid}), signature, created_at, signed, server_env }. Binds the GUID and nonce under an RSA PKCS1v15 SHA256 signature by the current stamping origin.",
                     "size": "M",
                     "status": "done",
@@ -1350,7 +1350,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-B-020",
                           "name": "Pre-alpha authorized-registrant allow-list is hardcoded in application code",
-                          "requirement": "The pre-alpha allow-list of authorized registrants MUST be 100% hardcoded in the application code. No database collection, no env var, no manifest entry â€” to add or remove an authorized pre-alpha user the operator edits the code and redeploys.",
+                          "requirement": "The pre-alpha allow-list of authorized registrants MUST be 100% hardcoded in the application code. No database collection, no env var, no manifest entry \u00e2\u20ac\u201d to add or remove an authorized pre-alpha user the operator edits the code and redeploys.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -1375,7 +1375,7 @@
                   {
                     "story_id": "EPIC-002-F-003-S-005",
                     "name": "User State",
-                    "description": "Defines the User State object â€” the in-session and post-session representation of a ChatHealthy user.",
+                    "description": "Defines the User State object \u00e2\u20ac\u201d the in-session and post-session representation of a ChatHealthy user.",
                     "size": "M",
                     "status": "in_progress",
                     "requirements": {
@@ -2113,7 +2113,7 @@
                     "story_id": "EPIC-002-F-004-S-002",
                     "orphan": false,
                     "name": "Implement unique FindCare Universal Router requirements",
-                    "description": "This story specifies the Universal Router (UR) behavior that is specific to FindCare's two action types â€” findAProvider and specialtySearch â€” beyond what the general Universal Router story (EPIC-002-F-004-S-001) defines. It covers the SpecialtyFilter output as the cached upstream result carried as nucc_codes on each FindCare intent entry, the UR-side write and re-read of nucc_codes across turns so SpecialtyFilter does not run twice on the same complaint, and the schema sufficiency rule that gates UR dispatch of ProviderSearch so the provider search executes only when geography is fully specified. UR behavior shared with non-FindCare actions is out of scope for this story.",
+                    "description": "This story specifies the Universal Router (UR) behavior that is specific to FindCare's two action types \u00e2\u20ac\u201d findAProvider and specialtySearch \u00e2\u20ac\u201d beyond what the general Universal Router story (EPIC-002-F-004-S-001) defines. It covers the SpecialtyFilter output as the cached upstream result carried as nucc_codes on each FindCare intent entry, the UR-side write and re-read of nucc_codes across turns so SpecialtyFilter does not run twice on the same complaint, and the schema sufficiency rule that gates UR dispatch of ProviderSearch so the provider search executes only when geography is fully specified. UR behavior shared with non-FindCare actions is out of scope for this story.",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
@@ -2147,7 +2147,7 @@
                           "req_id": "EPIC-002-F-004-S-002-REQ-B-002",
                           "orphan": false,
                           "name": "ProviderSearch fires only when geography is sufficient",
-                          "requirement": "ProviderSearch executes only when target_action is findAProvider and the geography on the IntentFindAProvider entry passes the schema sufficiency rule â€” zip alone, state alone, state plus city, or state plus county. On any turn where the Utterance Manager (UM) holds target_action at specialtySearch because of pending geography disambiguation, ProviderSearch does not fire; the Universal Router (UR) streams the specialties event and the user_message event and emits its terminal final event without provider results.",
+                          "requirement": "ProviderSearch executes only when target_action is findAProvider and the geography on the IntentFindAProvider entry passes the schema sufficiency rule \u00e2\u20ac\u201d zip alone, state alone, state plus city, or state plus county. On any turn where the Utterance Manager (UM) holds target_action at specialtySearch because of pending geography disambiguation, ProviderSearch does not fire; the Universal Router (UR) streams the specialties event and the user_message event and emits its terminal final event without provider results.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -2351,7 +2351,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Core backend infrastructure â€” notifications, audit, logging, CORS"
+                    "name": "Core backend infrastructure \u00e2\u20ac\u201d notifications, audit, logging, CORS"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-002",
@@ -2363,7 +2363,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "URL Guardian â€” validate and sanitize URLs in LLM responses"
+                    "name": "URL Guardian \u00e2\u20ac\u201d validate and sanitize URLs in LLM responses"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-003",
@@ -2399,7 +2399,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Tool Router â€” GOV-004 allowlist enforcement"
+                    "name": "Tool Router \u00e2\u20ac\u201d GOV-004 allowlist enforcement"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-006",
@@ -2452,7 +2452,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Lead Capture â€” contact record creation with consent (UAT Feature 6)"
+                    "name": "Lead Capture \u00e2\u20ac\u201d contact record creation with consent (UAT Feature 6)"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-007",
@@ -2591,7 +2591,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Consent Framework â€” two-tier HIPAA consent (UAT Feature 7)"
+                    "name": "Consent Framework \u00e2\u20ac\u201d two-tier HIPAA consent (UAT Feature 7)"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-010",
@@ -2644,7 +2644,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "About Content â€” Skip Snow and ChatHealthy context (UAT Feature 4)"
+                    "name": "About Content \u00e2\u20ac\u201d Skip Snow and ChatHealthy context (UAT Feature 4)"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-011",
@@ -2656,7 +2656,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Debug Logging â€” chat call metadata to MongoDB"
+                    "name": "Debug Logging \u00e2\u20ac\u201d chat call metadata to MongoDB"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-012",
@@ -2668,7 +2668,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Embedding Infrastructure â€” centralized AI embedding and query expansion"
+                    "name": "Embedding Infrastructure \u00e2\u20ac\u201d centralized AI embedding and query expansion"
                   }
                 ]
               },
@@ -2730,7 +2730,7 @@
                   },
                   {
                     "story_id": "EPIC-002-F-006-S-002",
-                    "description": "The 57-word keyword substring match produces false positives on provider search queries containing emergency terms (e.g. 'find me a doctor for chest pain'). The AI classifier (gpt-4.1-mini) with its three-gate prompt is precise. Remove keywords as a primary trigger â€” let the model carry detection. Keywords remain as fallback ONLY when the AI classifier API fails.",
+                    "description": "The 57-word keyword substring match produces false positives on provider search queries containing emergency terms (e.g. 'find me a doctor for chest pain'). The AI classifier (gpt-4.1-mini) with its three-gate prompt is precise. Remove keywords as a primary trigger \u00e2\u20ac\u201d let the model carry detection. Keywords remain as fallback ONLY when the AI classifier API fails.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
@@ -2933,9 +2933,9 @@
             },
             {
               "feature_id": "EPIC-002-F-008",
-              "name": "Mobile Phone Support â€” Galaxy and iPhone 14+",
+              "name": "Mobile Phone Support \u00e2\u20ac\u201d Galaxy and iPhone 14+",
               "sourceLocation": "web",
-              "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone â€” not a degraded experience.",
+              "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone \u00e2\u20ac\u201d not a degraded experience.",
               "priority": "HIGH",
               "status": "not_started",
               "stories": {
@@ -2963,7 +2963,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Hamburger menu visible on static HTML pages except index.html at â‰¤600px width",
+                          "name": "Hamburger menu visible on static HTML pages except index.html at \u00e2\u2030\u00a4600px width",
                           "depends_on": []
                         },
                         {
@@ -3235,7 +3235,7 @@
             },
             {
               "feature_id": "EPIC-002-F-009",
-              "name": "Native Mobile Apps â€” Apple App Store and Google Play",
+              "name": "Native Mobile Apps \u00e2\u20ac\u201d Apple App Store and Google Play",
               "sourceLocation": "web",
               "description": "Publish ChatHealthy.ai as a native app on Apple App Store (iOS) and Google Play Store (Android). PWA wrapper or React Native shell around the existing web experience. Due before November 2026.",
               "priority": "HIGH",
@@ -3255,7 +3255,7 @@
               "feature_id": "EPIC-002-F-010",
               "name": "Utterance Tool",
               "sourceLocation": "sharedServices",
-              "description": "This feature defines the requirements for the handling of every user interaction with ChatHealthy.ai's core front-end application that requires LLM-mediated routing or prose. The Utterance Manager (UM) has two responsibilities. (a) Interpret â€” when the user types free-text into the prompt, UM classifies the latest utterance, builds the canonical IntentDocument, and may author a user_message prompt the user back. This is the 'interpret an utterance' path. (b) Manufacture â€” when the user clicks a structured UI control (Apply Filter, future selected-for-evaluation gates, future pagination edges) that requires the system to ask the user something before it can act, the Universal Router (UR) dispatches UM with a synthetic trigger. UM reads the carried IntentDocument's slot state and authors a brief LLM-generated user_message requesting whatever slot is missing. No free-text utterance was typed; UM is manufacturing an utterance the system needs to deliver. Both paths end the same way: UM writes an IntentDocument back to user_object.intent, optionally streams user_message as kind:'prompt', and returns. UR validates and dispatches the resulting target_action. This feature is complete when every user-facing chat prose in the application is either (a) interpreted from a free-text utterance via path (a) or (b) manufactured by UM via path (b) â€” and no tool authors its own chat strings.",
+              "description": "This feature defines the requirements for the handling of every user interaction with ChatHealthy.ai's core front-end application that requires LLM-mediated routing or prose. The Utterance Manager (UM) has two responsibilities. (a) Interpret \u00e2\u20ac\u201d when the user types free-text into the prompt, UM classifies the latest utterance, builds the canonical IntentDocument, and may author a user_message prompt the user back. This is the 'interpret an utterance' path. (b) Manufacture \u00e2\u20ac\u201d when the user clicks a structured UI control (Apply Filter, future selected-for-evaluation gates, future pagination edges) that requires the system to ask the user something before it can act, the Universal Router (UR) dispatches UM with a synthetic trigger. UM reads the carried IntentDocument's slot state and authors a brief LLM-generated user_message requesting whatever slot is missing. No free-text utterance was typed; UM is manufacturing an utterance the system needs to deliver. Both paths end the same way: UM writes an IntentDocument back to user_object.intent, optionally streams user_message as kind:'prompt', and returns. UR validates and dispatches the resulting target_action. This feature is complete when every user-facing chat prose in the application is either (a) interpreted from a free-text utterance via path (a) or (b) manufactured by UM via path (b) \u00e2\u20ac\u201d and no tool authors its own chat strings.",
               "priority": "must-have",
               "status": "in_progress",
               "orphan": false,
@@ -3336,7 +3336,7 @@
                           "depends_on": [
                             {
                               "story_id": "EPIC-002-F-004",
-                              "reason": "Universal Navigation feature â€” defines the universal router"
+                              "reason": "Universal Navigation feature \u00e2\u20ac\u201d defines the universal router"
                             }
                           ],
                           "tests": {
@@ -3354,7 +3354,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-004",
                           "orphan": false,
                           "name": "UtteranceManager obtains tool metadata from the router and caches it at runtime",
-                          "requirement": "UtteranceManager MUST obtain downstream-tool metadata from the universal router's metadata API. UtteranceManager MUST cache the retrieved metadata at runtime â€” the API call is for cache population on startup (or on cache invalidation), not a per-utterance lookup. The router's registry is the source of truth; UtteranceManager holds a runtime copy.",
+                          "requirement": "UtteranceManager MUST obtain downstream-tool metadata from the universal router's metadata API. UtteranceManager MUST cache the retrieved metadata at runtime \u00e2\u20ac\u201d the API call is for cache population on startup (or on cache invalidation), not a per-utterance lookup. The router's registry is the source of truth; UtteranceManager holds a runtime copy.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -3394,7 +3394,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-006",
                           "orphan": false,
                           "name": "Classifier input is the last N user utterances",
-                          "requirement": "The Utterance Manager (UM) classifier input is up to the last 10 user utterances drawn from user_object.session_conversation_history.utterances. The cap is a maximum, not a target â€” fewer turns are passed when the session has not accumulated that many. Tool-invocation entries and LLM-clarification bridge entries are excluded from the window so the classifier sees only what the human said.",
+                          "requirement": "The Utterance Manager (UM) classifier input is up to the last 10 user utterances drawn from user_object.session_conversation_history.utterances. The cap is a maximum, not a target \u00e2\u20ac\u201d fewer turns are passed when the session has not accumulated that many. Tool-invocation entries and LLM-clarification bridge entries are excluded from the window so the classifier sees only what the human said.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -3470,7 +3470,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-010",
                           "orphan": false,
                           "name": "LLM authors all user-facing chat prose",
-                          "requirement": "The Utterance Manager (UM) classifier's structured output includes a user_message field. The LLM writes every user-facing chat line â€” clarification questions, follow-ups, friendly framing, error explanations â€” and UM streams whatever the LLM produced. No hardcoded clarification or chat string appears in UM, CloseConnection200Tool, or any other component on the dispatch path. The LLM owns the prose; the runtime owns the transport.",
+                          "requirement": "The Utterance Manager (UM) classifier's structured output includes a user_message field. The LLM writes every user-facing chat line \u00e2\u20ac\u201d clarification questions, follow-ups, friendly framing, error explanations \u00e2\u20ac\u201d and UM streams whatever the LLM produced. No hardcoded clarification or chat string appears in UM, CloseConnection200Tool, or any other component on the dispatch path. The LLM owns the prose; the runtime owns the transport.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -3509,7 +3509,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-012",
                           "orphan": false,
                           "name": "User utterances MUST NOT propagate a fatal exception",
-                          "requirement": "No user utterance â€” regardless of content, length, language, malformedness, ambiguity, or spelling â€” CAN cause the Utterance Manager to propagate a fatal application exception to the user. The classifier MUST always produce a valid IntentDocument with a usable target_action (typically closeConnection200 with a brief friendly clarification when no other action can be derived). No exception within the Utterance Manager tool can throw. Any unhandled exception inside UM MUST be caught within the UM tool and converted to an appropriate user message.",
+                          "requirement": "No user utterance \u00e2\u20ac\u201d regardless of content, length, language, malformedness, ambiguity, or spelling \u00e2\u20ac\u201d CAN cause the Utterance Manager to propagate a fatal application exception to the user. The classifier MUST always produce a valid IntentDocument with a usable target_action (typically closeConnection200 with a brief friendly clarification when no other action can be derived). No exception within the Utterance Manager tool can throw. Any unhandled exception inside UM MUST be caught within the UM tool and converted to an appropriate user message.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -3557,7 +3557,7 @@
                     "story_id": "EPIC-002-F-010-S-002",
                     "orphan": false,
                     "name": "Implement unique FindCare Utterance Manager requirements",
-                    "description": "This story specifies the Utterance Manager (UM) behavior that is specific to FindCare's two action types â€” findAProvider and specialtySearch â€” beyond what the general Utterance Manager story (EPIC-002-F-010-S-001) defines. It covers the geography slot as the ambiguous-but-resolvable disambiguation slot when the user names a city or county without a state, the UM-side handling of the corresponding pending_disambiguation marker on the IntentDocument's findAProvider intent entry, and the LLM-authored user_message proposing the candidate state to the user. UM behavior shared with non-FindCare actions (closeConnection200) is out of scope for this story.",
+                    "description": "This story specifies the Utterance Manager (UM) behavior that is specific to FindCare's two action types \u00e2\u20ac\u201d findAProvider and specialtySearch \u00e2\u20ac\u201d beyond what the general Utterance Manager story (EPIC-002-F-010-S-001) defines. It covers the geography slot as the ambiguous-but-resolvable disambiguation slot when the user names a city or county without a state, the UM-side handling of the corresponding pending_disambiguation marker on the IntentDocument's findAProvider intent entry, and the LLM-authored user_message proposing the candidate state to the user. UM behavior shared with non-FindCare actions (closeConnection200) is out of scope for this story.",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
@@ -3591,7 +3591,7 @@
                           "req_id": "EPIC-002-F-010-S-002-REQ-B-002",
                           "orphan": false,
                           "name": "Apply Filter with insufficient geography routes through UM as a manufacture turn",
-                          "requirement": "When UR receives op='apply_filter' with a payload containing the new nucc_codes set, UR reads the carried IntentDocument's geography from user_object.intent. If geography is sufficient (per the same sufficiency rule findAProvider applies â€” zip, state, state+city, or state+county), UR builds the IntentDocument deterministically with target_action=findAProvider using the new nucc_codes set, and dispatches ProviderSearch without calling UM. If geography is insufficient, UR populates a manufacture_utterance_reason dict with at minimum gesture='apply_filter' and missing_slot='geography', optionally adds session-derived facts (prior complaint, prior partial geography candidate, etc.) it deems useful, and dispatches UM as a manufacture-trigger Request per EPIC-002-F-010-S-003. UR does NOT specify the prose; UM authors it per EPIC-002-F-010-S-003-REQ-B-003.",
+                          "requirement": "When UR receives op='apply_filter' with a payload containing the new nucc_codes set, UR reads the carried IntentDocument's geography from user_object.intent. If geography is sufficient (per the same sufficiency rule findAProvider applies \u00e2\u20ac\u201d zip, state, state+city, or state+county), UR builds the IntentDocument deterministically with target_action=findAProvider using the new nucc_codes set, and dispatches ProviderSearch without calling UM. If geography is insufficient, UR populates a manufacture_utterance_reason dict with at minimum gesture='apply_filter' and missing_slot='geography', optionally adds session-derived facts (prior complaint, prior partial geography candidate, etc.) it deems useful, and dispatches UM as a manufacture-trigger Request per EPIC-002-F-010-S-003. UR does NOT specify the prose; UM authors it per EPIC-002-F-010-S-003-REQ-B-003.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -3618,7 +3618,7 @@
                     "story_id": "EPIC-002-F-010-S-003",
                     "orphan": false,
                     "name": "Manufacture utterances for non-free-text triggers",
-                    "description": "Defines UM's manufacture-path responsibility. When UR receives a structured UI gesture instead of a free-text utterance, UR dispatches UM with a synthetic trigger Request carrying a structured manufacture_utterance_reason â€” a set of hardcoded, non-user-facing facts UR has assembled about why a manufactured utterance is needed (e.g., gesture='apply_filter', missing_slot='geography', plus any session-state facts UR thinks relevant). UM uses a distinct, narrower prompt template that takes those facts AND the prior dialogue from session_conversation_history and authors a brief user-facing user_message sensitive to the conversational context â€” NOT a phrase the operator could have hardcoded. UM then morphs the IntentDocument's target_action to closeConnection200 (the user-facing prose is the answer for this turn; the user's next free-text utterance comes back through the interpret path and resolves any pending slot via the normal disambiguation mechanism). The manufacture prompt is distinct from the classifier prompt and is governed by its own output schema constraints.",
+                    "description": "Defines UM's manufacture-path responsibility. When UR receives a structured UI gesture instead of a free-text utterance, UR dispatches UM with a synthetic trigger Request carrying a structured manufacture_utterance_reason \u00e2\u20ac\u201d a set of hardcoded, non-user-facing facts UR has assembled about why a manufactured utterance is needed (e.g., gesture='apply_filter', missing_slot='geography', plus any session-state facts UR thinks relevant). UM uses a distinct, narrower prompt template that takes those facts AND the prior dialogue from session_conversation_history and authors a brief user-facing user_message sensitive to the conversational context \u00e2\u20ac\u201d NOT a phrase the operator could have hardcoded. UM then morphs the IntentDocument's target_action to closeConnection200 (the user-facing prose is the answer for this turn; the user's next free-text utterance comes back through the interpret path and resolves any pending slot via the normal disambiguation mechanism). The manufacture prompt is distinct from the classifier prompt and is governed by its own output schema constraints.",
                     "size": "M",
                     "status": "not_started",
                     "approval": "approved",
@@ -3628,7 +3628,7 @@
                           "req_id": "EPIC-002-F-010-S-003-REQ-B-001",
                           "orphan": false,
                           "name": "UM accepts two trigger types",
-                          "requirement": "UM's Request shape carries a discriminator field trigger_type with values 'utterance' (the free-text classifier path) and 'manufacture' (the manufacture path). When trigger_type='utterance' UM reads the latest person utterance from user_object.session_conversation_history and runs the classifier prompt as today. When trigger_type='manufacture' UM does NOT read free-text; it reads the synthetic trigger context off the Request and runs the manufacture prompt. UM's Response shape is unchanged â€” an IntentDocument written to user_object.intent.",
+                          "requirement": "UM's Request shape carries a discriminator field trigger_type with values 'utterance' (the free-text classifier path) and 'manufacture' (the manufacture path). When trigger_type='utterance' UM reads the latest person utterance from user_object.session_conversation_history and runs the classifier prompt as today. When trigger_type='manufacture' UM does NOT read free-text; it reads the synthetic trigger context off the Request and runs the manufacture prompt. UM's Response shape is unchanged \u00e2\u20ac\u201d an IntentDocument written to user_object.intent.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -3647,7 +3647,7 @@
                           "req_id": "EPIC-002-F-010-S-003-REQ-B-002",
                           "orphan": false,
                           "name": "Manufacture path uses a distinct prompt template that always ends in closeConnection200",
-                          "requirement": "The manufacture prompt is narrower than the classifier prompt: it does not classify intents (the manufacture trigger and reason already name the intent context), it authors a brief user-facing user_message responsive to the supplied manufacture_utterance_reason and the prior dialogue. Hardcoded chat strings remain forbidden everywhere; the LLM authors all manufacture-path user_message text. After authoring the user_message, UM MUST set target_action=closeConnection200 on the emitted IntentDocument â€” the manufactured utterance IS the turn's answer; UR closes the connection and the user's next free-text utterance returns through the interpret path. The IntentDocument's intents[] array may carry forward intent entries (e.g. cached nucc_codes, partial geography, pending_disambiguation markers) so the next-turn interpret path can resolve naturally; only the target_action is constrained.",
+                          "requirement": "The manufacture prompt is narrower than the classifier prompt: it does not classify intents (the manufacture trigger and reason already name the intent context), it authors a brief user-facing user_message responsive to the supplied manufacture_utterance_reason and the prior dialogue. Hardcoded chat strings remain forbidden everywhere; the LLM authors all manufacture-path user_message text. After authoring the user_message, UM MUST set target_action=closeConnection200 on the emitted IntentDocument \u00e2\u20ac\u201d the manufactured utterance IS the turn's answer; UR closes the connection and the user's next free-text utterance returns through the interpret path. The IntentDocument's intents[] array may carry forward intent entries (e.g. cached nucc_codes, partial geography, pending_disambiguation markers) so the next-turn interpret path can resolve naturally; only the target_action is constrained.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -3671,7 +3671,7 @@
                           "req_id": "EPIC-002-F-010-S-003-REQ-B-003",
                           "orphan": false,
                           "name": "Manufactured user_message must be context-sensitive, not formulaic",
-                          "requirement": "The manufacture path EXISTS because the user-facing prose is too context-dependent to hardcode. UM's manufacture prompt MUST consult the prior dialogue (recent transcript window) AND the manufacture_utterance_reason facts together when authoring the user_message. The result must read as a natural continuation of the conversation, not as a generic templated phrase. A prose output that ignores prior dialogue and could have been hardcoded in UR is a regression on this REQ â€” the whole reason the path is LLM-mediated is that UR cannot author this prose deterministically.",
+                          "requirement": "The manufacture path EXISTS because the user-facing prose is too context-dependent to hardcode. UM's manufacture prompt MUST consult the prior dialogue (recent transcript window) AND the manufacture_utterance_reason facts together when authoring the user_message. The result must read as a natural continuation of the conversation, not as a generic templated phrase. A prose output that ignores prior dialogue and could have been hardcoded in UR is a regression on this REQ \u00e2\u20ac\u201d the whole reason the path is LLM-mediated is that UR cannot author this prose deterministically.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -4263,9 +4263,9 @@
             },
             {
               "feature_id": "EPIC-002-F-013",
-              "name": "Control Frame â€” Pagination and Filter Controls",
+              "name": "Control Frame \u00e2\u20ac\u201d Pagination and Filter Controls",
               "sourceLocation": "web",
-              "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search â€” no LLM round-trip after first page.",
+              "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search \u00e2\u20ac\u201d no LLM round-trip after first page.",
               "priority": "HIGH",
               "status": "not_started",
               "stories": {
@@ -4354,7 +4354,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-013-S-001-REQ-B-005",
-                          "requirement": "User sends new chat message â€” controls disappear and pagination state is cleared",
+                          "requirement": "User sends new chat message \u00e2\u20ac\u201d controls disappear and pagination state is cleared",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -4585,7 +4585,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-014-S-001-REQ-B-002",
-                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state â€” visually distinct from the active state.",
+                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state \u00e2\u20ac\u201d visually distinct from the active state.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -4696,7 +4696,7 @@
         "sourceLocation": "ChatHealthyLib",
         "type": "operational",
         "status": "in_progress",
-        "description": "Shared Python library distributed as the pip package `chathealthy-lib` (repo root: `ChatHealthyLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only â€” devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens â€” auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
+        "description": "Shared Python library distributed as the pip package `chathealthy-lib` (repo root: `ChatHealthyLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only \u00e2\u20ac\u201d devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens \u00e2\u20ac\u201d auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
         "approval": "approved",
         "features": {
           "feature": [
@@ -4705,7 +4705,7 @@
               "orphan": false,
               "name": "Shared front-end UX widget library",
               "sourceLocation": "ChatHealthyLib",
-              "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic â€” peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) â€” to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-lib (Python).",
+              "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic \u00e2\u20ac\u201d peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) \u00e2\u20ac\u201d to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-lib (Python).",
               "priority": "must-have",
               "status": "not_started",
               "approval": "approved",
@@ -4724,7 +4724,7 @@
               "orphan": false,
               "name": "Backend orchestration that supports the shared front-end UX widgets",
               "sourceLocation": "ChatHealthyLib",
-              "description": "Backend endpoints + service-layer code that own all the business logic that today lives inline in Website/index.html and the FindCare React iframe â€” peer selection (which backend's /health to call), mutual-auth pairing (the /session-then-/verify-token sequence currently driven from the wrapper), service-routing/ownership-state (gotoFindCare/gotoEvaluateCare/gotoSharedServices and the underlying ownership transition), and any other biz-logic decision the wrapper is making today. The widgets in EPIC-003-F-001 then become pure display: each widget consumes ONE clean data endpoint per render. This feature exists so that the no-biz-logic-on-client rule can actually be enforced; without it, extracting widgets only relocates the violation, not removes it. Per the auth caveat, token MANUFACTURE belongs 100% to SharedServices and any orchestration here MUST respect that boundary.",
+              "description": "Backend endpoints + service-layer code that own all the business logic that today lives inline in Website/index.html and the FindCare React iframe \u00e2\u20ac\u201d peer selection (which backend's /health to call), mutual-auth pairing (the /session-then-/verify-token sequence currently driven from the wrapper), service-routing/ownership-state (gotoFindCare/gotoEvaluateCare/gotoSharedServices and the underlying ownership transition), and any other biz-logic decision the wrapper is making today. The widgets in EPIC-003-F-001 then become pure display: each widget consumes ONE clean data endpoint per render. This feature exists so that the no-biz-logic-on-client rule can actually be enforced; without it, extracting widgets only relocates the violation, not removes it. Per the auth caveat, token MANUFACTURE belongs 100% to SharedServices and any orchestration here MUST respect that boundary.",
               "priority": "must-have",
               "status": "not_started",
               "approval": "approved",
@@ -4743,7 +4743,7 @@
               "orphan": false,
               "name": "Manage Errors",
               "sourceLocation": "ChatHealthyLib",
-              "description": "This feature defines the requirements to manage errors that the ChatHealthy.ai's application code encounters. It defines a unified deliberate-exception model across the ChatHealthy.ai codebase. Every exception explicitly managed shares an exception class â€” ChatHealthyException. This exception class has a mode discriminator and structured context dict. Catch sites discriminate on mode, not on exception type. External exceptions (httpx, pymongo, etc.) remain as their native types and are converted to ChatHealthyException at well-defined boundaries. The default behavior is and remains, when an exception occurs, fail hard and fast. But that policy is mitigated by the need to handle expected errors from users and external systems gracefully.",
+              "description": "This feature defines the requirements to manage errors that the ChatHealthy.ai's application code encounters. It defines a unified deliberate-exception model across the ChatHealthy.ai codebase. Every exception explicitly managed shares an exception class \u00e2\u20ac\u201d ChatHealthyException. This exception class has a mode discriminator and structured context dict. Catch sites discriminate on mode, not on exception type. External exceptions (httpx, pymongo, etc.) remain as their native types and are converted to ChatHealthyException at well-defined boundaries. The default behavior is and remains, when an exception occurs, fail hard and fast. But that policy is mitigated by the need to handle expected errors from users and external systems gracefully.",
               "priority": "must-have",
               "status": "in_progress",
               "approval": "approved",
@@ -6025,7 +6025,7 @@
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-002",
                           "orphan": false,
                           "name": "Identity and credential fields",
-                          "requirement": "The panel MUST display the provider's full name (prefix, first, middle, last), credentials, primary taxonomy (NUCC display name), NPI, status (active/inactive), and enumeration date. Missing fields render as empty placeholders â€” no fallback prose.",
+                          "requirement": "The panel MUST display the provider's full name (prefix, first, middle, last), credentials, primary taxonomy (NUCC display name), NPI, status (active/inactive), and enumeration date. Missing fields render as empty placeholders \u00e2\u20ac\u201d no fallback prose.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -6778,7 +6778,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-002",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-002 — Match a facility on either of its names",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-002 \u2014 Match a facility on either of its names",
                           "requirement": "The result set of a facility search naming a facility MUST be exactly those facilities whose legal business name or whose other organization name matches the name given.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6797,7 +6797,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-003",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-003 — Match a facility on what it does",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-003 \u2014 Match a facility on what it does",
                           "requirement": "The result set of a facility search naming one or more taxonomies MUST be exactly those facilities carrying at least one of them.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6816,7 +6816,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-004",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-004 — Match a facility on where it delivers care",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-004 \u2014 Match a facility on where it delivers care",
                           "requirement": "The result set of a facility search naming a geography MUST be exactly those facilities holding at least one practice location in that geography. A business address MUST NOT place a facility in a geography.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6918,7 +6918,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-006-S-003-REQ-B-003",
-                          "name": "EPIC-006-F-006-S-003-REQ-B-003 — Remove a selected facility in one action",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-003 \u2014 Remove a selected facility in one action",
                           "requirement": "A user MUST be able to remove one selected facility in a single action.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6937,7 +6937,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-003-REQ-B-004",
-                          "name": "EPIC-006-F-006-S-003-REQ-B-004 — Show exactly the selected-row content set",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-004 \u2014 Show exactly the selected-row content set",
                           "requirement": "A row of the selected-facility set MUST show exactly the legal business name and the NPI.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6969,7 +6969,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-001",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-001 — Summarise in the user's own words",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-001 \u2014 Summarise in the user's own words",
                           "requirement": "The summary MUST use the words the user searched with.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6988,7 +6988,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-002",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-002 — State how many remain unseen",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-002 \u2014 State how many remain unseen",
                           "requirement": "The summary MUST state how many facilities matched beyond those on screen.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7007,7 +7007,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-003",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-003 — Name exactly the geography used",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-003 \u2014 Name exactly the geography used",
                           "requirement": "The summary MUST name exactly the geography the search used, and no other.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7026,7 +7026,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-004",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-004 — Offer only the narrowings not yet used",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-004 \u2014 Offer only the narrowings not yet used",
                           "requirement": "The summary MUST offer exactly those ways of narrowing the search the user has not already used.\n\nCONFLICT: The care-giver analogue of this requirement is unmet: city and county are omitted when supplied but the postal code is offered back unconditionally.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7074,7 +7074,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-001",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-001 — Show a facility on the same terms as a provider",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-001 \u2014 Show a facility on the same terms as a provider",
                           "requirement": "A Facility Detail MUST show every value it shows on the same terms EPIC-006-F-002-S-001 requires of a Provider Detail, except where this story states otherwise.\n\nDepends on: EPIC-006-F-002-S-001 in full. The audit of 2026-08-30 records several of those requirements as carrying status done while being unmet; this requirement inherits the requirement, not the implementation.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7093,7 +7093,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-002",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-002 — Show exactly the facility identity set",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-002 \u2014 Show exactly the facility identity set",
                           "requirement": "In place of a provider's personal identity, the panel MUST show the legal business name; the other organization name where the record carries one; the label of what kind of name that other name is; the NPI; the date the NPI was issued; and whether the facility is currently active.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7112,7 +7112,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-003",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-003 — Name the parent when the facility is a subpart",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-003 \u2014 Name the parent when the facility is a subpart",
                           "requirement": "When the record marks the facility as a subpart, the panel MUST show the parent organization's legal business name.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7131,7 +7131,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-005",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-005 — Never carry a tax identifier",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-005 \u2014 Never carry a tax identifier",
                           "requirement": "The federal employer identification number and the parent organization's taxpayer identification number MUST NOT be shown, transmitted or stored, whatever any upstream response contains.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7150,7 +7150,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-006",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-006 — Offer a destination that confirms the enumeration",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-006 \u2014 Offer a destination that confirms the enumeration",
                           "requirement": "The panel MUST offer a destination at which the user can independently confirm that this NPI is enumerated and that the organization we name is the organization it is enumerated to.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7169,7 +7169,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-007",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-007 — Offer a destination that confirms the right to operate",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-007 \u2014 Offer a destination that confirms the right to operate",
                           "requirement": "The panel MUST offer a destination at the authority that licenses or certifies facilities in the state of the facility's primary practice location, at which the user can independently confirm the facility's standing to operate there. Every state, the District of Columbia and every outlying sovereignty in which a facility may hold a practice location MUST be covered.\n\nCounterpart requirement belongs to: Quality, ratings and complaint history are not offered here. Scoring and ranking care by quality measures is the business capability of EPIC-001, and a facility reaches it through the handoff at EPIC-006-F-006-S-003-REQ-B-005. Offering a quality destination from this panel would duplicate that capability.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7188,7 +7188,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-008",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-008 — Show in plain words what kind of place this is",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-008 \u2014 Show in plain words what kind of place this is",
                           "requirement": "For every kind of facility the record carries, the panel MUST show the classification label, the specialization where the record carries one, and the plain-language definition of that kind of facility.\n\nDepends on: The approved runtime record design carries this set on the record, resolved and labelled when the record is written. FindCare shows what the record carries and resolves nothing at the moment of display.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7258,7 +7258,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-002-REQ-B-002",
-                          "name": "EPIC-006-F-007-S-002-REQ-B-002 — Label the official as the record's authorized official",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-002 \u2014 Label the official as the record's authorized official",
                           "requirement": "The section showing the authorized official MUST be labelled as the record's authorized official.\n\nDepends on: The approved runtime record design carries an administrative contact as a person distinct from the authorized official. Labelling the authorized official as the administrative contact would name one person with another's role.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7290,7 +7290,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-001",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-001 — Maintain a facility record on the same terms as a provider",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-001 \u2014 Maintain a facility record on the same terms as a provider",
                           "requirement": "The record behind a Facility Detail MUST be maintained on the same terms EPIC-006-F-002-S-002 requires of an individual provider record.\n\nDepends on: EPIC-006-F-002-S-002 in full. The audit of 2026-08-30 records six of its fourteen requirements as implementation specifications rather than requirements; this requirement inherits the obligation and not those formulations.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7309,7 +7309,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-002",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-002 — Never write a person attribute onto a facility",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-002 \u2014 Never write a person attribute onto a facility",
                           "requirement": "No maintenance of a facility record MUST write an individual-only attribute onto it, whatever any upstream response contains.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7328,7 +7328,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-003",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-003 — Show no Facility Detail for a record that is not an organization",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-003 \u2014 Show no Facility Detail for a record that is not an organization",
                           "requirement": "A Facility Detail MUST NOT be shown for an NPI the authoritative registry reports is not an organization.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7347,7 +7347,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-004",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-004 — Tell the user the facility was not found",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-004 \u2014 Tell the user the facility was not found",
                           "requirement": "When a Facility Detail is not shown for that reason, the user MUST be told the facility was not found.\n\nCounterpart requirement belongs to: What becomes of the stored record in that case is a data obligation of EPIC-010.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7395,7 +7395,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-001 — Qualify every parameter name by its page",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-001 \u2014 Qualify every parameter name by its page",
                           "requirement": "Every parameter name MUST be a page and an attribute together.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7414,7 +7414,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-002 — Declare exactly four pages",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-002 \u2014 Declare exactly four pages",
                           "requirement": "The pages MUST be exactly these four and no others: facility, individualProvider, NUCC, clinicalTrial.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7433,7 +7433,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-003 — Refuse a name whose page is not one of the four",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-003 \u2014 Refuse a name whose page is not one of the four",
                           "requirement": "A parameter name naming a page that is not one of the four MUST be refused.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7452,7 +7452,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-004 — Refuse an attribute the page does not declare",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-004 \u2014 Refuse an attribute the page does not declare",
                           "requirement": "A parameter name naming an attribute that page does not declare MUST be refused.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7471,7 +7471,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-005 — Keep pages independent",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-005 \u2014 Keep pages independent",
                           "requirement": "Setting, clearing or reading a parameter on one page MUST have no effect on any parameter of any other page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7490,7 +7490,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-006 — Hold more than one page's answer at a time",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-006 \u2014 Hold more than one page's answer at a time",
                           "requirement": "A result set in force on one page MUST NOT be displaced by a result set produced for another page. A user MUST be able to hold a facility answer and an individual-provider answer at the same time.\n\nCounterpart requirement belongs to: Turning one thing a person said into both a facility request and a provider request is the utterance manager's work, and dispatching both is the router's. Those requirements belong to EPIC-002-F-010-S-001 and EPIC-002-F-004-S-001. FindCare requires only that both answers can stand at once.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7522,7 +7522,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-001 — Decide carry-over one parameter at a time",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-001 \u2014 Decide carry-over one parameter at a time",
                           "requirement": "Whether a parameter carries over MUST be decided per parameter, per source page and per destination page. No page-wide or system-wide rule MUST override that decision.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7560,7 +7560,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-003 — Carry nothing that is not named",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-003 \u2014 Carry nothing that is not named",
                           "requirement": "A parameter for which no carry-over is stated for a given source and destination MUST NOT carry over.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7579,7 +7579,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-004 — Treat a carried value as a change on the destination",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-004 \u2014 Treat a carried value as a change on the destination",
                           "requirement": "A value arriving on a page by carry-over MUST be recorded as a parameter change on that page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7598,7 +7598,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-005 — Never displace a value already in force",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-005 \u2014 Never displace a value already in force",
                           "requirement": "A carry-over MUST NOT replace a value already in force on the destination page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7649,7 +7649,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-001 — Let a tool change a parameter",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-001 \u2014 Let a tool change a parameter",
                           "requirement": "A tool MUST be able to set, clear and read any parameter its page declares.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7668,7 +7668,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-002 — Let the gateway change a parameter",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-002 \u2014 Let the gateway change a parameter",
                           "requirement": "The gateway MUST be able to set, clear and read any parameter, on its own initiative and without a tool having asked.\n\nCounterpart requirement belongs to: The gateway itself is EPIC-002-F-004-S-001. FindCare requires the route and states no requirement about the gateway.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7687,7 +7687,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-003 — Let the utterance manager change a parameter",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-003 \u2014 Let the utterance manager change a parameter",
                           "requirement": "The utterance manager MUST be able to set, clear and read any parameter.\n\nCounterpart requirement belongs to: The utterance manager itself is EPIC-002-F-010. FindCare requires the route and states no requirement about the manager.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7706,7 +7706,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-004 — Give the three routes one outcome",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-004 \u2014 Give the three routes one outcome",
                           "requirement": "The same parameter request made by any of the three routes MUST produce the same stored value and the same refusal.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7725,7 +7725,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-005 — Record which route made each change",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-005 \u2014 Record which route made each change",
                           "requirement": "Every parameter change MUST record which of the three routes made it.",
                           "priority": "must-have",
                           "status": "done",
@@ -7744,7 +7744,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-006 — Record whether a value was determined or inferred",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-006 \u2014 Record whether a value was determined or inferred",
                           "requirement": "Every parameter change MUST record whether the value was determined by a rule or inferred by a model.",
                           "priority": "must-have",
                           "status": "done",
@@ -7763,7 +7763,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-007",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-007 — Admit no fourth writer",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-007 \u2014 Admit no fourth writer",
                           "requirement": "No component MUST change a parameter other than through those three routes.",
                           "priority": "must-have",
                           "status": "done",
@@ -7852,7 +7852,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-004 — Hold the prior value when a change fails",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-004 \u2014 Hold the prior value when a change fails",
                           "requirement": "A parameter whose change was not preserved MUST hold the value it held before.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7871,7 +7871,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-005 — Tell the user a change did not take",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-005 \u2014 Tell the user a change did not take",
                           "requirement": "When a parameter change is not preserved, the user MUST be told, and the parameter MUST be named.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7890,7 +7890,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-006 — Change all or none",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-006 \u2014 Change all or none",
                           "requirement": "A request changing more than one parameter MUST leave all of them changed or none of them changed.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7941,7 +7941,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-001 — Show exactly the parameters in force",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-001 \u2014 Show exactly the parameters in force",
                           "requirement": "The panel MUST show exactly those parameters currently in force, with their values, and no others.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7960,7 +7960,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-002 — Show each parameter's page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-002 \u2014 Show each parameter's page",
                           "requirement": "Every parameter shown MUST be shown with the page it belongs to.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7979,7 +7979,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-003 — Group the panel by page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-003 \u2014 Group the panel by page",
                           "requirement": "The panel MUST group the parameters it shows by page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7998,7 +7998,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-004 — Clear one parameter alone",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-004 \u2014 Clear one parameter alone",
                           "requirement": "A user MUST be able to clear one parameter in a single action without changing any other.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8017,7 +8017,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-005 — Clear one page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-005 \u2014 Clear one page",
                           "requirement": "A user MUST be able to clear every parameter of one page in a single action.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8036,7 +8036,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-006 — Clear every page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-006 \u2014 Clear every page",
                           "requirement": "A user MUST be able to clear every parameter of every page in a single action.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8055,7 +8055,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-007",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-007 — Confirm a change in the same turn",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-007 \u2014 Confirm a change in the same turn",
                           "requirement": "After a parameter change is preserved, the panel MUST show the new value within the same turn.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8074,7 +8074,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-008",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-008 — Name where a carried value came from",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-008 \u2014 Name where a carried value came from",
                           "requirement": "A parameter in force on a page because it carried over MUST be shown with the page it came from.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8093,7 +8093,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-009",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-009 — Change a value where it is shown",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-009 \u2014 Change a value where it is shown",
                           "requirement": "A user MUST be able to change the value of any parameter in force from the panel that shows it.\n\nDepends on: EPIC-006-F-008-S-003-REQ-B-007. A change made in the panel is made through the same route as any other change; the panel is a surface, not a fourth writer.\n\nCounterpart requirement belongs to: Every such change reaches the server through the one entrance required by EPIC-002-F-004-S-001, and no persistent state changes anywhere else.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8125,7 +8125,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-001 — Refuse every unqualified name",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-001 \u2014 Refuse every unqualified name",
                           "requirement": "A parameter named without its page MUST be refused.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8144,7 +8144,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-002 — Give every replaced name a disposition",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-002 \u2014 Give every replaced name a disposition",
                           "requirement": "Every parameter name the previous model accepted MUST have a stated disposition: a page-qualified successor, or withdrawal.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8163,8 +8163,8 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-003 — Split a value that was held once for every page",
-                          "requirement": "A value the previous model held once for the whole session, and that more than one page needs, MUST become one parameter per page.\n\nCONFLICT: The shared library's parameter model states the opposite as its design — that a parameter is defined once and means the same thing everywhere, with a geography read by a provider search and by a trial search given as the reason — and is a fixed-field class with one attribute per parameter, which cannot express a declaration held as data.",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-003 \u2014 Split a value that was held once for every page",
+                          "requirement": "A value the previous model held once for the whole session, and that more than one page needs, MUST become one parameter per page.\n\nCONFLICT: The shared library's parameter model states the opposite as its design \u2014 that a parameter is defined once and means the same thing everywhere, with a geography read by a provider search and by a trial search given as the reason \u2014 and is a fixed-field class with one attribute per parameter, which cannot express a declaration held as data.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -8182,7 +8182,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-004 — Declare exactly the parameters the requirements consume",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-004 \u2014 Declare exactly the parameters the requirements consume",
                           "requirement": "A page MUST declare exactly those parameters its feature's requirements consume, and no others.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -8201,7 +8201,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-005 — Declare no parameter that narrows nothing",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-005 \u2014 Declare no parameter that narrows nothing",
                           "requirement": "A page MUST NOT declare a parameter whose value is the same for every record that page can return.",
                           "priority": "must-have",
                           "status": "done",
@@ -8233,7 +8233,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-007-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-007-REQ-B-001 — Page every list forward and back",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-001 \u2014 Page every list forward and back",
                           "requirement": "Every FindCare list MUST be presentable one page at a time, forward and back.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -8252,7 +8252,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-007-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-007-REQ-B-003 — Return the same records in the same order",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-003 \u2014 Return the same records in the same order",
                           "requirement": "The same search asked twice MUST return the same records in the same order.",
                           "priority": "must-have",
                           "status": "done",
@@ -8271,7 +8271,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-007-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-007-REQ-B-004 — Start at the first page when no position is given",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-004 \u2014 Start at the first page when no position is given",
                           "requirement": "A page request naming no position MUST return the first page.",
                           "priority": "must-have",
                           "status": "done",
@@ -8427,7 +8427,7 @@
         "name": "Architecture",
         "sourceLocation": "architecture",
         "status": "not_started",
-        "description": "Architecture governance â€” ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
+        "description": "Architecture governance \u00e2\u20ac\u201d ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
         "features": {
           "feature": [
             {
@@ -8544,7 +8544,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-003",
                     "name": "Rules infrastructure: manager, base worker, lock, timeout, telemetry, exit-code aggregation",
-                    "description": "ChatHealthyEnforcementManager + EnforcementWorker (abstract base) deliver the framework: read-only rules-registry load, hook-filtered enforcement dispatch, manager-owned mutex coordination, per-worker subprocess timeout, structured violation/telemetry envelopes, and worst-code-wins aggregation. Per V20 Â§4.4. The manager is invoked by every Git and Claude Code hook with a single hook_name argument.",
+                    "description": "ChatHealthyEnforcementManager + EnforcementWorker (abstract base) deliver the framework: read-only rules-registry load, hook-filtered enforcement dispatch, manager-owned mutex coordination, per-worker subprocess timeout, structured violation/telemetry envelopes, and worst-code-wins aggregation. Per V20 \u00c2\u00a74.4. The manager is invoked by every Git and Claude Code hook with a single hook_name argument.",
                     "size": "L",
                     "status": "done",
                     "approval": "approved",
@@ -8573,7 +8573,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-002",
                           "name": "Enforcement at hook moment",
-                          "requirement": "Enforcement runs at the moment a violation can occur â€” the relevant Git or Claude Code hook â€” not on a separate cadence. There is no nightly job that catches yesterday's mistake.",
+                          "requirement": "Enforcement runs at the moment a violation can occur \u00e2\u20ac\u201d the relevant Git or Claude Code hook \u00e2\u20ac\u201d not on a separate cadence. There is no nightly job that catches yesterday's mistake.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -8649,7 +8649,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-006",
                           "name": "Additive enforcement",
-                          "requirement": "Adding the next enforcement MUST be a small, additive change. New enforcement entries get a new enforcement_id and â€” if needed â€” a new worker subclass; existing rules and workers are not touched.",
+                          "requirement": "Adding the next enforcement MUST be a small, additive change. New enforcement entries get a new enforcement_id and \u00e2\u20ac\u201d if needed \u00e2\u20ac\u201d a new worker subclass; existing rules and workers are not touched.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -8706,7 +8706,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-009",
                           "name": "Filesystem mirrors operating model",
-                          "requirement": "The architecture MUST be aligned with the EPIC / Feature / Story tree. Filesystem mirrors operating model. The home for this feature is projectRoot/architecture/EngineeringRuleEnforcement/. crossEpicConcerns/ holds shared business artifacts only â€” no code lives there.",
+                          "requirement": "The architecture MUST be aligned with the EPIC / Feature / Story tree. Filesystem mirrors operating model. The home for this feature is projectRoot/architecture/EngineeringRuleEnforcement/. crossEpicConcerns/ holds shared business artifacts only \u00e2\u20ac\u201d no code lives there.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -8766,7 +8766,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-004",
                     "name": "Scanning: file enumeration on hooks, SCOPES evaluation, scope precedence",
-                    "description": "Per V20 Â§4.5 and Â§4.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
+                    "description": "Per V20 \u00c2\u00a74.5 and \u00c2\u00a74.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
                     "size": "M",
                     "status": "done",
                     "approval": "approved",
@@ -8777,7 +8777,7 @@
                           "req_id": "EPIC-008-F-002-S-004-REQ-B-001",
                           "orphan": false,
                           "name": "Scan must test this content",
-                          "requirement": "The scan rule Must test for: (a) Font compliance â€” see EPIC-008-F-011-S-003-REQ-B-004 (Scan of all relevant files must test font compliance); (b) JSON Schema validation â€” see EPIC-008-F-002-S-012 (JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache); (c) HTTPS compliance â€” see EPIC-008-F-002-S-012 (HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling).",
+                          "requirement": "The scan rule Must test for: (a) Font compliance \u00e2\u20ac\u201d see EPIC-008-F-011-S-003-REQ-B-004 (Scan of all relevant files must test font compliance); (b) JSON Schema validation \u00e2\u20ac\u201d see EPIC-008-F-002-S-012 (JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache); (c) HTTPS compliance \u00e2\u20ac\u201d see EPIC-008-F-002-S-012 (HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling).",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -8833,7 +8833,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-001",
                           "orphan": false,
                           "name": "ChatHealthyException class definition",
-                          "requirement": "The chathealthy-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception â€” the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
+                          "requirement": "The chathealthy-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception \u00e2\u20ac\u201d the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -8943,7 +8943,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-006",
                           "orphan": false,
                           "name": "Pre-commit gate forbids deliberate raises of built-in types",
-                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, ChatHealthyLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Any violation found — new or legacy — is rejected. No carve-outs for historical code.",
+                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, ChatHealthyLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Any violation found \u2014 new or legacy \u2014 is rejected. No carve-outs for historical code.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -8999,7 +8999,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-008",
                           "orphan": false,
                           "name": "Exception Management Modes",
-                          "requirement": "Every catch site that catches a ChatHealthyException MUST classify the caught exception into exactly one of three modes and act accordingly. Mode 1 â€” expected and easily handled (retry, fallback, alternate path): catcher logs at INFO with the if_debug flag set so the record is emitted only when in debug; caller continues via the recovery mechanism; user sees nothing. Mode 2 â€” expected and probably attributable to user error OR to a resource temporarily unavailable: catcher logs at ERROR (always emitted, no debug gate), surfaces an appropriate user-facing message describing the problem, and does NOT return HTTP 503. Mode 3 â€” unhandled, NOT expected (a bug): the safety-net @app.exception_handler returns HTTP 503 to the user and logs the unhandled exception so we can track it down and fix it; Mode 3 is the ONLY case where the user sees an HTTP 503; the architectural goal is for Mode 3 occurrences to be RARE â€” every observed Mode 3 instance MUST become a local catch with Mode 1 or Mode 2 handling. Throw-side rule: when a catch site converts a library exception (httpx, pymongo, etc.) into a ChatHealthyException, that site MUST clean up the underlying resource (close the connection / cursor / file handle, abort the request, release the pool slot, etc.) before raising the ChatHealthyException, so a leaked resource does not produce a delayed second failure (e.g., a 100-second-later timeout from a connection that was never closed).",
+                          "requirement": "Every catch site that catches a ChatHealthyException MUST classify the caught exception into exactly one of three modes and act accordingly. Mode 1 \u00e2\u20ac\u201d expected and easily handled (retry, fallback, alternate path): catcher logs at INFO with the if_debug flag set so the record is emitted only when in debug; caller continues via the recovery mechanism; user sees nothing. Mode 2 \u00e2\u20ac\u201d expected and probably attributable to user error OR to a resource temporarily unavailable: catcher logs at ERROR (always emitted, no debug gate), surfaces an appropriate user-facing message describing the problem, and does NOT return HTTP 503. Mode 3 \u00e2\u20ac\u201d unhandled, NOT expected (a bug): the safety-net @app.exception_handler returns HTTP 503 to the user and logs the unhandled exception so we can track it down and fix it; Mode 3 is the ONLY case where the user sees an HTTP 503; the architectural goal is for Mode 3 occurrences to be RARE \u00e2\u20ac\u201d every observed Mode 3 instance MUST become a local catch with Mode 1 or Mode 2 handling. Throw-side rule: when a catch site converts a library exception (httpx, pymongo, etc.) into a ChatHealthyException, that site MUST clean up the underlying resource (close the connection / cursor / file handle, abort the request, release the pool slot, etc.) before raising the ChatHealthyException, so a leaked resource does not produce a delayed second failure (e.g., a 100-second-later timeout from a connection that was never closed).",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -9505,7 +9505,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-012-REQ-B-001",
                           "name": "http: legitimate-content allowance",
-                          "requirement": "Files that are intended to carry plain text \"http:\" as legitimate content â€” for example, JSON files whose purpose is to record example URLs, configuration files that list http endpoints by design, fixtures, and similar data files â€” MUST be allowed to contain the term \"http:\". These files are listed on the enforcement entry's allowed by exact match rows, or matched by the enforcement entry's allowed by pattern rows, and they will not be flagged as a violation.",
+                          "requirement": "Files that are intended to carry plain text \"http:\" as legitimate content \u00e2\u20ac\u201d for example, JSON files whose purpose is to record example URLs, configuration files that list http endpoints by design, fixtures, and similar data files \u00e2\u20ac\u201d MUST be allowed to contain the term \"http:\". These files are listed on the enforcement entry's allowed by exact match rows, or matched by the enforcement entry's allowed by pattern rows, and they will not be flagged as a violation.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -9613,7 +9613,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-013-REQ-B-001",
                           "name": "Constrain Claude Code's ungoverned changes of state in Git Repositories",
-                          "requirement": "Each time Claude Code issues a command to change the state of any of ChatHealtly.ai’s Git repos a human must approve. This includes direct commands envoking Git or embedded commands within software not excluded because they are permitted. When a ‘promote’ from Local to Dev two governance gates must be invoked, a promote gate where the human user May change the commit note and the commit gate this double approve is governed by a different enforcement. Git push commands are excluded from this requirement. For all other changes to the remote Repo only one governance gates can be invoked. As with all ChatHealthy.ai governance gates, all approvals must only when a user proves via 'mouse movement' or other irrefutable evidence of a human action that a human approved. An audit record must be made upon the approval time out or disapproval of the Code Bot request. An approval time out is always a rejection and the command does not run. There is one time out for every governance gate, it is five hours, and no enforcement declares its own. All requirements from EPIC-003-F-003 must be complied with.",
+                          "requirement": "Each time Claude Code issues a command to change the state of any of ChatHealtly.ai\u2019s Git repos a human must approve. This includes direct commands envoking Git or embedded commands within software not excluded because they are permitted. When a \u2018promote\u2019 from Local to Dev two governance gates must be invoked, a promote gate where the human user May change the commit note and the commit gate this double approve is governed by a different enforcement. Git push commands are excluded from this requirement. For all other changes to the remote Repo only one governance gates can be invoked. As with all ChatHealthy.ai governance gates, all approvals must only when a user proves via 'mouse movement' or other irrefutable evidence of a human action that a human approved. An audit record must be made upon the approval time out or disapproval of the Code Bot request. An approval time out is always a rejection and the command does not run. There is one time out for every governance gate, it is five hours, and no enforcement declares its own. All requirements from EPIC-003-F-003 must be complied with.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -9817,7 +9817,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-B-002",
-                          "requirement": "Each Claude Code session MUST complete a deterministic, non-circumventable boot sequence before any other work. The sequence is: (1) load the governance brain and run compliance checks; (2) at the end of boot, ask the user exactly two questions in order and block all other assistant output until both are answered â€” Q1: mode selection per REQ-010; Q2: orphan triage per REQ-011. The sequence MUST NOT be skippable, paraphrasable, summarizable, or deferrable by Claude Code. Implementation MAY use any hook topology (SessionStart, UserPromptSubmit, Stop-hook validator, blocking-reply pattern) so long as the user-observable behavior holds: every new session begins with those two questions presented verbatim, in order, with no other assistant output preceding them.",
+                          "requirement": "Each Claude Code session MUST complete a deterministic, non-circumventable boot sequence before any other work. The sequence is: (1) load the governance brain and run compliance checks; (2) at the end of boot, ask the user exactly two questions in order and block all other assistant output until both are answered \u00e2\u20ac\u201d Q1: mode selection per REQ-010; Q2: orphan triage per REQ-011. The sequence MUST NOT be skippable, paraphrasable, summarizable, or deferrable by Claude Code. Implementation MAY use any hook topology (SessionStart, UserPromptSubmit, Stop-hook validator, blocking-reply pattern) so long as the user-observable behavior holds: every new session begins with those two questions presented verbatim, in order, with no other assistant output preceding them.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -9857,7 +9857,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-B-004",
-                          "requirement": "Orphan triage is the second of the two boot questions. After the user answers REQ-010, Claude Code MUST ask a single yes/no question: 'Triage orphan bugs?' If the user answers no, boot completes and normal work begins. If the user answers yes, Claude Code MUST present the orphan bug table and the user chooses how many to triage this boot â€” one, several, or all. Triaging an orphan means assigning it a req_id or closing it. There is no per-orphan defer option and no obligation to triage every orphan; the single yes/no gate governs whether the list is shown at all, and within 'yes' the user drives how many get worked.",
+                          "requirement": "Orphan triage is the second of the two boot questions. After the user answers REQ-010, Claude Code MUST ask a single yes/no question: 'Triage orphan bugs?' If the user answers no, boot completes and normal work begins. If the user answers yes, Claude Code MUST present the orphan bug table and the user chooses how many to triage this boot \u00e2\u20ac\u201d one, several, or all. Triaging an orphan means assigning it a req_id or closing it. There is no per-orphan defer option and no obligation to triage every orphan; the single yes/no gate governs whether the list is shown at all, and within 'yes' the user drives how many get worked.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -9923,7 +9923,7 @@
                   },
                   {
                     "story_id": "EPIC-008-F-003-S-002",
-                    "description": "Runtime requirements for the brain â€” specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md,.claude/CLAUDE.md,.claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per EPIC-008-F-003-S-001). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
+                    "description": "Runtime requirements for the brain \u00e2\u20ac\u201d specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md,.claude/CLAUDE.md,.claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per EPIC-008-F-003-S-001). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
@@ -9956,7 +9956,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-002-REQ-B-002",
-                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent â€” requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to human and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for human's async review, and proceed with its work.",
+                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent \u00e2\u20ac\u201d requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to human and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for human's async review, and proceed with its work.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -10195,7 +10195,7 @@
                           "req_id": "EPIC-008-F-004-S-005-REQ-B-002",
                           "orphan": false,
                           "name": "MongoDB certificate registry maps DN to vault secret names",
-                          "requirement": "A MongoDB collection in ChatHealthyConfig.CertificateRegistry MUST map each subject Distinguished Name to the vault secret names where its public certificate and private key are stored separately. Each DN entry MUST support multiple certificates for rotation and versioning. DN lookup MUST be deterministic — the same DN always resolves to the same registry entry.",
+                          "requirement": "A MongoDB collection in ChatHealthyConfig.CertificateRegistry MUST map each subject Distinguished Name to the vault secret names where its public certificate and private key are stored separately. Each DN entry MUST support multiple certificates for rotation and versioning. DN lookup MUST be deterministic \u2014 the same DN always resolves to the same registry entry.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -10243,7 +10243,7 @@
             },
             {
               "feature_id": "EPIC-008-F-005",
-              "name": "Audit â€” Technical, Business, Regulatory and Corporate Governance",
+              "name": "Audit \u00e2\u20ac\u201d Technical, Business, Regulatory and Corporate Governance",
               "sourceLocation": "architecture",
               "status": "in_progress",
               "description": "This feature encompasses all the audits that must be done to maintain technical and business history, integrity and regulatory and corporate governance.",
@@ -10254,7 +10254,7 @@
                 "story": [
                   {
                     "story_id": "EPIC-008-F-005-S-001",
-                    "description": "A deterministic Python orchestrator dispatches disposable AI workers to analyze git history, brain artifacts, and current code to identify lost capabilities, undocumented changes, and gaps between intent and implementation. The orchestrator is 100% deterministic â€” all state is on disk, all decisions are file-existence checks. AI is used only inside workers for code analysis. Audits MUST NOT create state changes â€” they only maintain their own notes and documents, and produce findings and recommendations. The orchestrator loops until all jobs are complete or a human sets the stop command in the control file.",
+                    "description": "A deterministic Python orchestrator dispatches disposable AI workers to analyze git history, brain artifacts, and current code to identify lost capabilities, undocumented changes, and gaps between intent and implementation. The orchestrator is 100% deterministic \u00e2\u20ac\u201d all state is on disk, all decisions are file-existence checks. AI is used only inside workers for code analysis. Audits MUST NOT create state changes \u00e2\u20ac\u201d they only maintain their own notes and documents, and produce findings and recommendations. The orchestrator loops until all jobs are complete or a human sets the stop command in the control file.",
                     "size": "L",
                     "status": "in_progress",
                     "requirements": {
@@ -10623,19 +10623,19 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Codebase History Audit â€” Deterministic Agent"
+                    "name": "Codebase History Audit \u00e2\u20ac\u201d Deterministic Agent"
                   },
                   {
                     "story_id": "EPIC-008-F-005-S-002",
                     "size": "M",
                     "status": "not_started",
-                    "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles â€” anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
+                    "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles \u00e2\u20ac\u201d anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
                     "requirements": {
                       "requirement": []
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Dead code scanner â€” two-pass symbol analysis"
+                    "name": "Dead code scanner \u00e2\u20ac\u201d two-pass symbol analysis"
                   }
                 ]
               },
@@ -10849,7 +10849,7 @@
               "feature_id": "EPIC-008-F-011",
               "name": "Common features of ChatHealthy.AI Front End Application",
               "sourceLocation": "architecture",
-              "description": "This feature defines the stories and requirements that ChatHealthy.ai's Front End application must comply with in all cases. If there are any conflicts in the requirements that contradicted the requirements in this feature. The requirements in this feature take precedence in all cases. (In addtrion and Furthermore, it is required that agents run at every boot sequence to scrutinize the firm's requirements in agile_Backlog.json to find such contradictions and surface them. This requirement is a known known gap in the requirements of EPIC-008-F-002 â€” Engineering Rules Enforcement)",
+              "description": "This feature defines the stories and requirements that ChatHealthy.ai's Front End application must comply with in all cases. If there are any conflicts in the requirements that contradicted the requirements in this feature. The requirements in this feature take precedence in all cases. (In addtrion and Furthermore, it is required that agents run at every boot sequence to scrutinize the firm's requirements in agile_Backlog.json to find such contradictions and surface them. This requirement is a known known gap in the requirements of EPIC-008-F-002 \u00e2\u20ac\u201d Engineering Rules Enforcement)",
               "priority": "CRITICAL",
               "status": "in_progress",
               "orphan": false,
@@ -10857,10 +10857,10 @@
               "due_date": "2026-05-28",
               "realized_by": [
                 "Website/index.html",
-                "HuggingFace Space: SkipSnow/ChatHealthySpace (FindCare backend â€” all envs)",
+                "HuggingFace Space: SkipSnow/ChatHealthySpace (FindCare backend \u00e2\u20ac\u201d all envs)",
                 "HuggingFace Space: SkipSnow/EvaluateCareSpace (all envs)",
                 "HuggingFace Space: SkipSnow/SharedServicesSpace (all envs)",
-                "Cloudflare: chathealthy.ai (all envs â€” dev, qa, prod)",
+                "Cloudflare: chathealthy.ai (all envs \u00e2\u20ac\u201d dev, qa, prod)",
                 "Local development environments"
               ],
               "stories": {
@@ -10878,7 +10878,7 @@
                         {
                           "req_id": "EPIC-008-F-011-S-001-REQ-B-001",
                           "name": "Fatal error full-screen display in index.html",
-                          "requirement": "For every error that is fatal â€” meaning any error condition whatsoever that is not explicitly required in a written requirement to be less than fatal â€” index.html is to display the following: In a large font and centered: 'HTTP 503: Fatal Error, this service is not available.' In a smaller font and centered: Line 1: link to HTTPS://{current environment}.chathealthy.ai. Line 2: If you get this error repeatedly and wish to call our team, please call Skip Snow @ 646 408 8999. Line 3: If you prefer email skip's email is: skip@chatHealthy.ai. Line 4: smaller text that wraps, the error message returned from an API. If the error is from the JavaScript without a call to an API then the error message will be 'JS routine {failed}'. Line 5: we apologize for this problem.",
+                          "requirement": "For every error that is fatal \u00e2\u20ac\u201d meaning any error condition whatsoever that is not explicitly required in a written requirement to be less than fatal \u00e2\u20ac\u201d index.html is to display the following: In a large font and centered: 'HTTP 503: Fatal Error, this service is not available.' In a smaller font and centered: Line 1: link to HTTPS://{current environment}.chathealthy.ai. Line 2: If you get this error repeatedly and wish to call our team, please call Skip Snow @ 646 408 8999. Line 3: If you prefer email skip's email is: skip@chatHealthy.ai. Line 4: smaller text that wraps, the error message returned from an API. If the error is from the JavaScript without a call to an API then the error message will be 'JS routine {failed}'. Line 5: we apologize for this problem.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -11156,7 +11156,7 @@
                   {
                     "story_id": "EPIC-008-F-011-S-005",
                     "name": "Uniform application logging",
-                    "description": "App-wide rules for runtime logging â€” uniform logging surface, framework choice, environment-driven configuration. Tool subclasses inherit logging from the base class; no per-tool ad-hoc logging or third-party logger calls.",
+                    "description": "App-wide rules for runtime logging \u00e2\u20ac\u201d uniform logging surface, framework choice, environment-driven configuration. Tool subclasses inherit logging from the base class; no per-tool ad-hoc logging or third-party logger calls.",
                     "size": "S",
                     "status": "in_progress",
                     "orphan": false,
@@ -11167,7 +11167,7 @@
                           "req_id": "EPIC-008-F-011-S-005-REQ-B-001",
                           "orphan": false,
                           "name": "ChatHealthyTool base class implements uniform tool-invocation logging via Python's stdlib logging",
-                          "requirement": "The ChatHealthyTool base class MUST be the sole logging surface for every tool invocation. Every concrete subclass is logged uniformly by the base class â€” no concrete tool implements its own logging path, and no concrete tool emits print(), ad-hoc file writes, or third-party logger calls inside the dispatch chain. The base class MUST use Python's standard library logging module; logger configuration MUST be via logging.config.dictConfig so handlers, formatters, and per-environment behavior are declarative. Log messages MUST be suppressible by level via environment variable â€” the operator sets LOG_LEVEL (DEBUG / INFO / WARNING / ERROR / CRITICAL) in the runtime environment, and the logger MUST respect that threshold and drop lower-priority messages. The logger MUST support writing to both stdout and stderr (configurable per level â€” e.g., errors to stderr, normal logs to stdout). Third-party logging libraries (loguru, structlog) are forbidden in the tool dispatch path. Each log entry MUST include tool_name, redacted input args, output result, duration in ms, and any exception with traceback.",
+                          "requirement": "The ChatHealthyTool base class MUST be the sole logging surface for every tool invocation. Every concrete subclass is logged uniformly by the base class \u00e2\u20ac\u201d no concrete tool implements its own logging path, and no concrete tool emits print(), ad-hoc file writes, or third-party logger calls inside the dispatch chain. The base class MUST use Python's standard library logging module; logger configuration MUST be via logging.config.dictConfig so handlers, formatters, and per-environment behavior are declarative. Log messages MUST be suppressible by level via environment variable \u00e2\u20ac\u201d the operator sets LOG_LEVEL (DEBUG / INFO / WARNING / ERROR / CRITICAL) in the runtime environment, and the logger MUST respect that threshold and drop lower-priority messages. The logger MUST support writing to both stdout and stderr (configurable per level \u00e2\u20ac\u201d e.g., errors to stderr, normal logs to stdout). Third-party logging libraries (loguru, structlog) are forbidden in the tool dispatch path. Each log entry MUST include tool_name, redacted input args, output result, duration in ms, and any exception with traceback.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -13679,25 +13679,6 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-001-S-012-REQ-B-003",
-                          "orphan": false,
-                          "name": "The built collection is re-checked against its contract after load",
-                          "requirement": "After load, the built collection is re-checked against its contract and the counts of conforming and non-conforming records are reported for the run's partition.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
                           "req_id": "EPIC-010-F-001-S-012-REQ-B-004",
                           "orphan": false,
                           "name": "A built collection is versioned and published as a full replacement",
@@ -14226,7 +14207,7 @@
                         },
                         {
                           "req_id": "EPIC-010-F-003-S-001-REQ-B-006",
-                          "name": "Every collection is reached through an instance of the one class that…",
+                          "name": "Every collection is reached through an instance of the one class that\u2026",
                           "requirement": "Within the implementing service, every access to data is made on behalf of exactly one named collection, and no access is made otherwise. The operator's workstation makes no such access.",
                           "priority": "must-have",
                           "status": "done",
@@ -14266,7 +14247,7 @@
                         },
                         {
                           "req_id": "EPIC-010-F-003-S-001-REQ-B-008",
-                          "name": "The collection name is the only value assigned to the class from…",
+                          "name": "The collection name is the only value assigned to the class from\u2026",
                           "requirement": "No variable on the class that realizes this story is assigned externally other than the collection name.",
                           "priority": "must-have",
                           "status": "done",
@@ -14326,7 +14307,7 @@
                         },
                         {
                           "req_id": "EPIC-010-F-003-S-001-REQ-B-011",
-                          "name": "Zero trust - the migration's identities exist and are constrained to…",
+                          "name": "Zero trust - the migration's identities exist and are constrained to\u2026",
                           "requirement": "Two actors take part: the operator's workstation makes the request, records an approval and verifies the software meets the requirements. The implementing service moves the data observing the rules as specified in these requirements.",
                           "priority": "must-have",
                           "status": "done",
@@ -14346,7 +14327,7 @@
                         },
                         {
                           "req_id": "EPIC-010-F-003-S-001-REQ-B-012",
-                          "name": "The migration file is declared in the deployment manifest at its actual…",
+                          "name": "The migration file is declared in the deployment manifest at its actual\u2026",
                           "requirement": "deployment_architecture.json declares the file that performs the migration under exactly one deployment target and one package, and the source_location it declares is that file's actual repository-relative path. A commit in which the file is undeclared, is declared in more than one place, or is declared at a path that is not where the file is, is not made.",
                           "priority": "must-have",
                           "status": "done",
@@ -14475,7 +14456,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-001-REQ-B-002",
                           "orphan": false,
-                          "name": "NUCC provider-taxonomy file landed to its own per-source staging…",
+                          "name": "NUCC provider-taxonomy file landed to its own per-source staging\u2026",
                           "requirement": "The national provider-taxonomy file (source nucc) is landed to its own per-source staging collection on the pipeline cluster.",
                           "priority": "must-have",
                           "status": "done",
@@ -14551,7 +14532,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-001-REQ-B-006",
                           "orphan": false,
-                          "name": "Staging document carries run_id and byte-offset-ordered…",
+                          "name": "Staging document carries run_id and byte-offset-ordered\u2026",
                           "requirement": "Each staging document carries the run_id and a byte-offset-ordered `_source_row_index`.",
                           "priority": "must-have",
                           "status": "done",
@@ -14608,7 +14589,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-001-REQ-B-009",
                           "orphan": false,
-                          "name": "Reference source skipped when content hash unchanged and collection…",
+                          "name": "Reference source skipped when content hash unchanged and collection\u2026",
                           "requirement": "On a full load, a reference source (which includes nucc) whose freshly-downloaded content hash matches the prior load's recorded hash AND whose staging collection is non-empty is skipped rather than drained and reloaded; otherwise (hash changed or first load) the collection is drained wholesale before the fresh insert, and the freshly-loaded content hash and row count are recorded for the next run.",
                           "priority": "must-have",
                           "status": "done",
@@ -14659,7 +14640,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-002-REQ-B-002",
                           "orphan": false,
-                          "name": "Each entry carries grouping, classification, specialization, definition…",
+                          "name": "Each entry carries grouping, classification, specialization, definition\u2026",
                           "requirement": "Each vocabulary entry carries grouping, classification, specialization and definition, plus a plain-label display name.",
                           "priority": "must-have",
                           "status": "done",
@@ -14678,7 +14659,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-002-REQ-B-003",
                           "orphan": false,
-                          "name": "Per-code standing distinguishes NUCC-native from F-105-supplemented,…",
+                          "name": "Per-code standing distinguishes NUCC-native from F-105-supplemented,\u2026",
                           "requirement": "The vocabulary carries a per-code standing that distinguishes a NUCC-native code from an F-105-only (supplemented) code, and for a supplemented code the F-105 catalog entry is the authority for display_name/grouping/classification/specialization/definition while for a NUCC-native code the raw NUCC CSV values are the authority.",
                           "priority": "must-have",
                           "status": "done",
@@ -14697,7 +14678,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-002-REQ-B-004",
                           "orphan": false,
-                          "name": "Vocabulary published as version-suffixed SpecialtyMetaData collection…",
+                          "name": "Vocabulary published as version-suffixed SpecialtyMetaData collection\u2026",
                           "requirement": "The controlled vocabulary is published as a version-suffixed collection PipelinePublicHealthData.SpecialtyMetaData_v_{data_version} on the pipeline cluster, as a full replacement (atomic renameCollection(dropTarget=true) within the same DB), carrying only current-run rows.",
                           "priority": "must-have",
                           "status": "done",
@@ -14716,7 +14697,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-002-REQ-B-005",
                           "orphan": false,
-                          "name": "Each entry carries an embedding vector plus model and timestamp…",
+                          "name": "Each entry carries an embedding vector plus model and timestamp\u2026",
                           "requirement": "Each published vocabulary entry carries a text-embedding vector plus embedding_model and embedding_generated_at, composed from its Display Name/Grouping/Classification/Specialization/Definition (empty fields omitted), so the vocabulary classifies providers for search via downstream $vectorSearch.",
                           "priority": "must-have",
                           "status": "done",
@@ -14735,7 +14716,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-002-REQ-B-006",
                           "orphan": false,
-                          "name": "Entries already carrying the target model and canonical-dimension…",
+                          "name": "Entries already carrying the target model and canonical-dimension\u2026",
                           "requirement": "A vocabulary entry already carrying the target embedding model and a canonical-dimension (3072) vector is not re-embedded on a re-run; only entries whose model differs or whose vector is missing or wrong-length are (re-)derived.",
                           "priority": "must-have",
                           "status": "done",
@@ -14792,8 +14773,8 @@
                         {
                           "req_id": "EPIC-010-F-004-S-002-REQ-B-009",
                           "orphan": false,
-                          "name": "Vocabulary fully published before the provider-enrichment step that…",
-                          "requirement": "The controlled vocabulary is fully published BEFORE the provider-enrichment step that reads it to name each provider's specialty (taxonomy code_label stamping / normalize Pass B), so every provider — including F-105 supplement holders — receives the correct label.",
+                          "name": "Vocabulary fully published before the provider-enrichment step that\u2026",
+                          "requirement": "The controlled vocabulary is fully published BEFORE the provider-enrichment step that reads it to name each provider's specialty (taxonomy code_label stamping / normalize Pass B), so every provider \u2014 including F-105 supplement holders \u2014 receives the correct label.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -14811,8 +14792,8 @@
                         {
                           "req_id": "EPIC-010-F-004-S-002-REQ-B-010",
                           "orphan": false,
-                          "name": "NUCC catalog fetched over HTTPS from configured URL with pipeline auth…",
-                          "requirement": "The NUCC classification catalog (the controlled vocabulary source) is fetched over HTTPS from the configured SPECIALTY_CLASSIFICATION_CATALOG_URL endpoint, presenting the pipeline auth header — the source is an authenticated HTTP endpoint, not a local file.",
+                          "name": "NUCC catalog fetched over HTTPS from configured URL with pipeline auth\u2026",
+                          "requirement": "The NUCC classification catalog (the controlled vocabulary source) is fetched over HTTPS from the configured SPECIALTY_CLASSIFICATION_CATALOG_URL endpoint, presenting the pipeline auth header \u2014 the source is an authenticated HTTP endpoint, not a local file.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -14881,7 +14862,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-003-REQ-B-001",
                           "orphan": false,
-                          "name": "One canonical record per source row keyed by NPI as 10-char zero-padded…",
+                          "name": "One canonical record per source row keyed by NPI as 10-char zero-padded\u2026",
                           "requirement": "Each provider source row becomes exactly one canonical provider record keyed by the National Provider Identifier, stored as a 10-character zero-padded digit string.",
                           "priority": "must-have",
                           "status": "done",
@@ -14900,7 +14881,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-003-REQ-B-002",
                           "orphan": false,
-                          "name": "Record non-conformant unless it carries non-empty npi (exactly 10…",
+                          "name": "Record non-conformant unless it carries non-empty npi (exactly 10\u2026",
                           "requirement": "A record is non-conformant unless it carries a non-empty npi and a non-empty entity_type_code; the npi MUST be exactly 10 characters and all digits.",
                           "priority": "must-have",
                           "status": "done",
@@ -14938,7 +14919,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-003-REQ-B-004",
                           "orphan": false,
-                          "name": "entity_type_code carries sibling label marking individual (code 1) vs…",
+                          "name": "entity_type_code carries sibling label marking individual (code 1) vs\u2026",
                           "requirement": "Each record carries the source entity type code and a sibling entity_type_code_label marking it \"individual\" when the code is \"1\" and \"institutional\" otherwise; a conformant record's entity_type_code is \"1\" or \"2\".",
                           "priority": "must-have",
                           "status": "done",
@@ -14957,7 +14938,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-003-REQ-B-005",
                           "orphan": false,
-                          "name": "Primary-taxonomy-switch slot lifted onto record as top-level…",
+                          "name": "Primary-taxonomy-switch slot lifted onto record as top-level\u2026",
                           "requirement": "The per-NPI primary taxonomy designator (the source \"Primary Taxonomy Switch\" = \"Y\" on exactly one slot) is lifted out of the taxonomy slots and stamped on the canonical record as a single top-level primary_taxonomy_code field.",
                           "priority": "must-have",
                           "status": "done",
@@ -14976,7 +14957,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-003-REQ-B-006",
                           "orphan": false,
-                          "name": "Each one-to-one coded value carries a sibling human-readable decode…",
+                          "name": "Each one-to-one coded value carries a sibling human-readable decode\u2026",
                           "requirement": "Each one-to-one coded value present on the canonical record carries a sibling human-readable decode label field (provider_sex_code -> provider_sex_code_label; is_sole_proprietor -> is_sole_proprietor_label; an address state -> state_label; an address country -> country_code_label; a license state -> state_label).",
                           "priority": "must-have",
                           "status": "done",
@@ -15033,7 +15014,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-003-REQ-B-009",
                           "orphan": false,
-                          "name": "Raw activity events carried as active[] event log from NPPES…",
+                          "name": "Raw activity events carried as active[] event log from NPPES\u2026",
                           "requirement": "The record carries the raw activity events as an active[] event log derived from the NPPES deactivation/reactivation date columns: a \"deactivated\" entry (is_active:false) when a deactivation date is present, a \"reactivated\" entry (is_active:true) when a reactivation date is present, each carrying its date and source; the log is absent when neither date is present.",
                           "priority": "must-have",
                           "status": "done",
@@ -15071,7 +15052,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-003-REQ-B-011",
                           "orphan": false,
-                          "name": "Unconsumed source columns carried onto record under snake_cased keys,…",
+                          "name": "Unconsumed source columns carried onto record under snake_cased keys,\u2026",
                           "requirement": "Every source column not consumed by structured handling (taxonomies, licenses, other-identifiers, addresses, activity dates) is carried onto the record under a snake_cased key (lowercased; spaces->_, and ( ) / . removed) with its value, and empty values are skipped.",
                           "priority": "must-have",
                           "status": "done",
@@ -15103,7 +15084,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-004-REQ-B-001",
                           "orphan": false,
-                          "name": "Two distinct address fields: practice_addresses[] array and single…",
+                          "name": "Two distinct address fields: practice_addresses[] array and single\u2026",
                           "requirement": "Each provider record carries its practice-location addresses in a practice_addresses[] array and its business (mailing) address as a single business_address object, held as two distinct fields rather than one discriminated addresses[] array.",
                           "priority": "must-have",
                           "status": "done",
@@ -15122,7 +15103,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-004-REQ-B-002",
                           "orphan": false,
-                          "name": "Practice-location address assembled from NPPES practice columns, tagged…",
+                          "name": "Practice-location address assembled from NPPES practice columns, tagged\u2026",
                           "requirement": "The practice-location address is assembled from the NPPES practice-location columns (line1/line2/city/state/zip/country/phone/fax) as given on the source row, tagged address_type=\"practice\", and appended to practice_addresses[].",
                           "priority": "must-have",
                           "status": "done",
@@ -15141,7 +15122,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-004-REQ-B-003",
                           "orphan": false,
-                          "name": "Business (mailing) address assembled from NPPES mailing columns, tagged…",
+                          "name": "Business (mailing) address assembled from NPPES mailing columns, tagged\u2026",
                           "requirement": "The business (mailing) address is assembled from the NPPES mailing columns as given on the source row, tagged address_type=\"business\", and written to the business_address field.",
                           "priority": "must-have",
                           "status": "done",
@@ -15198,7 +15179,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-004-REQ-B-006",
                           "orphan": false,
-                          "name": "Practice and business address at same location stay distinct…",
+                          "name": "Practice and business address at same location stay distinct\u2026",
                           "requirement": "A practice-typed address and a business/mailing address at the same physical location remain two distinct entries and do not collapse into one (address_type is part of the address dedup identity).",
                           "priority": "must-have",
                           "status": "done",
@@ -15217,7 +15198,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-004-REQ-B-007",
                           "orphan": false,
-                          "name": "Complete ordered address set is business address first, then…",
+                          "name": "Complete ordered address set is business address first, then\u2026",
                           "requirement": "The complete ordered set of a provider's addresses is the business address first, followed by the practice-location addresses in their order.",
                           "priority": "must-have",
                           "status": "done",
@@ -15268,7 +15249,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-005-REQ-B-002",
                           "orphan": false,
-                          "name": "Distinct taxonomy code appears at most once per record (first…",
+                          "name": "Distinct taxonomy code appears at most once per record (first\u2026",
                           "requirement": "On a record each distinct taxonomy code appears at most once (first occurrence wins on entry contents).",
                           "priority": "must-have",
                           "status": "done",
@@ -15287,8 +15268,8 @@
                         {
                           "req_id": "EPIC-010-F-004-S-005-REQ-B-003",
                           "orphan": false,
-                          "name": "Primary-taxonomy marker carried as single top-level…",
-                          "requirement": "The provider's primary-taxonomy marker — the NPPES \"Healthcare Provider Primary Taxonomy Switch_N\" column bearing 'Y' on exactly one slot — is carried as a single top-level primary_taxonomy_code field (the first slot whose switch is 'Y'), and is NOT carried as a per-taxonomy-entry flag.",
+                          "name": "Primary-taxonomy marker carried as single top-level\u2026",
+                          "requirement": "The provider's primary-taxonomy marker \u2014 the NPPES \"Healthcare Provider Primary Taxonomy Switch_N\" column bearing 'Y' on exactly one slot \u2014 is carried as a single top-level primary_taxonomy_code field (the first slot whose switch is 'Y'), and is NOT carried as a per-taxonomy-entry flag.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -15306,7 +15287,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-005-REQ-B-004",
                           "orphan": false,
-                          "name": "License slot becomes one licenses[] entry with number/state and sibling…",
+                          "name": "License slot becomes one licenses[] entry with number/state and sibling\u2026",
                           "requirement": "Each NPPES \"Provider License Number_N\" / \"Provider License Number State Code_N\" slot with a number and/or a state becomes one licenses[] entry carrying number and/or state; a present state carries a sibling plain-decode state_label.",
                           "priority": "must-have",
                           "status": "done",
@@ -15325,7 +15306,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-005-REQ-B-005",
                           "orphan": false,
-                          "name": "Other-identifier slot becomes one other_identifiers[] entry with…",
+                          "name": "Other-identifier slot becomes one other_identifiers[] entry with\u2026",
                           "requirement": "Each non-empty NPPES \"Other Provider Identifier_N\" slot becomes one other_identifiers[] entry: identifier is required; type_code, state, and issuer are carried when present; a present type_code stamps a sibling type_description drawn from the closed two-code dictionary {\"01\":\"OTHER\",\"05\":\"MEDICAID\"}.",
                           "priority": "must-have",
                           "status": "done",
@@ -15376,7 +15357,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-006-REQ-B-001",
                           "orphan": false,
-                          "name": "Residual source columns carried onto record under snake_cased key…",
+                          "name": "Residual source columns carried onto record under snake_cased key\u2026",
                           "requirement": "Every raw source column not consumed by a structured handler is carried onto the canonical provider record under a snake_cased key derived from the source header (lowercased; spaces -> \"_\"; \"(\" and \")\" removed; \"/\" -> \"_\"; \".\" removed), preserving the source value.",
                           "priority": "must-have",
                           "status": "done",
@@ -15395,7 +15376,7 @@
                         {
                           "req_id": "EPIC-010-F-004-S-006-REQ-B-002",
                           "orphan": false,
-                          "name": "Empty or blank residual source column omitted rather than stored as…",
+                          "name": "Empty or blank residual source column omitted rather than stored as\u2026",
                           "requirement": "A residual source column whose value is empty or blank (after string strip) is omitted from the record rather than stored as an empty value.",
                           "priority": "must-have",
                           "status": "done",
@@ -15443,7 +15424,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-001-REQ-B-001",
                           "orphan": false,
-                          "name": "Secondary practice addresses joined from pl_pfile by NPI into…",
+                          "name": "Secondary practice addresses joined from pl_pfile by NPI into\u2026",
                           "requirement": "Every secondary practice address a provider holds beyond its base record is joined in from the practice-locations source (the pl_pfile staging collection), matched to the provider by NPI, and added into that provider's practice_addresses array.",
                           "priority": "must-have",
                           "status": "done",
@@ -15462,7 +15443,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-001-REQ-B-002",
                           "orphan": false,
-                          "name": "Joined address marked address_type=secondary_practice, primary=False,…",
+                          "name": "Joined address marked address_type=secondary_practice, primary=False,\u2026",
                           "requirement": "Each joined address is stored as its own entry marked address_type=\"secondary_practice\", primary=False, source=\"pl_pfile\".",
                           "priority": "must-have",
                           "status": "done",
@@ -15481,8 +15462,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-001-REQ-B-003",
                           "orphan": false,
-                          "name": "Joined secondary addresses merged in preserving existing, distinct from…",
-                          "requirement": "Joined secondary addresses are held distinct from the base practice and mailing addresses — existing practice_addresses entries are preserved and the incoming set is merged in rather than replacing them, and practice_addresses is a field separate from business_address (mailing).",
+                          "name": "Joined secondary addresses merged in preserving existing, distinct from\u2026",
+                          "requirement": "Joined secondary addresses are held distinct from the base practice and mailing addresses \u2014 existing practice_addresses entries are preserved and the incoming set is merged in rather than replacing them, and practice_addresses is a field separate from business_address (mailing).",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -15500,8 +15481,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-001-REQ-B-004",
                           "orphan": false,
-                          "name": "Joined address carries sibling label fields state_label and…",
-                          "requirement": "Each joined address carries sibling human-readable label fields — state_label when the state code resolves, country_code_label when the country code resolves.",
+                          "name": "Joined address carries sibling label fields state_label and\u2026",
+                          "requirement": "Each joined address carries sibling human-readable label fields \u2014 state_label when the state code resolves, country_code_label when the country code resolves.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -15520,7 +15501,7 @@
                           "req_id": "EPIC-010-F-005-S-001-REQ-B-005",
                           "orphan": false,
                           "name": "Attachment re-derived each refresh",
-                          "requirement": "Attachment is re-derived on every refresh — each run rebuilds the full practice_addresses array and the merged set is de-duplicated on the location key address_type+line1+city+state+zip5, so a repeated fire does not multiply entries and a practice, secondary_practice, business, or mailing entry at the same location each remains its own entry.",
+                          "requirement": "Attachment is re-derived on every refresh \u2014 each run rebuilds the full practice_addresses array and the merged set is de-duplicated on the location key address_type+line1+city+state+zip5, so a repeated fire does not multiply entries and a practice, secondary_practice, business, or mailing entry at the same location each remains its own entry.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -15576,7 +15557,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-001-REQ-B-008",
                           "orphan": false,
-                          "name": "Orphan-NPI pl_pfile row yields discrepancy pl_pfile_orphan_npi and is…",
+                          "name": "Orphan-NPI pl_pfile row yields discrepancy pl_pfile_orphan_npi and is\u2026",
                           "requirement": "A pl_pfile practice-location row whose NPI matches no provider record yields a recorded discrepancy with reason=\"pl_pfile_orphan_npi\", and that row is not attached.",
                           "priority": "must-have",
                           "status": "done",
@@ -15646,7 +15627,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-002-REQ-B-003",
                           "orphan": false,
-                          "name": "Each license entry carries a sibling plain-decode issuing-state label…",
+                          "name": "Each license entry carries a sibling plain-decode issuing-state label\u2026",
                           "requirement": "Each license entry carries a sibling plain-decode issuing-state label (`state_label`, the human-readable expansion of the state code).",
                           "priority": "must-have",
                           "status": "done",
@@ -15684,7 +15665,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-002-REQ-B-005",
                           "orphan": false,
-                          "name": "Licenses assembled from NPPES-native license slots, one entry per…",
+                          "name": "Licenses assembled from NPPES-native license slots, one entry per\u2026",
                           "requirement": "The licenses collection is assembled from the provider's NPPES-native license slots (the Provider-License-Number / License-State parallel-array slots), one entry per populated slot.",
                           "priority": "must-have",
                           "status": "done",
@@ -15703,7 +15684,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-002-REQ-B-006",
                           "orphan": false,
-                          "name": "Licenses additionally assembled from other-identifier entries…",
+                          "name": "Licenses additionally assembled from other-identifier entries\u2026",
                           "requirement": "The licenses collection is additionally assembled from other-identifier entries the classifier deemed LICENSE, the entry's identifier carried as the license number and the issuing state taken from the entry (else the partition state).",
                           "priority": "must-have",
                           "status": "done",
@@ -15779,7 +15760,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-002-REQ-B-010",
                           "orphan": false,
-                          "name": "Identifiers differing only in non-alphanumeric formatting resolve to…",
+                          "name": "Identifiers differing only in non-alphanumeric formatting resolve to\u2026",
                           "requirement": "License identifiers differing only in non-alphanumeric formatting (hyphens, spaces, dots) resolve to the same license identity.",
                           "priority": "must-have",
                           "status": "done",
@@ -15798,7 +15779,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-002-REQ-B-011",
                           "orphan": false,
-                          "name": "Other-identifier-derived license carries source provenance tag…",
+                          "name": "Other-identifier-derived license carries source provenance tag\u2026",
                           "requirement": "Each license derived from an other-identifier entry carries a source provenance tag \"nppes_other_identifiers\", distinguishing it from NPPES-native license slots.",
                           "priority": "must-have",
                           "status": "done",
@@ -15817,7 +15798,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-002-REQ-B-012",
                           "orphan": false,
-                          "name": "Assembled licenses is a derived managed field held distinct from raw…",
+                          "name": "Assembled licenses is a derived managed field held distinct from raw\u2026",
                           "requirement": "The assembled licenses collection is a derived managed field held distinct from the raw source slots it is drawn from (the raw NPPES license number/state slots and the raw other_identifiers field), not the raw fields themselves.",
                           "priority": "must-have",
                           "status": "done",
@@ -15836,8 +15817,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-002-REQ-B-013",
                           "orphan": false,
-                          "name": "On every refresh the licenses collection is rebuilt and re-deduped, not…",
-                          "requirement": "On every refresh the licenses collection is rebuilt — an existing collection merged with an incoming set is re-deduped to (state, identifier) uniqueness rather than blindly appended.",
+                          "name": "On every refresh the licenses collection is rebuilt and re-deduped, not\u2026",
+                          "requirement": "On every refresh the licenses collection is rebuilt \u2014 an existing collection merged with an incoming set is re-deduped to (state, identifier) uniqueness rather than blindly appended.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -15868,7 +15849,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-003-REQ-B-001",
                           "orphan": false,
-                          "name": "Active standing derived from deactivation/reactivation events, not a…",
+                          "name": "Active standing derived from deactivation/reactivation events, not a\u2026",
                           "requirement": "A provider's active-or-inactive standing is a derived fact computed from its deactivation/reactivation event history, and is not read from any source activity field.",
                           "priority": "must-have",
                           "status": "done",
@@ -15887,8 +15868,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-003-REQ-B-002",
                           "orphan": false,
-                          "name": "Deactivation/reactivation history preserved as the `active` event log,…",
-                          "requirement": "The deactivation/reactivation event history is preserved on the record as the `active` event log — one entry per event, each carrying event, date, is_active and source — held distinct from the derived standing.",
+                          "name": "Deactivation/reactivation history preserved as the `active` event log,\u2026",
+                          "requirement": "The deactivation/reactivation event history is preserved on the record as the `active` event log \u2014 one entry per event, each carrying event, date, is_active and source \u2014 held distinct from the derived standing.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -15906,7 +15887,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-003-REQ-B-003",
                           "orphan": false,
-                          "name": "`active` event log emitted only when a deactivation or reactivation…",
+                          "name": "`active` event log emitted only when a deactivation or reactivation\u2026",
                           "requirement": "The `active` event log is emitted only when a deactivation or reactivation event exists on the source row, and is absent when neither NPPES \"NPI Deactivation Date\" nor \"NPI Reactivation Date\" is set.",
                           "priority": "must-have",
                           "status": "done",
@@ -15925,8 +15906,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-003-REQ-B-004",
                           "orphan": false,
-                          "name": "Each event entry's is_active fixed by event type (deactivated→false,…",
-                          "requirement": "Each event entry's is_active value is fixed by its event type — a \"deactivated\" entry carries is_active:false, a \"reactivated\" entry carries is_active:true.",
+                          "name": "Each event entry's is_active fixed by event type (deactivated\u2192false,\u2026",
+                          "requirement": "Each event entry's is_active value is fixed by its event type \u2014 a \"deactivated\" entry carries is_active:false, a \"reactivated\" entry carries is_active:true.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -16033,7 +16014,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-004-REQ-B-002",
                           "orphan": false,
-                          "name": "Resolved taxonomy carries reference_status current_reference, set only…",
+                          "name": "Resolved taxonomy carries reference_status current_reference, set only\u2026",
                           "requirement": "A coded taxonomy resolved via the specialty vocabulary carries reference_status = \"current_reference\", set only when not already present.",
                           "priority": "must-have",
                           "status": "done",
@@ -16052,7 +16033,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-004-REQ-B-003",
                           "orphan": false,
-                          "name": "Taxonomy carries enumerated resolution state…",
+                          "name": "Taxonomy carries enumerated resolution state\u2026",
                           "requirement": "A coded taxonomy carries an enumerated resolution state: a code absent from the catalog is stamped status=\"Missing\"; a code whose catalog entry is supplemented is stamped status=\"Supplemented\"; a normal NUCC-backed code is left unstamped.",
                           "priority": "must-have",
                           "status": "done",
@@ -16071,7 +16052,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-004-REQ-B-004",
                           "orphan": false,
-                          "name": "Label vocabulary read from fully-published SpecialtyMetaData keyed by…",
+                          "name": "Label vocabulary read from fully-published SpecialtyMetaData keyed by\u2026",
                           "requirement": "The vocabulary used to stamp taxonomy labels is read from the fully-published SpecialtyMetaData (native NUCC codes plus F-105 supplements), keyed by code.",
                           "priority": "must-have",
                           "status": "done",
@@ -16090,8 +16071,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-004-REQ-B-005",
                           "orphan": false,
-                          "name": "Stamping step runs only after published SMD exists (declared…",
-                          "requirement": "The provider taxonomy-label stamping step (normalize_npi_per_state_fanout) runs only after the published SpecialtyMetaData exists — it declares prerequisite publish_smd_and_embed.",
+                          "name": "Stamping step runs only after published SMD exists (declared\u2026",
+                          "requirement": "The provider taxonomy-label stamping step (normalize_npi_per_state_fanout) runs only after the published SpecialtyMetaData exists \u2014 it declares prerequisite publish_smd_and_embed.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -16109,7 +16090,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-004-REQ-B-006",
                           "orphan": false,
-                          "name": "Vocabulary catalog supplies grouping, classification, specialization,…",
+                          "name": "Vocabulary catalog supplies grouping, classification, specialization,\u2026",
                           "requirement": "The specialty vocabulary catalog supplies grouping, classification, specialization, display_name and definition per code (the source fields from which taxonomy labels are drawn).",
                           "priority": "must-have",
                           "status": "done",
@@ -16147,7 +16128,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-004-REQ-B-008",
                           "orphan": false,
-                          "name": "Label stamping performed inside per-run normalize fanout, re-stamped…",
+                          "name": "Label stamping performed inside per-run normalize fanout, re-stamped\u2026",
                           "requirement": "Taxonomy-label stamping is performed inside the per-run provider normalize fanout step, so labels are re-stamped from the then-current published vocabulary on every full load.",
                           "priority": "must-have",
                           "status": "done",
@@ -16218,7 +16199,7 @@
                           "req_id": "EPIC-010-F-005-S-005-REQ-B-003",
                           "orphan": false,
                           "name": "facility_type_descriptions held distinct from source taxonomy codes",
-                          "requirement": "facility_type_descriptions is held as a derived sibling field distinct from the source taxonomy codes — the source taxonomy slots are read and are not mutated, a separate field is written.",
+                          "requirement": "facility_type_descriptions is held as a derived sibling field distinct from the source taxonomy codes \u2014 the source taxonomy slots are read and are not mutated, a separate field is written.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -16237,7 +16218,7 @@
                           "req_id": "EPIC-010-F-005-S-005-REQ-B-004",
                           "orphan": false,
                           "name": "Facility-type field re-derived on every run via $set",
-                          "requirement": "The facility-type field is re-derived on every run — the field is overwritten via $set each pass rather than merged or appended.",
+                          "requirement": "The facility-type field is re-derived on every run \u2014 the field is overwritten via $set each pass rather than merged or appended.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -16256,7 +16237,7 @@
                           "req_id": "EPIC-010-F-005-S-005-REQ-B-005",
                           "orphan": false,
                           "name": "No catalog match leaves facility_type_descriptions absent, not defaulted",
-                          "requirement": "An institutional provider whose taxonomies resolve to no catalog entry receives no facility_type_descriptions field — left absent, not defaulted (the update is queued only when descriptions is non-empty).",
+                          "requirement": "An institutional provider whose taxonomies resolve to no catalog entry receives no facility_type_descriptions field \u2014 left absent, not defaulted (the update is queued only when descriptions is non-empty).",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -16325,7 +16306,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-003",
                           "orphan": false,
-                          "name": "County object carries 5-digit county FIPS identity plus…",
+                          "name": "County object carries 5-digit county FIPS identity plus\u2026",
                           "requirement": "County identity on a resolved eligible practice address is a county object carrying a 5-digit county FIPS as its identity and a source label naming the authority that resolved it.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16382,7 +16363,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-006",
                           "orphan": false,
-                          "name": "County source label normalized to schema-enum vocabulary before…",
+                          "name": "County source label normalized to schema-enum vocabulary before\u2026",
                           "requirement": "A county source label is normalized to the schema-enum vocabulary before it is persisted: each legacy per-pass success label maps to its canonical success authority, and every legacy failure label maps to county_unresolvable.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16402,7 +16383,7 @@
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-007",
                           "orphan": false,
                           "name": "County derived from the address, not read from any source field",
-                          "requirement": "County is derived from the address (ZIP → crosswalk lookup, else the address string → geocoder), not read from any source field.",
+                          "requirement": "County is derived from the address (ZIP \u2192 crosswalk lookup, else the address string \u2192 geocoder), not read from any source field.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -16421,7 +16402,7 @@
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-008",
                           "orphan": false,
                           "name": "Cost-ordered cascade",
-                          "requirement": "County resolution proceeds through a cost-ordered cascade (zip_crosswalk → census_batch → nppes_registry → google_maps); the first stage to resolve stamps the county and later stages run only on the unresolved residue.",
+                          "requirement": "County resolution proceeds through a cost-ordered cascade (zip_crosswalk \u2192 census_batch \u2192 nppes_registry \u2192 google_maps); the first stage to resolve stamps the county and later stages run only on the unresolved residue.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -16439,7 +16420,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-009",
                           "orphan": false,
-                          "name": "google_maps stage is paid final authority, gated by google_maps_enabled…",
+                          "name": "google_maps stage is paid final authority, gated by google_maps_enabled\u2026",
                           "requirement": "The google_maps stage is the paid final cascade authority and runs only when the run's google_maps_enabled flag is set; a run with the flag off resolves without it.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16458,8 +16439,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-010",
                           "orphan": false,
-                          "name": "Unresolvable county left absent (never defaulted), recorded in durable…",
-                          "requirement": "A county that no stage can resolve is left absent — never defaulted to a placeholder FIPS — and is recorded as unresolvable (source=county_unresolvable, fips absent, name empty), written to the durable discrepancy store separate from the provider data.",
+                          "name": "Unresolvable county left absent (never defaulted), recorded in durable\u2026",
+                          "requirement": "A county that no stage can resolve is left absent \u2014 never defaulted to a placeholder FIPS \u2014 and is recorded as unresolvable (source=county_unresolvable, fips absent, name empty), written to the durable discrepancy store separate from the provider data.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -16477,8 +16458,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-011",
                           "orphan": false,
-                          "name": "County object held distinct under addr['county'], never overwriting…",
-                          "requirement": "The county object is held distinct from the source address fields — nested under addr[\"county\"], never overwriting line1/city/state/zip.",
+                          "name": "County object held distinct under addr['county'], never overwriting\u2026",
+                          "requirement": "The county object is held distinct from the source address fields \u2014 nested under addr[\"county\"], never overwriting line1/city/state/zip.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -16496,7 +16477,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-006-REQ-B-012",
                           "orphan": false,
-                          "name": "On true-duplicate address merge, a populated county is preserved over a…",
+                          "name": "On true-duplicate address merge, a populated county is preserved over a\u2026",
                           "requirement": "When two addresses collapse as a true duplicate, a populated county on either input is preserved on the merged entry (a populated value is not dropped in favor of a null).",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16547,7 +16528,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-002",
                           "orphan": false,
-                          "name": "RUCC absent (never defaulted) on unresolved FIPS or non-numeric-FIPS…",
+                          "name": "RUCC absent (never defaulted) on unresolved FIPS or non-numeric-FIPS\u2026",
                           "requirement": "The RUCC raw code is absent (never defaulted) on any practice address whose FIPS does not resolve in the USDA catalog, and on any county resolved by a non-numeric-FIPS authority (e.g. Google).",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16566,7 +16547,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-003",
                           "orphan": false,
-                          "name": "Per-address urban standing at county.urban derived from same address's…",
+                          "name": "Per-address urban standing at county.urban derived from same address's\u2026",
                           "requirement": "Each practice address carries a per-address urban standing at practice_addresses[i].county.urban, derived from that same address's county.rucc.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16623,7 +16604,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-006",
                           "orphan": false,
-                          "name": "Provider-level urban is most-urban (lowest RUCC) across all practice…",
+                          "name": "Provider-level urban is most-urban (lowest RUCC) across all practice\u2026",
                           "requirement": "Each provider carries a single provider-level urban standing (top-level field `urban`) computed as the most-urban (lowest RUCC) across all the provider's practice addresses.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16642,7 +16623,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-007",
                           "orphan": false,
-                          "name": "Provider-level urban absent (never false) where no address has a…",
+                          "name": "Provider-level urban absent (never false) where no address has a\u2026",
                           "requirement": "The provider-level urban standing is absent (never false) where no practice address has a resolved RUCC.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16680,7 +16661,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-009",
                           "orphan": false,
-                          "name": "urban_flag step declares county_enrichment as prerequisite and runs…",
+                          "name": "urban_flag step declares county_enrichment as prerequisite and runs\u2026",
                           "requirement": "The urban_flag step declares county_enrichment (RUCC resolution) as a prerequisite and runs only after it.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16699,7 +16680,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-010",
                           "orphan": false,
-                          "name": "Urban derivation applied per state partition, scoped to run_id and…",
+                          "name": "Urban derivation applied per state partition, scoped to run_id and\u2026",
                           "requirement": "The urban derivation is applied per state partition of a run, scoped to the run's documents (run_id) intersected with the partition's business-state filter (default ALL).",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16718,8 +16699,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-011",
                           "orphan": false,
-                          "name": "Urban standings recomputed on every run via single server-side…",
-                          "requirement": "The urban standings are recomputed on every run — a single server-side update_many re-derives both markers over that run's documents rather than reading a prior run's stored value.",
+                          "name": "Urban standings recomputed on every run via single server-side\u2026",
+                          "requirement": "The urban standings are recomputed on every run \u2014 a single server-side update_many re-derives both markers over that run's documents rather than reading a prior run's stored value.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -16737,7 +16718,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-007-REQ-B-012",
                           "orphan": false,
-                          "name": "Populated urban value preserved on merged entry through true-duplicate…",
+                          "name": "Populated urban value preserved on merged entry through true-duplicate\u2026",
                           "requirement": "When two practice addresses collapse as a true duplicate, a populated urban value on either input is preserved on the merged entry.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -16820,7 +16801,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-009-REQ-B-001",
                           "orphan": false,
-                          "name": "can_prescribe flag derived from specialty vocabulary against primary…",
+                          "name": "can_prescribe flag derived from specialty vocabulary against primary\u2026",
                           "requirement": "Every individual provider record carries a boolean can_prescribe flag, derived from the specialty vocabulary (the F-105 catalog, ProprietaryData.SpecialtyAndProviderFlags) against the provider's primary taxonomy code.",
                           "priority": "must-have",
                           "status": "done",
@@ -16839,7 +16820,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-009-REQ-B-002",
                           "orphan": false,
-                          "name": "is_homeopathic flag derived from specialty vocabulary against primary…",
+                          "name": "is_homeopathic flag derived from specialty vocabulary against primary\u2026",
                           "requirement": "Every individual provider record carries a boolean is_homeopathic flag, derived from the specialty vocabulary against the provider's primary taxonomy code.",
                           "priority": "must-have",
                           "status": "done",
@@ -16858,7 +16839,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-009-REQ-B-003",
                           "orphan": false,
-                          "name": "Clinical flags held as derived facts via $set keyed off per-NUCC-code…",
+                          "name": "Clinical flags held as derived facts via $set keyed off per-NUCC-code\u2026",
                           "requirement": "The clinical flags are held as ChatHealthy-derived facts on the provider record, distinct from source fields, stamped via a $set write keyed off the catalog which is keyed per NUCC taxonomy code.",
                           "priority": "must-have",
                           "status": "done",
@@ -16878,7 +16859,7 @@
                           "req_id": "EPIC-010-F-005-S-009-REQ-B-004",
                           "orphan": false,
                           "name": "Missing catalog code with no sink raises rather than defaulting to false",
-                          "requirement": "When a provider's primary taxonomy code is absent from the catalog and no discrepancy sink is present, the flag is not defaulted to false — a ChatHealthyException(mode=\"taxonomy_code_missing_from_catalog\") is raised.",
+                          "requirement": "When a provider's primary taxonomy code is absent from the catalog and no discrepancy sink is present, the flag is not defaulted to false \u2014 a ChatHealthyException(mode=\"taxonomy_code_missing_from_catalog\") is raised.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -16935,7 +16916,7 @@
                           "req_id": "EPIC-010-F-005-S-009-REQ-B-007",
                           "orphan": false,
                           "name": "Flags recomputed on every run",
-                          "requirement": "The flags are recomputed on every run — each invocation re-reads the catalog and re-scans and re-stamps every matched provider record for that run_id; no prior flag value is read forward from a source field.",
+                          "requirement": "The flags are recomputed on every run \u2014 each invocation re-reads the catalog and re-scans and re-stamps every matched provider record for that run_id; no prior flag value is read forward from a source field.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -16972,7 +16953,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-009-REQ-B-009",
                           "orphan": false,
-                          "name": "Enrichment step wrapper re-raises engine exceptions without…",
+                          "name": "Enrichment step wrapper re-raises engine exceptions without\u2026",
                           "requirement": "The enrichment step wrapper re-raises any exception the flag engine propagates rather than swallowing it or substituting a defaulted flag value.",
                           "priority": "must-have",
                           "status": "done",
@@ -17004,8 +16985,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-010-REQ-B-001",
                           "orphan": false,
-                          "name": "Curated clinical-role overlay in…",
-                          "requirement": "Provider records carry a curated clinical-role overlay — the F-105 catalog held in ProprietaryData.SpecialtyAndProviderFlags — that distinguishes licensed clinical taxonomies from non-clinical ones, keyed per NUCC taxonomy code (the is_disqualified / is_licensed_clinical_role discriminator, per BUG-005).",
+                          "name": "Curated clinical-role overlay in\u2026",
+                          "requirement": "Provider records carry a curated clinical-role overlay \u2014 the F-105 catalog held in ProprietaryData.SpecialtyAndProviderFlags \u2014 that distinguishes licensed clinical taxonomies from non-clinical ones, keyed per NUCC taxonomy code (the is_disqualified / is_licensed_clinical_role discriminator, per BUG-005).",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -17023,7 +17004,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-010-REQ-B-002",
                           "orphan": false,
-                          "name": "A curated correction is a human-maintained overlay with its own…",
+                          "name": "A curated correction is a human-maintained overlay with its own\u2026",
                           "requirement": "A curated correction is a human-maintained overlay that carries its own authority tag; it is an additional element beside the source, not a source field.",
                           "priority": "must-have",
                           "status": "done",
@@ -17043,7 +17024,7 @@
                           "req_id": "EPIC-010-F-005-S-010-REQ-B-003",
                           "orphan": false,
                           "name": "A curated correction never overwrites the source value it repairs",
-                          "requirement": "A curated correction never overwrites the source value it repairs — no authority's assertion is silently converted into another's.",
+                          "requirement": "A curated correction never overwrites the source value it repairs \u2014 no authority's assertion is silently converted into another's.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -17061,7 +17042,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-010-REQ-B-004",
                           "orphan": false,
-                          "name": "A curated correction carries a triage standing and a draft/untriaged…",
+                          "name": "A curated correction carries a triage standing and a draft/untriaged\u2026",
                           "requirement": "A curated correction carries a triage standing (an untriaged value has a state), and a draft/untriaged value never reaches served (production) data.",
                           "priority": "must-have",
                           "status": "done",
@@ -17080,7 +17061,7 @@
                         {
                           "req_id": "EPIC-010-F-005-S-010-REQ-B-005",
                           "orphan": false,
-                          "name": "A reconciliation cycle is triggered by each new upstream reference…",
+                          "name": "A reconciliation cycle is triggered by each new upstream reference\u2026",
                           "requirement": "A reconciliation cycle is triggered by each new upstream reference release.",
                           "priority": "must-have",
                           "status": "done",
@@ -17099,8 +17080,8 @@
                         {
                           "req_id": "EPIC-010-F-005-S-010-REQ-B-006",
                           "orphan": false,
-                          "name": "A curated correction is always preserved across a refresh…",
-                          "requirement": "A curated correction is always preserved across a refresh — it is carry-forward and is never recomputed or overwritten by a fire.",
+                          "name": "A curated correction is always preserved across a refresh\u2026",
+                          "requirement": "A curated correction is always preserved across a refresh \u2014 it is carry-forward and is never recomputed or overwritten by a fire.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -17243,7 +17224,7 @@
                           "req_id": "EPIC-010-F-006-S-001-REQ-B-006",
                           "orphan": false,
                           "name": "Provider staging-row partition predicate over a flat state field",
-                          "requirement": "The staging-collection partition predicate applies the same sentinel / named-state / empty handling against a FLAT `state` field on harvested staging rows — a field distinct from the business_address.state read on provider records.",
+                          "requirement": "The staging-collection partition predicate applies the same sentinel / named-state / empty handling against a FLAT `state` field on harvested staging rows \u2014 a field distinct from the business_address.state read on provider records.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -17750,7 +17731,7 @@
                     "story_id": "EPIC-010-F-007-S-002",
                     "orphan": false,
                     "name": "Construct the ProviderMedicare front-end collection",
-                    "description": "Construct the ProviderMedicare front-end-bound collection, keyed by NPI and molecule — one record per molecule per provider. Constructed from chatHealthy.ai's Provider collection (NPI, entity type, NUCC codes), Medicare Part B 'by Provider and Service' (billed procedures and volume), Medicare Part D 'by Provider and Drug' (prescribed drugs), the Medicare Coverage collection (procedure to covered diagnoses), FDA SPL/openFDA and RxNorm (drug molecule and label indications), a CMS provider-enrollment source that links each organizational NPI to its CCN, and the CMS Provider-of-Services file (certified bed count for size).",
+                    "description": "Construct the ProviderMedicare front-end-bound collection, keyed by NPI and molecule \u2014 one record per molecule per provider. Constructed from chatHealthy.ai's Provider collection (NPI, entity type, NUCC codes), Medicare Part B 'by Provider and Service' (billed procedures and volume), Medicare Part D 'by Provider and Drug' (prescribed drugs), the Medicare Coverage collection (procedure to covered diagnoses), FDA SPL/openFDA and RxNorm (drug molecule and label indications), a CMS provider-enrollment source that links each organizational NPI to its CCN, and the CMS Provider-of-Services file (certified bed count for size).",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
@@ -17760,7 +17741,7 @@
                           "req_id": "EPIC-010-F-007-S-002-REQ-B-001",
                           "orphan": false,
                           "name": "One ProviderMedicare record per molecule per provider",
-                          "requirement": "ProviderMedicare is keyed by NPI and molecule — one record per molecule per provider in the Provider collection.",
+                          "requirement": "ProviderMedicare is keyed by NPI and molecule \u2014 one record per molecule per provider in the Provider collection.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],

@@ -12,9 +12,6 @@
     "molecule",
     "indications",
     "drug_class",
-    "brand_exact_keys",
-    "brand_keys",
-    "generic_keys",
     "trust",
     "run_id",
     "data_version",
@@ -90,6 +87,20 @@
             ]
           },
           "description": "Provenance of the clean molecule name(s), unioned across the folded labels."
+        },
+        "label_brand_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The brand names on the molecule's labels, first-seen order, folded case-insensitively. The first rung of the RxNorm identity ladder resolves from these."
+        },
+        "label_generic_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The generic names on the molecule's labels, first-seen order, folded case-insensitively. The second rung of the identity ladder resolves from these."
         }
       }
     },
@@ -139,10 +150,27 @@
           },
           "trust": {
             "type": [
-              "number",
+              "string",
               "null"
             ],
-            "description": "Model confidence for an INFERRED crosswalk (PROPOSED, EPIC-010-F-002): the weakest code confidence in the union; null when none is carried."
+            "bsonType": [
+              "decimal",
+              "null"
+            ],
+            "description": "Exact decimal. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+            "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The canonical indication's plain-language name. Present on an entry the judged pass produced."
+          },
+          "source_texts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every verbatim label wording this canonical indication absorbed. Each wording appears in exactly one entry's source_texts."
           }
         }
       }
@@ -178,27 +206,6 @@
         }
       }
     },
-    "brand_exact_keys": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Normalized exact brand keys (tier 1) unioned across labels; the CMS brand matches on these. Indexed (LLD v83 III.8)."
-    },
-    "brand_keys": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Salt/form-normalized brand keys (tier 2) unioned across labels. Indexed."
-    },
-    "generic_keys": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Normalized generic keys (tier 3) unioned across labels. Indexed."
-    },
     "trust": {
       "type": "object",
       "additionalProperties": false,
@@ -206,30 +213,51 @@
       "properties": {
         "max": {
           "type": [
-            "number",
+            "string",
             "null"
-          ]
+          ],
+          "bsonType": [
+            "decimal",
+            "null"
+          ],
+          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
         },
         "min": {
           "type": [
-            "number",
+            "string",
             "null"
           ],
-          "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+          "bsonType": [
+            "decimal",
+            "null"
+          ],
+          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
         },
         "median": {
           "type": [
-            "number",
+            "string",
             "null"
           ],
-          "description": "The middle value (statistical median)."
+          "bsonType": [
+            "decimal",
+            "null"
+          ],
+          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
         },
         "avg": {
           "type": [
-            "number",
+            "string",
             "null"
           ],
-          "description": "The sum divided by the count."
+          "bsonType": [
+            "decimal",
+            "null"
+          ],
+          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
         }
       }
     },
@@ -257,6 +285,75 @@
         },
         "built_at": {
           "type": "string"
+        }
+      }
+    },
+    "rxcui_in": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The RxNorm ingredient RXCUI this molecule resolves to (RXNCONSO TTY=IN). The identifier the provider and specialty collections join on. Absent when the identity ladder resolves nothing."
+    },
+    "unii": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The FDA Unique Ingredient Identifier of that ingredient, read from its MTHSPL TTY=SU row's CODE. FDA assigns a UNII permanently and never reuses it, so it is the immutable identity."
+    },
+    "identity_path": {
+      "type": "string",
+      "enum": [
+        "brand",
+        "generic"
+      ],
+      "description": "Which rung of the identity ladder answered: the CMS or label brand name, or the generic name."
+    },
+    "identity_also": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rxcui_in": {
+            "type": "string"
+          },
+          "unii": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "rxcui_in"
+        ]
+      },
+      "description": "The further ingredients a combination brand reaches beyond the first, so nothing resolved is dropped."
+    },
+    "label_classes": {
+      "type": "array",
+      "description": "One entry per contributing label: its own drug class and openFDA product type. drug_class on the molecule is the union across these, so the per-label entry is what says whether a given product needed a prescription.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "set_id"
+        ],
+        "properties": {
+          "set_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "drug_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     }

@@ -33,6 +33,7 @@ _FORMAT_TOKEN = {
     "zip_containing_json": ("zip_json", None),
     "zip_containing_icd10cm_order": ("zip_icd10cm_order", None),
     "rrf_rxnconso": ("rrf_rxnconso", None),
+    "rrf_rxnrel": ("rrf_rxnrel", None),
 }
 
 
@@ -43,15 +44,32 @@ _FORMAT_TOKEN = {
 #   prscrbr_state__id -- the base fans out on the row's own CMS state and
 #       pages by _id within it; without this, each of the 61 state workers
 #       scans all 28M rows.
-#   prscrbr_npi -- the audit recomputes a sampled record from the source rows
-#       of one NPI. The existing (run_id, raw.Prscrbr_NPI) index cannot serve
-#       a query that carries no run_id, and the query carries none by design:
-#       a drained-and-replaced staging is the one truth.
+#   molecule_id__id -- the specialty rollup fans out on the molecule and pages
+#       by _id within its slice, so each worker reads only the rows of the
+#       molecules it owns.
+#   tty -- the identity ladder reads the ingredient, brand and substance rows
+#       out of 1.2M RXNCONSO rows.
+#   rela -- the ladder follows only the relationships that reach an
+#       ingredient, out of 7.5M RXNREL rows.
 STAGING_INDEXES: dict[str, list[dict]] = {
     "medicare_partd": [
         {"keys": [("raw.Prscrbr_State_Abrvtn", 1), ("_id", 1)],
          "name": "prscrbr_state__id"},
-        {"keys": [("raw.Prscrbr_NPI", 1)], "name": "prscrbr_npi"},
+        {"keys": [("molecule_id", 1), ("_id", 1)], "name": "molecule_id__id"},
+    ],
+    "rxnorm": [
+        {"keys": [("raw.TTY", 1)], "name": "tty"},
+    ],
+    "rxnorm_rel": [
+        {"keys": [("raw.RELA", 1)], "name": "rela"},
+    ],
+    "openfda_labels": [
+        # index_fda_prescription_records and build_fda_label_resolution both
+        # query by fda_record_number and carry no run_id, by design: a
+        # drained-and-replaced staging is the one truth. The existing
+        # (run_id, fda_record_number) index leads with run_id, so it cannot
+        # serve a query that does not name one.
+        {"keys": [("fda_record_number", 1)], "name": "fda_record_number_1"},
     ],
 }
 

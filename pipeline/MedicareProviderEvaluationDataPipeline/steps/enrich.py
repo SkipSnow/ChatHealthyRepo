@@ -10,7 +10,7 @@ and an organization's CCN and size tier; the FDA molecule collection's block
 and indications. One sweep of the partition, not one per fact.
 
 Fans out on source_state, the key the base task wrote; the final
-DropTransientAttributes task removes that key once the audits are done.
+DropTransientAttributes task removes that key once enrichment is done.
 """
 
 from __future__ import annotations

@@ -33,11 +33,16 @@ from typing import Any
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from pymongo import UpdateOne
+from pymongo.errors import BulkWriteError
 
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_enrich_drugs_engine import (
     fda_block_from)
+from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
+    _bson, _dec)
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_enrich_org_engine import (
     _band, _build_pos_index, _extract_ccn)
+from pipeline.MedicareProviderEvaluationDataPipeline.medicare_store_contract import (
+    record_refused_writes)
 
 _log = ChatHealthyLoggingService()
 
@@ -96,6 +101,29 @@ def _pages(target_coll, state: str, page_size: int):
         yield from page
 
 
+def _apply_conforming(target_coll, ops: list, keys: list[str], *,
+                      record_discrepancy) -> int:
+    """Apply a batch of enrichment updates; return how many the store took.
+
+    UNORDERED, so an update the collection's validator refuses leaves the
+    conforming updates in the same batch applied. Each refused document
+    becomes its own per-record finding carrying its NPI and molecule.
+    """
+    try:
+        target_coll.bulk_write(ops, ordered=False)
+        return len(ops)
+    except BulkWriteError as exc:
+        refused = record_refused_writes(
+            details=exc.details,
+            keys=keys,
+            artifact="providermedicare",
+            step="enrich",
+            record_discrepancy=record_discrepancy,
+            exception=exc,
+        )
+        return len(ops) - refused
+
+
 def enrich_partition(
     *,
     state: str,
@@ -103,7 +131,7 @@ def enrich_partition(
     provider_coll,
     fda_coll,
     pos_coll,
-    record_discrepancy=None,
+    record_discrepancy,
     batch_size: int = 500,
     page_size: int = 1000,
 ) -> dict[str, Any]:
@@ -124,7 +152,9 @@ def enrich_partition(
     provider_cache: dict[str, dict] = {}
     fda_cache: dict[str, dict | None] = {}
     ops: list[UpdateOne] = []
-    seen = written = without_provider = without_fda = sized = 0
+    keys: list[str] = []
+    seen = written = offered = without_provider = without_fda = sized = 0
+    with_identity = without_identity = 0
     missing_npis: set[str] = set()
 
     for rec in _pages(target_coll, state, page_size):
@@ -141,12 +171,11 @@ def enrich_partition(
             if npi not in missing_npis:
                 missing_npis.add(npi)
                 without_provider += 1
-                if record_discrepancy is not None:
-                    record_discrepancy(
-                        reason="FDA_NPI_not_found_In_Providers",
-                        step="enrich", artifact="providermedicare",
-                        record_key=npi,
-                        detail={"kind": "npi_not_in_provider_collection"})
+                record_discrepancy(
+                    reason="FDA_NPI_not_found_In_Providers",
+                    step="enrich", artifact="providermedicare",
+                    record_key=npi,
+                    detail={"kind": "npi_not_in_provider_collection"})
 
         setter: dict[str, Any] = dict(provider_facts(provider_doc))
 
@@ -159,7 +188,9 @@ def enrich_partition(
                 sized += 1
 
         if mid not in fda_cache:
-            fda_doc = fda_coll.find_one({"_id": mid})
+            # _dec on the way in: a stored Decimal128 carries no arithmetic,
+            # so it comes home to Decimal before anything reads it.
+            fda_doc = _dec(fda_coll.find_one({"_id": mid}))
             fda_cache[mid] = fda_doc
         fda_doc = fda_cache[mid]
         if fda_doc is None:
@@ -167,29 +198,48 @@ def enrich_partition(
         else:
             setter["fda"] = fda_block_from(fda_doc)
             setter["indications"] = fda_doc.get("indications") or []
+            # The external identity, resolved once by the serial FDA finalize
+            # and carried here by the molecule's own document.
+            if fda_doc.get("rxcui_in"):
+                setter["rxcui_in"] = fda_doc["rxcui_in"]
+                with_identity += 1
+                if fda_doc.get("unii"):
+                    setter["unii"] = fda_doc["unii"]
+                if fda_doc.get("identity_path"):
+                    setter["identity_path"] = fda_doc["identity_path"]
+            else:
+                without_identity += 1
 
-        ops.append(UpdateOne({"_id": rec["_id"]}, {"$set": setter}))
+        ops.append(UpdateOne({"_id": rec["_id"]}, {"$set": _bson(setter)}))
+        keys.append(f"{npi}:{mid}")
         if len(ops) >= batch_size:
-            target_coll.bulk_write(ops, ordered=False)
-            written += len(ops)
+            offered += len(ops)
+            written += _apply_conforming(
+                target_coll, ops, keys, record_discrepancy=record_discrepancy)
             ops = []
+            keys = []
     if ops:
-        target_coll.bulk_write(ops, ordered=False)
-        written += len(ops)
+        offered += len(ops)
+        written += _apply_conforming(
+            target_coll, ops, keys, record_discrepancy=record_discrepancy)
 
     result = {
         "partition": state,
         "records_seen": seen,
         "records_written": written,
+        "records_refused_by_contract": offered - written,
         "npis_without_provider_record": without_provider,
         "records_without_fda_molecule": without_fda,
+        "records_with_external_identity": with_identity,
+        "records_without_external_identity": without_identity,
         "organizations_sized": sized,
         "providers_resolved": len(provider_cache),
         "molecules_resolved": len(fda_cache),
     }
     _log.LogPipeline(
         "INFO",
-        "enrich[%s]: records=%d written=%d npis_without_provider=%d "
-        "without_fda=%d sized=%d",
-        state, seen, written, without_provider, without_fda, sized)
+        "enrich[%s]: records=%d written=%d refused=%d "
+        "npis_without_provider=%d without_fda=%d sized=%d",
+        state, seen, written, offered - written, without_provider,
+        without_fda, sized)
     return result

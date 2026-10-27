@@ -22,8 +22,9 @@
       "description": "NUCC code. From the provider NUCC array; never Prscrbr_Type."
     },
     "molecules": {
-      "type": "array",
-      "items": {
+      "type": "object",
+      "description": "One entry per molecule, keyed by the molecule's id. A map rather than an array because the rollup fans out by molecule: each worker writes the keys it owns and no two workers write the same key.",
+      "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -47,13 +48,19 @@
                 "type": "number"
               },
               "tot_30day_fills": {
-                "type": "number"
+                "type": "string",
+                "bsonType": "decimal",
+                "description": "Exact decimal. Python parses and sums it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); it is never produced, parsed or summed through a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
               },
               "tot_day_suply": {
                 "type": "number"
               },
               "tot_drug_cst": {
-                "type": "number"
+                "type": "string",
+                "bsonType": "decimal",
+                "description": "Exact decimal. Python parses and sums it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); it is never produced, parsed or summed through a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
               }
             }
           },
@@ -80,30 +87,57 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               },
@@ -119,30 +153,51 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               },
@@ -158,30 +213,57 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               },
@@ -197,30 +279,51 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               }
@@ -235,13 +338,19 @@
                 "type": "number"
               },
               "tot_30day_fills": {
-                "type": "number"
+                "type": "string",
+                "bsonType": "decimal",
+                "description": "Exact decimal. Python parses and sums it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); it is never produced, parsed or summed through a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
               },
               "tot_day_suply": {
                 "type": "number"
               },
               "tot_drug_cst": {
-                "type": "number"
+                "type": "string",
+                "bsonType": "decimal",
+                "description": "Exact decimal. Python parses and sums it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); it is never produced, parsed or summed through a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
               }
             }
           },
@@ -268,30 +377,57 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               },
@@ -307,30 +443,51 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               },
@@ -346,30 +503,57 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "integer",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128."
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "integer",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "int",
+                      "long",
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "A counted measure. max, min and median are observed values and are integers; an even-length median and the average may divide, so both also accept an exact decimal stored as Decimal128.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               },
@@ -385,30 +569,51 @@
                 "properties": {
                   "max": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
-                    ]
+                    ],
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "min": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "Smallest value greater than zero -- a 0 is not a min; zero values are excluded. Null when no non-zero value exists."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "median": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The middle value (statistical median)."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   },
                   "avg": {
                     "type": [
-                      "number",
+                      "string",
                       "null"
                     ],
-                    "description": "The sum divided by the count."
+                    "bsonType": [
+                      "decimal",
+                      "null"
+                    ],
+                    "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
+                    "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
                   }
                 }
               }

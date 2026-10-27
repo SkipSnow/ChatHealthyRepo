@@ -208,8 +208,7 @@ def test_medicare_prereq_before_start_point_is_vouched_by_data_not_history():
     assert "build_providermedicare_base" not in manifest.completed_steps
     assert orch.invoked == MED_ALWAYS_RUN + [
         "enrich", "drop_transient_attributes_and_records",
-        "rollup_specialtymedicare",
-        "medicare_contract_conformance"] \
+        "rollup_specialtymedicare"] \
         + MED_FINALLY_STEPS
 
 
@@ -438,8 +437,11 @@ def test_base_class_gate_is_virtual_and_raises_unimplemented():
 # ARGUMENT PLUMBING -- CLI -> namespace -> PipelineArgs
 # ==========================================================================
 
+# --expected-duration-minutes is MANDATORY: the run's window is argued by the
+# operator and nothing invents one (operator ruling 2026-10-24).
 _REQUIRED_CLI = ["--data-version", "1", "--run-id", "test-run",
-                 "--provider-collection", "c.d.coll"]
+                 "--provider-collection", "c.d.coll",
+                 "--expected-duration-minutes", "1440"]
 
 
 def test_cli_start_at_step_reaches_the_namespace(monkeypatch):

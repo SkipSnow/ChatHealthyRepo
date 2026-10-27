@@ -64,7 +64,6 @@ _STEP_MODULE_PATHS: dict[str, str] = {
     "enrich": "pipeline.MedicareProviderEvaluationDataPipeline.steps.enrich",
     "drop_transient_attributes_and_records": "pipeline.MedicareProviderEvaluationDataPipeline.steps.drop_transient_attributes_and_records",
     "rollup_specialtymedicare": "pipeline.MedicareProviderEvaluationDataPipeline.steps.rollup_specialtymedicare",
-    "medicare_contract_conformance": "pipeline.MedicareProviderEvaluationDataPipeline.steps.medicare_contract_conformance",
 }
 
 

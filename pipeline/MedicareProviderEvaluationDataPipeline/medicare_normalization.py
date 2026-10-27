@@ -20,7 +20,10 @@ single source of truth for the engines that import them.
 from __future__ import annotations
 
 import hashlib
+from decimal import Decimal, InvalidOperation
 from typing import Any, Callable, Iterable
+
+from bson.decimal128 import Decimal128
 
 # --- CMS Part D "Prescribers by Provider and Drug" ---------------------------
 # Record grain in the source: Prscrbr_NPI + Brnd_Name + Gnrc_Name.
@@ -64,15 +67,92 @@ PARTB_COLS = {
 }
 
 
-def _num(val: Any) -> float | int | None:
-    """Parse a CMS numeric cell to int (when integral) or float; None if blank."""
+def _num(val: Any) -> Decimal | int | None:
+    """Parse a CMS numeric cell exactly: int when integral, else Decimal.
+    None if blank.
+
+    No float, ever. A binary float cannot hold a cent value -- 5994.01 is not
+    representable -- and the error compounds over every addition in a fold of
+    28M rows: it is what made tot_drug_cst read 13989119.740000082. Decimal
+    holds the source's own digits, sums exactly, and is written to Mongo as
+    Decimal128 by _bson (see that function for how the three layers line up).
+    """
     if val is None or val == "":
         return None
     try:
-        f = float(str(val).replace(",", ""))
-        return int(f) if f.is_integer() else f
-    except (TypeError, ValueError):
+        d = Decimal(str(val).replace(",", ""))
+    except (TypeError, ValueError, InvalidOperation):
         return None
+    return int(d) if d == d.to_integral_value() else d
+
+
+def _dedup_names(names: Iterable[Any]) -> list[str]:
+    """Names in first-seen order, blanks dropped, folded case-insensitively so
+    OMEPRAZOLE and Omeprazole are one name."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for n in names:
+        text = str(n or "").strip()
+        if not text:
+            continue
+        key = " ".join(text.upper().split())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
+
+
+def _exact(val: Any) -> Decimal | None:
+    """A measured value: always a Decimal, never an int.
+
+    Money and fills are measured, not counted, so their type does not depend
+    on the value: a cost of exactly 100 is 100 as a decimal, which keeps the
+    contract's decimal type true for every record rather than for most of
+    them.
+    """
+    if val is None or val == "":
+        return None
+    try:
+        return Decimal(str(val).replace(",", ""))
+    except (TypeError, ValueError, InvalidOperation):
+        return None
+
+
+def _bson(val: Any) -> Any:
+    """A parsed value as Mongo stores it: Decimal becomes Decimal128.
+
+    The three layers hold the same number three ways and all of them are
+    exact. JSON has no decimal type, so the published contract declares these
+    fields `number` and says so in its note; Python carries them as Decimal;
+    BSON carries them as Decimal128 (bsonType `decimal`). pymongo cannot
+    encode a Decimal, so the conversion happens here, at the write boundary,
+    rather than anywhere arithmetic is done.
+    """
+    if isinstance(val, Decimal):
+        return Decimal128(val)
+    if isinstance(val, dict):
+        return {k: _bson(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [_bson(v) for v in val]
+    return val
+
+
+def _dec(val: Any) -> Any:
+    """The other side of _bson: a stored value brought back for arithmetic.
+
+    Decimal128 carries no arithmetic of its own -- a + b on two of them is a
+    TypeError -- so every value read from the store passes through here before
+    it is summed or compared. Reading is as much a conversion as writing, and
+    a rollup that reads its input is where the missing half would have bitten.
+    """
+    if isinstance(val, Decimal128):
+        return val.to_decimal()
+    if isinstance(val, dict):
+        return {k: _dec(v) for k, v in val.items()}
+    if isinstance(val, list):
+        return [_dec(v) for v in val]
+    return val
 
 
 def _npi(raw: dict, col: str) -> str:
@@ -107,14 +187,14 @@ def partd_child(raw: dict) -> dict:
         "brnd_name": raw.get(C["brand"]),
         "gnrc_name": raw.get(C["generic"]),
         "tot_clms": _num(raw.get(C["total_claims"])),
-        "tot_30day_fills": _num(raw.get(C["total_30day_fills"])),
+        "tot_30day_fills": _exact(raw.get(C["total_30day_fills"])),
         "tot_day_suply": _num(raw.get(C["days_supply"])),
-        "tot_drug_cst": _num(raw.get(C["total_drug_cost"])),
+        "tot_drug_cst": _exact(raw.get(C["total_drug_cost"])),
         "tot_benes": None if bene_sup else _num(raw.get(C["beneficiary_count"])),
         "ge65_tot_clms": None if ge65_sup else _num(raw.get(C["ge65_total_claims"])),
-        "ge65_tot_30day_fills": None if ge65_sup else _num(raw.get(C["ge65_total_30day_fills"])),
+        "ge65_tot_30day_fills": None if ge65_sup else _exact(raw.get(C["ge65_total_30day_fills"])),
         "ge65_tot_day_suply": None if ge65_sup else _num(raw.get(C["ge65_days_supply"])),
-        "ge65_tot_drug_cst": None if ge65_sup else _num(raw.get(C["ge65_total_drug_cost"])),
+        "ge65_tot_drug_cst": None if ge65_sup else _exact(raw.get(C["ge65_total_drug_cost"])),
         "ge65_tot_benes": None if ge65_bene_sup else _num(raw.get(C["ge65_beneficiary_count"])),
         "suppression_flags": {
             "Bene_Sprsn_Flag": raw.get(C["bene_sprsn_flag"]),
@@ -131,8 +211,16 @@ def child_ge65_suppressed(child: dict) -> bool:
 
 
 
-def _as_int(v: Any) -> int | float:
-    return int(v) if isinstance(v, float) and v.is_integer() else v
+def _as_int(v: Any) -> Any:
+    """A whole-valued Decimal published as an int; everything else unchanged.
+
+    A count that folds to 3.00 is the number three and is published as 3. A
+    money total is not made whole by this: 5994.01 stays a Decimal and reaches
+    the store as Decimal128.
+    """
+    if isinstance(v, Decimal) and v == v.to_integral_value():
+        return int(v)
+    return v
 # --- v1 drug-collection composition (brand join) -----------------------------
 # A drug is identified in Part D ONLY by brand + generic name -- the CMS "by
 # Provider and Drug" rows carry no rxcui/NDC. The composition therefore joins on
@@ -288,24 +376,6 @@ def _dedup_normalized(names: Any, normalizer: Callable[[Any], str]) -> list[str]
     return keys
 
 
-def normalized_brand_exact_keys(names: Any) -> list[str]:
-    """The deduped list of normalize_brand values for a list of names (NO regex).
-
-    Persisted at FDA build time as brand_exact_key -- the TIER-1 join key: case /
-    whitespace / hyphen-AND normalization only, NO salt/form stripping, so a CMS
-    brand matches the FDA brand_name exactly as written."""
-    return _dedup_normalized(names, normalize_brand)
-
-
-def normalized_brand_keys(names: Any) -> list[str]:
-    """The deduped list of brand_join_key values for a list of names (NO regex).
-
-    Persisted at FDA build time as brand_key (from openfda.brand_name, TIER 2) and
-    generic_key (from openfda.generic_name, TIER 3) -- brand_join_key adds salt/form
-    suffix stripping on top of normalize_brand, so the CMS->FDA join is an exact
-    indexed equality on an already-normalized key (both sides normalized identically
-    by brand_join_key)."""
-    return _dedup_normalized(names, brand_join_key)
 # --- v83 molecule-grain FDA union (LLD v83 III.4.1) ---------------------------
 # One record per molecule, assembling the molecule's per-label resolution
 # results. Pure function: input is the label-result dicts the resolution step
@@ -321,16 +391,41 @@ def _stats_over(values: list) -> dict:
     """max/min/median/avg over numeric values (operator-pinned terms,
     2026-10-20): median = the middle value; avg = the sum divided by the
     count; MIN excludes zeros -- a 0 is not a min. All four null when no
-    value qualifies."""
-    import statistics
-    nums = [float(v) for v in values if isinstance(v, (int, float))]
+    value qualifies.
+
+    Each value keeps the type it arrived in. max and min are observed values
+    and no arithmetic touches them, so a count of 59 is published as 59 and
+    not 59.0; the median of an odd-length set is likewise an observed value.
+    Only avg divides, and it divides in Decimal, so money and fills stay
+    exact.
+    """
+    nums = [v for v in values if isinstance(v, (int, Decimal))
+            and not isinstance(v, bool)]
+    if not nums:
+        return {"max": None, "min": None, "median": None, "avg": None}
     nonzero = [v for v in nums if v > 0]
+    ordered = sorted(nums)
+    middle = len(ordered) // 2
+    if len(ordered) % 2:
+        median = ordered[middle]
+    else:
+        pair = ordered[middle - 1] + ordered[middle]
+        median = pair // 2 if pair % 2 == 0 else _exact_mean([pair], 2)
     return {
-        "max": max(nums) if nums else None,
+        "max": max(nums),
         "min": min(nonzero) if nonzero else None,
-        "median": statistics.median(nums) if nums else None,
-        "avg": (sum(nums) / len(nums)) if nums else None,
+        "median": median,
+        "avg": _exact_mean(nums, len(nums)),
     }
+
+
+def _exact_mean(values: list, count: int):
+    """The mean as an exact number: an int when it divides evenly, otherwise a
+    Decimal. Never a float."""
+    total = sum(values)
+    if isinstance(total, int) and total % count == 0:
+        return total // count
+    return Decimal(total) / Decimal(count)
 
 
 def fda_molecule_union(label_results: list[dict]) -> dict:
@@ -346,9 +441,12 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
     _molecule_sources; molecule.rxcui/unii/substance_name from openfda;
     indications deduped by normalized text with ICD-10 codes unioned by code
     and split to level3/level4; drug_class as the SET of label classes;
-    brand_exact_keys/brand_keys/generic_keys from openfda names; trust
     aggregated max/min/median/avg over the labels' resolution_confidence."""
     set_ids: list[str] = []
+    # Each label's own product type, kept beside its set_id. The molecule's
+    # drug_class is a union across every label it folds, so without this the
+    # record cannot say whether a given product needed a prescription.
+    label_classes: list[dict] = []
     clean_names: list[str] = []
     sources: list[str] = []
     rxcui: list[str] = []
@@ -358,7 +456,6 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
     brand_names: list = []
     generic_names: list = []
     usage_parts: list[str] = []
-    confidences: list = []
     seen = {k: set() for k in
             ("set_id", "clean", "source", "rxcui", "unii", "substance",
              "class", "usage")}
@@ -370,9 +467,19 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
         if sid and sid not in seen["set_id"]:
             seen["set_id"].add(sid)
             set_ids.append(sid)
+            product_type = ((lr.get("openfda") or {}).get("product_type")
+                            or [None])[0]
+            label_classes.append({
+                "set_id": sid,
+                "drug_class": str(lr.get("drug_class") or "").strip() or None,
+                "product_type": product_type,
+            })
         name = str(lr.get("molecule") or "").strip()
-        if name and name not in seen["clean"]:
-            seen["clean"].add(name)
+        # Folded case-insensitively: OMEPRAZOLE and Omeprazole are one name,
+        # and the first spelling seen is the one kept.
+        name_key = " ".join(name.upper().split())
+        if name and name_key not in seen["clean"]:
+            seen["clean"].add(name_key)
             clean_names.append(name)
         src = str(lr.get("molecule_source") or "").strip()
         if src and src not in seen["source"]:
@@ -393,8 +500,6 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
         if usage and usage not in seen["usage"]:
             seen["usage"].add(usage)
             usage_parts.append(usage)
-        if isinstance(lr.get("resolution_confidence"), (int, float)):
-            confidences.append(lr["resolution_confidence"])
         for ind in lr.get("indications") or []:
             _merge_indication(ind_store, ind_order, ind)
 
@@ -405,8 +510,9 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
                          if c.get("level") == 3})
         level4 = sorted({c["icd10_code"] for c in entry["codes"]
                          if c.get("level") == 4})
-        code_confs = [c.get("confidence") for c in entry["codes"]
-                      if isinstance(c.get("confidence"), (int, float))]
+        code_confs = [_num(c.get("confidence")) for c in entry["codes"]
+                      if isinstance(c.get("confidence"), (int, float, str))]
+        code_confs = [c for c in code_confs if c is not None]
         indications.append({
             "raw_text": entry["indication"],
             "icd10": {"level3": level3, "level4": level4},
@@ -419,8 +525,14 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
 
     doc = {
         "set_ids": set_ids,
+        "label_classes": label_classes,
         "molecule": {
             "clean_names": clean_names,
+            # The label's own brand and generic names: what the RxNorm
+            # identity ladder resolves from, and what a reader checks a
+            # resolution against.
+            "label_brand_names": _dedup_names(brand_names),
+            "label_generic_names": _dedup_names(generic_names),
             "rxcui": rxcui,
             "unii": unii,
             "substance_name": substance,
@@ -428,10 +540,11 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
         },
         "indications": indications,
         "drug_class": {"classes": [c for c in _FDA_CLASS_ORDER if c in classes]},
-        "brand_exact_keys": normalized_brand_exact_keys(brand_names),
-        "brand_keys": normalized_brand_keys(brand_names),
-        "generic_keys": normalized_brand_keys(generic_names),
-        "trust": _stats_over(confidences),
+        # The molecule's trust is the distribution of its own indications'
+        # trust. The per-label resolution_confidence the resolver no longer
+        # emits is why this block read null on every record.
+        "trust": _stats_over([i["trust"] for i in indications
+                              if i["trust"] is not None]),
     }
     if usage_parts:
         doc["usage"] = {"summarized_usage": "\n".join(usage_parts)}
@@ -445,6 +558,18 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
 # (max / min>0 / median / avg over the per-provider totals, R1 2026-10-20).
 
 _ROLLUP_MEASURES = ("tot_clms", "tot_30day_fills", "tot_day_suply", "tot_drug_cst")
+
+# Counted things: a whole-valued total is the integer it counts.
+_COUNT_MEASURES = ("tot_clms", "tot_day_suply")
+# Measured things: money and fills stay exact decimals even when whole, so a
+# cost of exactly 100 is 100.00 and the contract's decimal type holds for
+# every record rather than for most of them.
+_EXACT_MEASURES = ("tot_30day_fills", "tot_drug_cst")
+
+
+def _published(measure: str, value: Any) -> Any:
+    """One rollup measure as it is published."""
+    return _as_int(value) if measure in _COUNT_MEASURES else value
 
 
 def accumulate_provider_molecule_totals(rows: Iterable[dict]) -> dict:
@@ -460,13 +585,15 @@ def accumulate_provider_molecule_totals(rows: Iterable[dict]) -> dict:
             continue
         bucket = acc.get((npi, mid))
         if bucket is None:
-            bucket = {k: 0 for k in _ROLLUP_MEASURES}
+            bucket = {k: (Decimal(0) if k in _EXACT_MEASURES else 0)
+                      for k in _ROLLUP_MEASURES}
             acc[(npi, mid)] = bucket
         for field, col in (("tot_clms", C["total_claims"]),
                            ("tot_30day_fills", C["total_30day_fills"]),
                            ("tot_day_suply", C["days_supply"]),
                            ("tot_drug_cst", C["total_drug_cost"])):
-            val = _num(raw.get(col))
+            parse = _exact if field in _EXACT_MEASURES else _num
+            val = parse(raw.get(col))
             if val is not None:
                 bucket[field] += val
     return acc
@@ -486,7 +613,9 @@ def rollup_specialty_v83(acc: dict, nucc_by_npi: dict) -> dict:
     real_totals: dict[str, dict] = {}
     for (npi, mid), totals in acc.items():
         rv = real_values.setdefault(mid, {k: [] for k in _ROLLUP_MEASURES})
-        rt_ = real_totals.setdefault(mid, {k: 0 for k in _ROLLUP_MEASURES})
+        rt_ = real_totals.setdefault(
+            mid, {k: (Decimal(0) if k in _EXACT_MEASURES else 0)
+                  for k in _ROLLUP_MEASURES})
         for k in _ROLLUP_MEASURES:
             rv[k].append(totals[k])
             rt_[k] += totals[k]
@@ -506,9 +635,10 @@ def rollup_specialty_v83(acc: dict, nucc_by_npi: dict) -> dict:
     for (nucc, mid), vals in spec_values.items():
         entry = {
             "molecule_id": mid,
-            "specialty_total": {k: _as_int(sum(vals[k])) for k in _ROLLUP_MEASURES},
+            "specialty_total": {k: _published(k, sum(vals[k]))
+                                for k in _ROLLUP_MEASURES},
             "specialty_stats": {k: _stats_over(vals[k]) for k in _ROLLUP_MEASURES},
-            "molecule_real_total": {k: _as_int(real_totals[mid][k])
+            "molecule_real_total": {k: _published(k, real_totals[mid][k])
                                     for k in _ROLLUP_MEASURES},
             "molecule_real_stats": real_stats[mid],
             "prescriber_count": len(vals[_ROLLUP_MEASURES[0]]),

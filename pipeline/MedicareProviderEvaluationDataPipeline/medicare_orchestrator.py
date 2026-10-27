@@ -173,17 +173,6 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             partition_key="nucc_code",
         ),
         StepSpec(
-            # The audits -- one per published collection. ProviderMedicare by
-            # deterministic cross-section sample recomputed against its source
-            # rows, found by NPI and molecule since source_state is gone; the
-            # FDA and specialty collections in full.
-            name="medicare_contract_conformance",
-            prerequisites=["drop_transient_attributes_and_records",
-                           "rollup_specialtymedicare"],
-            parallelism="serial",
-            aca_job_name="med-audit-collections",
-        ),
-        StepSpec(
             name="quiesce_infrastructure",
             prerequisites=[],
             parallelism="serial",
@@ -206,6 +195,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         "medicare_coverage_hcpc",
         "medicare_coverage_icd10",
         "rxnorm",
+        "rxnorm_rel",
     ]
     # Every fetched source also lands in staging; nothing is load-only now.
     LOAD_SOURCES = FETCH_SOURCES
@@ -219,6 +209,41 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
     # molecule collection; "masters" the ProviderMedicare build. No run_id
     # enters any check: a full load drains-then-replaces every staging
     # collection, so existence-with-rows IS the dependency.
+    def _enum_molecule_slices(self, ctx, *, workers: int,
+                              key: str = "molecule_ids") -> list[dict]:
+        """N contiguous slices of the run's unique molecule list.
+
+        The controller takes the distinct molecule_id from the staged Part D
+        rows -- an indexed field the load step stamps -- sorts it so the split
+        is deterministic, and hands each worker floor(N/workers) molecules.
+        The last slice carries whatever does not divide evenly.
+        """
+        partd = self.registry.by_source_name("medicare_partd")
+        coll = ctx.mongo_client[partd.staging_db][
+            self.registry.staging_collection_name("medicare_partd")]
+        molecules = sorted(m for m in coll.distinct("molecule_id") if m)
+        if not molecules:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=("rollup_specialtymedicare: the staged Part D rows "
+                         "carry no molecule_id, so the molecule fan-out has "
+                         "nothing to partition"),
+                component="medicare_orchestrator")
+        per = len(molecules) // workers
+        slices: list[dict] = []
+        if per == 0:
+            # fewer molecules than workers: one molecule each, no empty slices
+            return [{key: [m]} for m in molecules]
+        for i in range(workers):
+            start = i * per
+            end = len(molecules) if i == workers - 1 else start + per
+            slices.append({key: molecules[start:end]})
+        _log.LogPipeline(
+            "INFO",
+            "rollup fan-out: molecules=%d workers=%d per_worker=%d last=%d",
+            len(molecules), workers, per, len(slices[-1][key]))
+        return slices
+
     STEP_DATA_DEPENDENCIES: dict[str, list[str]] = {
         "prepare_infrastructure": [],
         "medicare_source_freshness_gate": [],
@@ -229,16 +254,17 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         "build_fda_label_resolution": ["fda_stamped"],
         "finalize_fda_molecules": ["if_build_fda:transient",
                                    "if_build_fda:staging:rxnorm",
+                                   "if_build_fda:staging:rxnorm_rel",
                                    "if_consume_fda:fda_published"],
         "clear_and_index_providermedicare_and_specialtymedicare": [],
-        "build_providermedicare_base": ["staging:medicare_partd"],
+        "build_providermedicare_base": ["staging:medicare_partd",
+                                        "staging:rxnorm",
+                                        "staging:rxnorm_rel"],
         "enrich": ["masters", "provider_collection", "fda_published",
                    "staging:medicare_pos"],
         "drop_transient_attributes_and_records": ["masters",
                                                   "provider_collection"],
         "rollup_specialtymedicare": ["masters", "provider_collection"],
-        "medicare_contract_conformance": ["masters", "specialty_published",
-                                          "fda_published"],
         "quiesce_infrastructure": [],
     }
 
@@ -282,17 +308,6 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
                         "openFDA collection carries none", step_name)
                     return False
                 continue
-            elif dep == "partd_stamped":
-                partd = reg.by_source_name("medicare_partd")
-                coll = mongo[partd.staging_db][reg.staging_collection_name("medicare_partd")]
-                if coll.count_documents({"partition_state": {"$exists": True}},
-                                        limit=1) == 0:
-                    _log.LogPipeline(
-                        "ERROR", "StepDataDependenciesAreMet: step=%s needs "
-                        "partition-STAMPED Part D rows (partition_state) and "
-                        "the staged collection carries none", step_name)
-                    return False
-                continue
             elif dep == "transient":
                 ofda = reg.by_source_name("openfda_labels")
                 coll = mongo[ofda.staging_db][TRANSIENT_COLLECTION]
@@ -302,9 +317,6 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             elif dep == "masters":
                 tgt = reg.by_source_name("providermedicare")
                 coll = mongo[tgt.public_data_db][reg.public_data_collection_name("providermedicare")]
-            elif dep == "specialty_published":
-                tgt = reg.by_source_name("specialtymedicare")
-                coll = mongo[tgt.public_data_db][reg.public_data_collection_name("specialtymedicare")]
             elif dep == "provider_collection":
                 from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (  # noqa: PLC0415
                     parse_provider_source)
@@ -332,6 +344,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         enums["record_ranges"] = self._fda_record_ranges
         enums["cms_states"] = self._cms_states
         enums["source_states"] = self._source_states
+        enums["molecule_slices"] = self._enum_molecule_slices
         return enums
 
     def _cms_states(self, ctx, **_) -> list[dict]:
@@ -345,9 +358,10 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         coll = ctx.mongo_client[partd.staging_db][
             reg.staging_collection_name("medicare_partd")]
         field = f"raw.{PARTD_COLS['state']}"
-        states = [d["_id"] for d in coll.aggregate(
-            [{"$group": {"_id": f"${field}"}}, {"$sort": {"_id": 1}}],
-            allowDiskUse=True) if d.get("_id")]
+        # distinct on the leading field of prscrbr_state__id: an index scan
+        # over ~61 distinct values. A $group reads all 28M documents to
+        # answer the same question.
+        states = sorted(s for s in coll.distinct(field) if s)
         return [{"cms_state": s} for s in states]
 
     def _source_states(self, ctx, **_) -> list[dict]:
@@ -358,9 +372,9 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         tgt = reg.by_source_name("providermedicare")
         coll = ctx.mongo_client[tgt.public_data_db][
             reg.public_data_collection_name("providermedicare")]
-        states = [d["_id"] for d in coll.aggregate(
-            [{"$group": {"_id": "$source_state"}}, {"$sort": {"_id": 1}}],
-            allowDiskUse=True) if d.get("_id")]
+        # distinct on the leading field of source_state_1__id_1, so this is
+        # an index scan rather than a group over 26.4M documents.
+        states = sorted(s for s in coll.distinct("source_state") if s)
         return [{"source_state": s} for s in states]
 
     def _fda_record_ranges(self, ctx, *, count: int, **_) -> list[dict]:

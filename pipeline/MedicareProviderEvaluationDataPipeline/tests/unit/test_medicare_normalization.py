@@ -17,6 +17,8 @@ Pure functions only -- fabricated CMS rows and label results, no Mongo, no I/O
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
     PARTD_COLS,
     _stats_over,
@@ -83,7 +85,7 @@ def test_stats_max_min_median_avg_definitions():
     # median = the middle value (over ALL values incl. zero)
     assert s["median"] == 2
     # avg = sum / count
-    assert s["avg"] == (4 + 1 + 0 + 9 + 2) / 5
+    assert s["avg"] == Decimal("3.2")
 
 
 def test_stats_all_zero_min_is_null():
@@ -146,21 +148,26 @@ def test_union_indications_dedup_by_text_and_union_codes():
     assert ind["icd10"]["level3"] == ["E78"]
     assert ind["icd10"]["level4"] == ["E78.5"]
     assert ind["_crosswalk_provenance"] == "inference"
-    assert ind["trust"] == 0.8              # the weakest code confidence
+    assert ind["trust"] == Decimal("0.8")   # the weakest code confidence
 
 
 def test_union_drug_class_is_a_set_and_trust_aggregates():
+    # Three labels of one molecule, each resolving its indication to a
+    # different code confidence. The molecule's trust is the distribution of
+    # the indication trusts it ends up carrying.
     doc = fda_molecule_union([
-        _label("s1", cls="RX", conf=0.9),
-        _label("s2", cls="OTC", conf=0.5),
-        _label("s3", cls="RX", conf=0.7),
+        _label("s1", cls="RX", ind_text="A", codes=[
+            {"icd10_code": "E78", "level": 3, "confidence": 0.9}]),
+        _label("s2", cls="OTC", ind_text="B", codes=[
+            {"icd10_code": "E78", "level": 3, "confidence": 0.5}]),
+        _label("s3", cls="RX", ind_text="C", codes=[
+            {"icd10_code": "E78", "level": 3, "confidence": 0.7}]),
     ])
     assert doc["drug_class"]["classes"] == ["RX", "OTC"]
-    assert doc["trust"]["max"] == 0.9
-    assert doc["trust"]["min"] == 0.5
-    assert doc["trust"]["median"] == 0.7
-    assert abs(doc["trust"]["avg"] - (0.9 + 0.5 + 0.7) / 3) < 1e-9
-    assert doc["brand_exact_keys"] == ["LIPITOR"]
+    assert doc["trust"]["max"] == Decimal("0.9")
+    assert doc["trust"]["min"] == Decimal("0.5")
+    assert doc["trust"]["median"] == Decimal("0.7")
+    assert doc["trust"]["avg"] == Decimal("0.7")
     assert "lowers LDL" in doc["usage"]["summarized_usage"]
 
 
@@ -201,24 +208,43 @@ def test_rollup_skips_rows_without_molecule_or_npi():
     assert len(acc) == 1   # only the complete row lands
 
 
-def test_union_without_resolution_confidence_trust_is_null():
-    # The tool no longer emits resolution_confidence (RxNav removal,
-    # 2026-10-20): the union's trust block degrades to all-null, never raises.
+def test_union_trust_is_the_distribution_of_its_indication_trusts():
     lr = _label("s1")
     del lr["resolution_confidence"]
+    lr["indications"] = [
+        {"indication": "A", "codes": [
+            {"icd10_code": "J00", "level": 3, "confidence": 0.40}]},
+        {"indication": "B", "codes": [
+            {"icd10_code": "J30", "level": 3, "confidence": 0.52}]},
+        {"indication": "C", "codes": [
+            {"icd10_code": "J34", "level": 3, "confidence": 0.52}]},
+        {"indication": "D", "codes": [
+            {"icd10_code": "R09", "level": 3, "confidence": 0.94}]},
+    ]
     doc = fda_molecule_union([lr])
-    assert doc["trust"] == {"max": None, "min": None, "median": None,
-                            "avg": None}
+    assert doc["trust"] == {"max": Decimal("0.94"), "min": Decimal("0.40"),
+                            "median": Decimal("0.52"),
+                            "avg": Decimal("0.595")}
     assert doc["molecule"]["rxcui"] == ["83367"]
 
 
+def test_union_trust_is_absent_when_no_indication_carries_one():
+    lr = _label("s1")
+    lr["indications"] = [{"indication": "A", "codes": [
+        {"icd10_code": "J00", "level": 3}]}]
+    doc = fda_molecule_union([lr])
+    assert doc["trust"] == {"max": None, "min": None, "median": None,
+                            "avg": None}
+
+
 # --------------------------------------------------------------- fda_block
-def test_fda_block_from_molecule_record():
-    fda_doc = fda_molecule_union([_label("s1", conf=0.9)])
+def test_fda_block_carries_class_and_identity_only():
+    # The indications, the usage text and the trust distribution are
+    # molecule-level: they live on the FDA record, reachable by the identity
+    # this block carries, and are not copied onto every provider record.
+    fda_doc = fda_molecule_union([_label("s1")])
     block = fda_block_from(fda_doc)
+    assert sorted(block) == ["drug_class", "identity"]
     assert block["drug_class"] == ["RX"]
     assert block["identity"]["rxcui"] == ["83367"]
     assert block["identity"]["unii"] == ["A0JWA85V8F"]
-    assert block["trust"]["max"] == 0.9
-    assert block["usage"] == "lowers LDL"
-    assert block["indications"][0]["icd10"]["level3"] == ["E78"]

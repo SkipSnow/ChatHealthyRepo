@@ -20,7 +20,7 @@ import json
 import os
 import urllib.request
 from typing import Annotated, Literal, Union
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
 import requests
 from pydantic import BaseModel, Field
@@ -76,6 +76,23 @@ class ShardedManifestFind(BaseModel):
     url_field: str
 
 
+class UtsReleaseFind(BaseModel):
+    """A release published behind an NLM UMLS Terminology Services licence.
+
+    UTS answers two questions over one API. The releases endpoint names the
+    current release of a product and gives its download URL; the download
+    endpoint serves that URL when an API key is appended. The key is a query
+    parameter, not a header, so the authenticated URL is manufactured at fetch
+    time from the environment -- api_key_env names the variable, never the
+    key, so no secret enters a declaration or a build package.
+    """
+    mode: Literal["uts_release"] = "uts_release"
+    release_type: str
+    api_key_env: str = "UMLS_API_KEY"
+    releases_url: str = "https://uts-ws.nlm.nih.gov/releases"
+    download_url: str = "https://uts-ws.nlm.nih.gov/download"
+
+
 class LlmDiscoveryFind(BaseModel):
     mode: Literal["llm_discovery"] = "llm_discovery"
     page_url: str
@@ -84,7 +101,7 @@ class LlmDiscoveryFind(BaseModel):
 
 FindSpec = Annotated[
     Union[DirectUrlFind, DkanCatalogFind, StaticPageLatestFind, JsonManifestFind,
-          ShardedManifestFind, LlmDiscoveryFind],
+          ShardedManifestFind, UtsReleaseFind, LlmDiscoveryFind],
     Field(discriminator="mode"),
 ]
 
@@ -168,6 +185,49 @@ class _FindFacts(BaseModel):
 
 def _find_direct_url(source_name: str, spec: DirectUrlFind) -> _FindFacts:
     return _FindFacts(url=spec.url, filename=_basename(spec.url))
+
+
+def _find_uts_release(source_name: str, spec: UtsReleaseFind) -> _FindFacts:
+    """The current release of a UTS product, as an authenticated download URL.
+
+    Two calls: the releases endpoint for the current release's own file URL
+    and version, then the download endpoint carrying that URL and the key.
+    """
+    key = os.environ.get(spec.api_key_env, "").strip()
+    if not key:
+        raise ChatHealthyException(
+            mode="configuration_error", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{source_name}]: {spec.api_key_env} is "
+                     f"not set, so the licensed release cannot be fetched"))
+
+    resp = requests.get(spec.releases_url,
+                        params={"releaseType": spec.release_type,
+                                "current": "true"},
+                        timeout=_DEFAULT_TIMEOUT,
+                        headers={"User-Agent": _UA})
+    resp.raise_for_status()
+    body = resp.json()
+    entries = body if isinstance(body, list) else [body]
+    current = next((e for e in entries if isinstance(e, dict)
+                    and (e.get("downloadUrl") or e.get("fileUrl"))), None)
+    if current is None:
+        raise ChatHealthyException(
+            mode="discovery_no_match", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{source_name}]: the releases endpoint "
+                     f"named no current release of {spec.release_type!r}"))
+
+    file_url = current.get("downloadUrl") or current.get("fileUrl")
+    version = current.get("releaseVersion") or current.get("releaseDate")
+    authenticated = (f"{spec.download_url}?url={quote(file_url, safe='')}"
+                     f"&apiKey={quote(key, safe='')}")
+    _log.LogPipeline(
+        "INFO",
+        "data_fetch_agent[%s]: uts_release type=%s version=%s file=%s",
+        source_name, spec.release_type, version,
+        current.get("fileName") or _basename(file_url))
+    return _FindFacts(url=authenticated, version_identifier=version,
+                      filename=current.get("fileName") or _basename(file_url),
+                      published_date=current.get("releaseDate"))
 
 
 def _find_dkan_catalog(source_name: str, spec: DkanCatalogFind) -> _FindFacts:
@@ -308,6 +368,7 @@ _FIND_DETERMINISTIC = {
     "dkan_catalog": _find_dkan_catalog,
     "static_page_latest": _find_static_page_latest,
     "json_manifest": _find_json_manifest,
+    "uts_release": _find_uts_release,
 }
 
 

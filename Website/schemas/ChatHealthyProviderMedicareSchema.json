@@ -105,34 +105,14 @@
       "minimum": 1,
       "description": "How many Part D source rows folded into this record."
     },
-    "rxcui": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "The RXCUI the drug name resolves to, held distinct from the source names (REQ-B-007)."
-    },
     "fda": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "indications",
-        "drug_class",
-        "trust"
+        "drug_class"
       ],
       "description": "Molecule-level FDA facts, taken from the molecule's record in fdaProductToDiagnosisResolution by molecule_id.",
       "properties": {
-        "indications": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          },
-          "description": "Union of the molecule's labels' indications + ICD-10 (may be empty)."
-        },
-        "usage": {
-          "type": "string",
-          "description": "Summarized usage for the molecule."
-        },
         "drug_class": {
           "type": "array",
           "items": {
@@ -148,37 +128,6 @@
         "identity": {
           "type": "object",
           "description": "Union of rxcui/unii/substance_name across the molecule's labels."
-        },
-        "trust": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Aggregate of the molecule's FDA records' per-label trust. median = the middle value; avg = sum over count.",
-          "properties": {
-            "max": {
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "min": {
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "median": {
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "avg": {
-              "type": [
-                "number",
-                "null"
-              ]
-            }
-          }
         }
       }
     },
@@ -207,7 +156,7 @@
     },
     "source_state": {
       "type": "string",
-      "description": "The CMS Prscrbr_State_Abrvtn of the rows this record was built from -- the fan-out key for the base and the enrichment steps. No NPI's rows carry more than one CMS state (measured: 0 of 28,023,892 rows). Transient: the DropTransientAttributes task removes it once enrichment and the audits are complete."
+      "description": "The CMS prescriber state the record's rows arrived under. It is the fan-out key for the steps after the base, and drop_transient_attributes_and_records removes it once the records are settled."
     },
     "contributed_by": {
       "type": "array",
@@ -222,6 +171,24 @@
         "null"
       ],
       "description": "The provider's billing state from the Provider collection, attached by enrichment; null when the NPI is in no Provider record."
+    },
+    "rxcui_in": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The RxNorm ingredient RXCUI this record's molecule resolves to (RXNCONSO TTY=IN). The identifier this record joins to the FDA molecule collection on."
+    },
+    "unii": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The FDA Unique Ingredient Identifier of that ingredient. FDA assigns a UNII permanently and never reuses it."
+    },
+    "identity_path": {
+      "type": "string",
+      "enum": [
+        "brand",
+        "generic"
+      ],
+      "description": "Which rung of the identity ladder answered: the CMS Brnd_Name or the CMS Gnrc_Name."
     }
   }
 }

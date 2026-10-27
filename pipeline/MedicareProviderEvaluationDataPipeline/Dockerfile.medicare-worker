@@ -62,9 +62,12 @@ RUN rm /app/pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \
        /app/pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-control \
        /app/pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-worker
 
-# The conformance engine validates published records against exactly three
-# committed JSON Schema contracts (LLD v83 III.6 H3, medicare_conformance_engine
-# _CONTRACTS); only those three ship -- not the firm's whole schema directory.
+# The committed JSON Schema contracts of the published collections. The store
+# enforces conformance (LLD v83 I.3.12): the clear-and-index step reads the
+# ProviderMedicare and SpecialtyMedicare contracts from here and installs each
+# on its collection as that collection's MongoDB validator
+# (medicare_store_contract PUBLISHED_CONTRACTS). Only the contracts ship --
+# not the firm's whole schema directory.
 COPY Website/schemas/ChatHealthyProviderMedicareSchema.json /app/Website/schemas/
 COPY Website/schemas/ChatHealthySpecialtyMedicareSchema.json /app/Website/schemas/
 COPY Website/schemas/ChatHealthyFdaProductToDiagnosisResolutionSchema.json /app/Website/schemas/

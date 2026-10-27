@@ -72,14 +72,13 @@
       },
       "rollup_specialtymedicare": {
         "partition_source": {
-          "type": "config_list",
-          "values": [
-            {
-              "single": true
-            }
-          ]
+          "type": "named_enumerator",
+          "name": "molecule_slices",
+          "params": {
+            "workers": 300
+          }
         },
-        "parallelism_cap": 1
+        "parallelism_cap": 300
       },
       "build_fda_label_resolution": {
         "partition_source": {
@@ -117,7 +116,7 @@
   "pipeline_config": [
     {
       "env": "dev",
-      "worker_vm_size": "Standard_D32s_v6",
+      "worker_vm_size": "Standard_E16as_v7",
       "worker_max_parallel": 400,
       "batch_limits": {
         "normalize_batch_size": 1000
@@ -293,8 +292,9 @@
           "source_name": "rxnorm",
           "fetch": {
             "fetch_spec": {
-              "mode": "direct_url",
-              "url": "https://download.nlm.nih.gov/rxnorm/RxNorm_full_prescribe_current.zip"
+              "mode": "uts_release",
+              "release_type": "rxnorm-full-monthly-release",
+              "api_key_env": "UMLS_API_KEY"
             },
             "extract": {
               "mode": "zip",
@@ -382,6 +382,25 @@
             "icd10_cm",
             "openfda_labels"
           ]
+        },
+        {
+          "source_name": "rxnorm_rel",
+          "fetch": {
+            "fetch_spec": {
+              "mode": "uts_release",
+              "release_type": "rxnorm-full-monthly-release",
+              "api_key_env": "UMLS_API_KEY"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "rrf/RXNREL.RRF"
+              ]
+            }
+          },
+          "file_format": "rrf_rxnrel",
+          "staging_name": "PublicStaging.StagingRxnormRel",
+          "public_data_name": "PipelinePublicHealthData.RxnormRel"
         }
       ],
       "failure_thresholds": {
@@ -492,6 +511,21 @@
             "fatal_at_count": 1200000,
             "max": null,
             "report_display_cap": 25
+          },
+          "molecule_without_indication": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "indication_without_icd10": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "drug_without_rxnorm_molecule": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
           }
         }
       },
@@ -508,12 +542,7 @@
           "backoff_base_s": 2
         }
       },
-      "worker_start_stagger_s": 5,
-      "audit": {
-        "volume_bands": 3,
-        "sampled_record_cap": 100,
-        "mismatch_is_fatal": false
-      }
+      "worker_start_stagger_s": 5
     },
     {
       "env": "qa",
@@ -691,8 +720,9 @@
           "source_name": "rxnorm",
           "fetch": {
             "fetch_spec": {
-              "mode": "direct_url",
-              "url": "https://download.nlm.nih.gov/rxnorm/RxNorm_full_prescribe_current.zip"
+              "mode": "uts_release",
+              "release_type": "rxnorm-full-monthly-release",
+              "api_key_env": "UMLS_API_KEY"
             },
             "extract": {
               "mode": "zip",
@@ -780,6 +810,25 @@
             "icd10_cm",
             "openfda_labels"
           ]
+        },
+        {
+          "source_name": "rxnorm_rel",
+          "fetch": {
+            "fetch_spec": {
+              "mode": "uts_release",
+              "release_type": "rxnorm-full-monthly-release",
+              "api_key_env": "UMLS_API_KEY"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "rrf/RXNREL.RRF"
+              ]
+            }
+          },
+          "file_format": "rrf_rxnrel",
+          "staging_name": "PublicStaging.StagingRxnormRel",
+          "public_data_name": "PipelinePublicHealthData.RxnormRel"
         }
       ],
       "failure_thresholds": {
@@ -890,6 +939,21 @@
             "fatal_at_count": 1200000,
             "max": null,
             "report_display_cap": 25
+          },
+          "molecule_without_indication": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "indication_without_icd10": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "drug_without_rxnorm_molecule": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
           }
         }
       },
@@ -907,11 +971,7 @@
         }
       },
       "worker_start_stagger_s": 5,
-      "audit": {
-        "volume_bands": 3,
-        "sampled_record_cap": 100,
-        "mismatch_is_fatal": false
-      }
+      "worker_vm_size": "Standard_E16as_v7"
     },
     {
       "env": "prod",
@@ -1089,8 +1149,9 @@
           "source_name": "rxnorm",
           "fetch": {
             "fetch_spec": {
-              "mode": "direct_url",
-              "url": "https://download.nlm.nih.gov/rxnorm/RxNorm_full_prescribe_current.zip"
+              "mode": "uts_release",
+              "release_type": "rxnorm-full-monthly-release",
+              "api_key_env": "UMLS_API_KEY"
             },
             "extract": {
               "mode": "zip",
@@ -1178,6 +1239,25 @@
             "icd10_cm",
             "openfda_labels"
           ]
+        },
+        {
+          "source_name": "rxnorm_rel",
+          "fetch": {
+            "fetch_spec": {
+              "mode": "uts_release",
+              "release_type": "rxnorm-full-monthly-release",
+              "api_key_env": "UMLS_API_KEY"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "rrf/RXNREL.RRF"
+              ]
+            }
+          },
+          "file_format": "rrf_rxnrel",
+          "staging_name": "PublicStaging.StagingRxnormRel",
+          "public_data_name": "PipelinePublicHealthData.RxnormRel"
         }
       ],
       "failure_thresholds": {
@@ -1288,6 +1368,21 @@
             "fatal_at_count": 1200000,
             "max": null,
             "report_display_cap": 25
+          },
+          "molecule_without_indication": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "indication_without_icd10": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "drug_without_rxnorm_molecule": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
           }
         }
       },
@@ -1305,11 +1400,7 @@
         }
       },
       "worker_start_stagger_s": 5,
-      "audit": {
-        "volume_bands": 3,
-        "sampled_record_cap": 100,
-        "mismatch_is_fatal": false
-      }
+      "worker_vm_size": "Standard_E16as_v7"
     }
   ]
 }
