@@ -1553,11 +1553,23 @@ def _raise_illegal_states(raw) -> None:
 
 
 def _resolve_states(raw) -> list[str]:
-    """Parse the webhook states into the provider-identical scope: ["ALL"] alone,
-    or a non-empty list of state codes with no "ALL" among them. Absent ->
-    ["ALL"]. Illegal shapes abend here, at the parse."""
+    """Parse the webhook states into the provider-identical scope: ["ALL"]
+    alone, or a non-empty list of state codes with no "ALL" among them.
+    Illegal shapes abend here, at the parse.
+
+    ABSENT IS FATAL. This returned ["ALL"] when the fire named no scope,
+    so forgetting the argument ran every state -- the largest, longest and
+    most expensive run there is -- and the record afterwards could not
+    distinguish it from a run that asked for every state on purpose."""
     if raw is None:
-        return ["ALL"]
+        raise ChatHealthyException(
+            mode="missing_resources", component="pipeline_runbook",
+            message=("states is required: either the single value "
+                     "'ALL', or a non-empty list of state codes "
+                     "with no 'ALL' among them. No default is "
+                     "applied -- an omitted scope used to mean "
+                     "every state. Fire again with a scope."),
+            http_status=400)
     if isinstance(raw, list):
         scope = raw
     elif isinstance(raw, str):
@@ -1740,9 +1752,33 @@ def _run_medicare() -> int:
         if data_version < 1:
             log("runbook_reject_no_data_version", body=str(body)[:400])
             _raise_missing_data_version_med(body)
+        # ABSENT IS FATAL. This defaulted to false, so a fire that forgot
+        # the argument silently skipped the FDA build and produced a run
+        # that looks complete and carries last build's molecules.
         bim_raw = (body or {}).get("build_fda_drug")
-        build_fda_drug = (bim_raw is True
-                          or str(bim_raw or "").strip().lower() in ("1", "true", "yes"))
+        if bim_raw is None:
+            raise ChatHealthyException(
+                mode="missing_resources",
+                component="pipeline_runbook",
+                message=("build_fda_drug is required and is true or "
+                         "false. No default is applied: an omitted "
+                         "value used to mean false, which skips the "
+                         "FDA build silently. Fire again with a "
+                         "value."),
+                http_status=400)
+        _bfd = str(bim_raw).strip().lower()
+        if bim_raw is True or _bfd in ("1", "true", "yes"):
+            build_fda_drug = True
+        elif bim_raw is False or _bfd in ("0", "false", "no"):
+            build_fda_drug = False
+        else:
+            raise ChatHealthyException(
+                mode="value_error",
+                component="pipeline_runbook",
+                message=("build_fda_drug must be true or false; "
+                         "an unrecognised value is not treated as "
+                         "false."),
+                supplied=str(bim_raw)[:40], http_status=400)
         # The resolver, not an inline coercion. This site used to replace a
         # level it did not recognise with INFO and say nothing, so
         # debug_level=true produced an INFO run that reported success while
