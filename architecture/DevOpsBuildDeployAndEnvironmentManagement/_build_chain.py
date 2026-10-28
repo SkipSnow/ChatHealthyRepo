@@ -439,27 +439,36 @@ def _architecture_digest(path: Path) -> str:
     return architecture_digest(path)
 
 
-def _package_digest(pkg_dir: Path) -> str:
-    """One digest over the exact bytes of a package's staged contents.
+def _package_contents(pkg_dir: Path) -> tuple[str, dict[str, str]]:
+    """The package digest, and the hash of every file the package carries.
 
-    Realizes EPIC-008-F-012-S-003-REQ-B-005. Every file under the package
-    is hashed with its repo-relative path, in sorted order so the digest
-    does not depend on how the filesystem enumerates. Line endings are
-    normalised, because a checkout on Windows and one on Linux hold the
-    same file as different bytes and are the same package. build.json is
-    excluded: it carries the digest, so including it could not converge.
+    Realizes EPIC-008-F-012-S-003-REQ-B-005. Every file under the package is
+    hashed with its package-relative path, in sorted order so neither value
+    depends on how the filesystem enumerates. Line endings are normalised,
+    because a checkout on Windows and one on Linux hold the same file as
+    different bytes and are the same package. build.json is excluded: it
+    carries both values, so including it could not converge.
+
+    One walk yields both. The digest answers "is this package the one that
+    was built"; the per-file hashes answer "which file moved", which a
+    single digest cannot. They are the build stating what it packaged, in
+    the build's own record -- never written back into the deployment record
+    the build reads its instructions from.
     """
     import hashlib
     h = hashlib.sha256()
+    per_file: dict[str, str] = {}
     for path in sorted(p for p in pkg_dir.rglob("*") if p.is_file()):
         if path.name == "build.json":
             continue
         rel = path.relative_to(pkg_dir).as_posix()
+        raw = path.read_bytes().replace(b"\r\n", b"\n")
+        per_file[rel] = hashlib.sha256(raw).hexdigest()
         h.update(rel.encode("utf-8"))
         h.update(b"\0")
-        h.update(path.read_bytes().replace(b"\r\n", b"\n"))
+        h.update(raw)
         h.update(b"\0")
-    return h.hexdigest()
+    return h.hexdigest(), per_file
 
 
 def _write_manifest_snapshot(
@@ -483,6 +492,8 @@ def _write_manifest_snapshot(
     # deploy re-reads the manifest and refuses if the digest moved.
     arch = _architecture_path(build_dir)
     stamp: dict = {
+        "$schema": "https://dev.chathealthy.ai/schemas/"
+                   "ChatHealthyBuildPackageManifestSchema.json",
         "build_number": build_n,
         "build_sha": build_sha,
         "target_id": target.target_id,
@@ -492,7 +503,9 @@ def _write_manifest_snapshot(
         pkg_stamp = dict(stamp)
         pkg_stamp["package_id"] = pid
         pkg_dir = _package_build_dir(build_dir, pid)
-        pkg_stamp["digest"] = _package_digest(pkg_dir)
+        digest, per_file = _package_contents(pkg_dir)
+        pkg_stamp["digest"] = digest
+        pkg_stamp["content_hashes"] = per_file
         (pkg_dir / "build.json").write_text(
             json.dumps(pkg_stamp, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",

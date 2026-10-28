@@ -386,56 +386,6 @@ def _bump_build_counter(env: str) -> int:
     return new_build
 
 
-def _refresh_content_hashes(brain_path: Path, repo_root: Path) -> None:
-    """Update every `content_hash` on a `disposition: "referenced"` file
-    in the manifest to the current disk SHA256 (CRLF→LF normalized to
-    match Builder). The manifest is the canonical audit trail for what
-    this build packaged; the build snapshots the disk state here so
-    downstream Crosswalk checks compare against a manifest that reflects
-    reality, not a stale committed value. The self-referential entry for
-    deployment_architecture.json itself is skipped — Builder deliberately
-    leaves that hash absent because writing the manifest changes its own
-    bytes.
-    """
-    import hashlib as _hashlib
-    data = json.loads(brain_path.read_text(encoding="utf-8"))
-    changed = 0
-    scanned = 0
-    def _refresh_files_list(files_list):
-        nonlocal changed, scanned
-        for f in files_list or []:
-            if f.get("disposition") != "referenced":
-                continue
-            if f.get("content_hash") is None:
-                continue
-            src = f.get("source_location") or ""
-            if src == "brain/machine_artifacts/content/deployment_architecture.json":
-                continue
-            abs_path = repo_root / src
-            if not abs_path.is_file():
-                continue
-            scanned += 1
-            raw = abs_path.read_bytes().replace(b"\r\n", b"\n")
-            new_hash = _hashlib.sha256(raw).hexdigest()
-            if f["content_hash"] != new_hash:
-                f["content_hash"] = new_hash
-                changed += 1
-
-    for record in data.get("DeploymentTargetRecord", []) or []:
-        _refresh_files_list(record.get("files", []))
-        # Package expansion: refresh content_hash for files inside
-        # packages[] on any env_binding.
-        for eb in record.get("environments", []) or []:
-            for pkg in eb.get("packages", []) or []:
-                _refresh_files_list(pkg.get("files", []))
-    if changed:
-        brain_path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-    _step(f"content_hash refresh: scanned {scanned} referenced files, updated {changed}")
-
-
 def _run_from_branch_checkout(env: str, argv, script_name: str):
     """Hand a cloud run over to the same program checked out of its branch.
 
@@ -702,33 +652,10 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     # cloud builds via the leak-check.
     env_file = canonical_build_dir / ".env"
 
-    # Refresh content_hash entries in the manifest to match the current disk
-    # bytes BEFORE Crosswalk runs. The build is the canonical mechanism for
-    # snapshotting "the disk state that this build packaged." Any post-build
-    # source edit still gets caught at deploy time — Crosswalk re-runs there
-    # and a divergence between the just-refreshed manifest hashes and disk
-    # can only mean an edit happened between build and deploy, which is
-    # exactly the drift Crosswalk exists to detect. Replaces the deleted
-    # _oneshots/refresh_all_hashes.py shortcut; not a bypass because it is
-    # part of the canonical build entry point (Rule-066).
-    # Refreshed where the SOURCE is. dev, qa and prod build a worktree of a
-    # committed branch, and its record is that branch's. local builds a copy
-    # of the working tree, so the record to stamp is the working tree's --
-    # refreshing the copy's wrote the hashes into a directory that is deleted
-    # moments later, and the deploy then rejected every file this build had
-    # just packaged.
-    hash_root = canonical_repo if args.env == "local" else repo_root
-    refreshed_record = (hash_root / "brain" / "machine_artifacts" / "content"
-                        / "deployment_architecture.json")
-    _refresh_content_hashes(refreshed_record, hash_root)
-    # The build reads its record from the materialised copy, and that copy was
-    # taken before the refresh above -- so the refresh landed in the working
-    # tree while Crosswalk compared against the pre-refresh bytes. Every first
-    # build after editing a referenced file rejected, and the same build
-    # repeated passed. The refreshed record is carried into the copy the
-    # build actually reads.
-    if refreshed_record.resolve() != brain_path.resolve():
-        shutil.copy2(refreshed_record, brain_path)
+    # The build does not write deployment_architecture.json. The record is
+    # the instruction; a program that edits its own instruction before
+    # obeying it is not governed by it. What this build measured is
+    # recorded in each package's own build record, which the deploy reads.
 
     # Scope schema validation to the single target being built when a
     # specific target_id was requested. For kind aliases ('cloudflare',
