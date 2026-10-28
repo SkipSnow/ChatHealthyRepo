@@ -441,7 +441,7 @@
         },
         "finding_types": {
           "schema_violation": {
-            "severity": "error",
+            "severity": "fatal",
             "fatal_at_count": null,
             "max": null
           },
@@ -514,17 +514,17 @@
           },
           "molecule_without_indication": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           },
           "indication_without_icd10": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           },
           "drug_without_rxnorm_molecule": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           }
         }
@@ -869,7 +869,7 @@
         },
         "finding_types": {
           "schema_violation": {
-            "severity": "error",
+            "severity": "fatal",
             "fatal_at_count": null,
             "max": null
           },
@@ -942,17 +942,17 @@
           },
           "molecule_without_indication": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           },
           "indication_without_icd10": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           },
           "drug_without_rxnorm_molecule": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           }
         }
@@ -1298,7 +1298,7 @@
         },
         "finding_types": {
           "schema_violation": {
-            "severity": "error",
+            "severity": "fatal",
             "fatal_at_count": null,
             "max": null
           },
@@ -1371,17 +1371,17 @@
           },
           "molecule_without_indication": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           },
           "indication_without_icd10": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           },
           "drug_without_rxnorm_molecule": {
             "severity": "error",
-            "fatal_at_count": null,
+            "fatal_at_count": 5000,
             "max": null
           }
         }

@@ -999,46 +999,6 @@ def _raise_bad_debug_level(raw) -> None:
     )
 
 
-def _raise_missing_discrepancy_abort(raw) -> None:
-    """Raise-only helper: discrepancy_abort is required and is a positive
-    whole number of findings."""
-    raise ChatHealthyException(
-        mode="missing_resources", component="pipeline_runbook",
-        message=("discrepancy_abort is required and must be a "
-                 "positive whole number of findings. It is the "
-                 "ceiling this run's accumulating findings are "
-                 "measured against. No default is applied and no "
-                 "configured value substitutes for it. Fire again "
-                 "with a value."),
-        http_status=400,  # Bad Request: a required argument
-                          # is absent or unusable. The Automation
-                          # webhook already answered 202 with a
-                          # JobId before this ran, so the code is
-                          # recorded on the job rather than
-                          # returned to the caller.
-        supplied=str(raw)[:120])
-
-
-def _resolve_discrepancy_abort(webhook_body) -> int:
-    """The run's findings ceiling, argued at the trigger.
-
-    Argued, never configured and never defaulted. failure_thresholds
-    .discrepancy_abort carried 1000 in the config and no code read it;
-    StepContext carried discrepancy_threshold = 1000 and no code read
-    that either. Two numbers agreeing by coincidence, one declared and
-    ignored, one invented and unused."""
-    raw = (webhook_body or {}).get("discrepancy_abort")
-    if raw is None:
-        _raise_missing_discrepancy_abort(raw)
-    try:
-        ceiling = int(raw)
-    except (TypeError, ValueError):
-        _raise_missing_discrepancy_abort(raw)
-    if ceiling < 1:
-        _raise_missing_discrepancy_abort(raw)
-    return ceiling
-
-
 def _raise_missing_window(raw) -> None:
     """Raise-only helper: expected_duration_minutes is required and is a
     positive whole number of minutes."""
@@ -1446,8 +1406,7 @@ def _controller_cloud_init(run_id: str, data_version: int,
                            debug_level: str, states: list[str],
                            provider_collection: str,
                            start_at_step: str | None,
-                           window_minutes: int,
-                           discrepancy_abort: int) -> str:
+                           window_minutes: int) -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
     VMs, then self-delete. The Controller presents pipelineController for ARM
@@ -1497,7 +1456,6 @@ runcmd:
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{MONGO_HOST_PIPELINE}' \\
       -e RUN_ID='{run_id}' -e DATA_VERSION='{data_version}' -e ENV_PREFIX='{ENV_PREFIX}' \
       -e EXPECTED_DURATION_MINUTES='{window_minutes}' \\
-      -e DISCREPANCY_ABORT='{discrepancy_abort}' \\
       -e PIPELINE_NAME='medicare' -e GOOGLE_MAPS_ENABLED='0' \\
       -e PIPELINE_LOG_ACCOUNT_URL='{PIPELINE_LOG_ACCOUNT_URL}' \\
       -e AZURE_VM_NAME='{vm_name}' \\
@@ -1540,15 +1498,14 @@ def _provision_controller_vm(run_id: str, data_version: int,
                              states: list[str],
                              provider_collection: str,
                              start_at_step: str | None,
-                             window_minutes: int,
-                             discrepancy_abort: int) -> dict:
+                             window_minutes: int) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
     user_data = _controller_cloud_init(run_id, data_version, build_fda_drug,
                                        vm_name, debug_level, states,
                                        provider_collection, start_at_step,
-                                       window_minutes, discrepancy_abort)
+                                       window_minutes)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
@@ -1776,7 +1733,6 @@ def _run_medicare() -> int:
         invocation_mode = body.get("invocation_mode", "webhook") if body else "scheduled"
         # THE run's window, argued by the operator at the trigger.
         window_minutes = _resolve_window_minutes(body)
-        discrepancy_abort = _resolve_discrepancy_abort(body)
         try:
             data_version = int((body or {}).get("data_version"))
         except (TypeError, ValueError):
@@ -1846,8 +1802,7 @@ def _run_medicare() -> int:
         # where the pipeline package exists; the sandbox trigger cannot run it.
         _provision_controller_vm(run_id, data_version, build_fda_drug,
                                  debug_level, states, provider_collection,
-                                 start_at_step, window_minutes,
-                                 discrepancy_abort)
+                                 start_at_step, window_minutes)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
         log("runbook_exit", run_id=run_id)

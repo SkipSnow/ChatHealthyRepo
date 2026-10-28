@@ -81,27 +81,6 @@ def _severity_for(dr_cfg: dict, finding_class: str) -> str:
     return entry["severity"]
 
 
-def _discrepancy_ceiling() -> int:
-    """The run's findings ceiling, as the trigger argued it.
-
-    DISCREPANCY_ABORT is placed on every container by the runbook, which
-    vets it and refuses to fire without it. There is no default here and no
-    configured substitute: failure_thresholds.discrepancy_abort held 1000 in
-    the config and nothing read it, and StepContext carried the same 1000
-    and nothing read that either. A ceiling this code chose would be this
-    code deciding when the operator's run is unfit."""
-    raw = os.environ.get("DISCREPANCY_ABORT", "").strip()
-    if not raw.isdigit() or int(raw) < 1:
-        raise ChatHealthyException(
-            mode="config_error", component="PipelineRuntime",
-            message=("DISCREPANCY_ABORT is absent or unusable in this "
-                     "container. It is the run's findings ceiling, "
-                     "argued at the trigger and placed on every "
-                     "container. No default is applied."),
-            supplied=raw[:40])
-    return int(raw)
-
-
 def build_discrepancy_ops(
     *,
     run_id: str,
@@ -202,7 +181,6 @@ def write_finding(
     reaches the configured fatal_at_count — the run's single fatal (§7.5).
     """
     severity = _severity_for(dr_cfg, finding_class)
-    ceiling = _discrepancy_ceiling()
     record_key_kind = (dr_cfg.get("business_record_keys") or {}).get(artifact)
     recorded_at = datetime.now(timezone.utc).isoformat()
     log_coll.bulk_write(
@@ -227,15 +205,13 @@ def write_finding(
             {"_id": f"{run_id}:{artifact}:type:{finding_class}"}, {"count": 1})
         count = (aggregate or {}).get("count")
         is_fatal = count is not None and count >= fatal_at_count
-    # The run's own ceiling, argued at the trigger. fatal_at_count is a
-    # per-class limit and answers a different question; this is the
-    # total the run is allowed to accumulate before its output is unfit
-    # and it stops rather than finish (EPIC-010-F-001-S-006).
-    if not is_fatal:
-        total_doc = log_coll.find_one(
-            {"_id": f"{run_id}:run:total"}, {"count": 1})
-        run_total = (total_doc or {}).get("count")
-        is_fatal = run_total is not None and run_total >= ceiling
+    # The run-level ceiling is NOT checked here. Per LLD I.3.6 and
+    # EPIC-010-F-001-S-006 the orchestrator totals findings against
+    # failure_thresholds.discrepancy_abort and aborts AT THE NEXT STEP EXIT.
+    # Checking it on each finding would abort mid-step, which the design
+    # does not ask for; the run-level total written above is the quantity it
+    # reads. fatal_at_count above stays what it is -- a per-class limit
+    # answering a different question.
     if is_fatal:
         # already_recorded_fatal marks this event as ALREADY captured in
         # discrepancyLog as a domain-class fatal aggregate, so the downstream
@@ -256,7 +232,6 @@ def write_finding(
             count=count,
             fatal_at_count=fatal_at_count,
             run_total=run_total,
-            discrepancy_abort=ceiling,
             already_recorded_fatal=True,
         )
     return severity
