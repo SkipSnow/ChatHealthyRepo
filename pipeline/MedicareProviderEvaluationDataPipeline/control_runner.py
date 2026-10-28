@@ -73,9 +73,12 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--env-prefix", dest="env_prefix",
                         default=os.environ.get("ENV_PREFIX", "dev"),
                         help="Environment prefix (local|dev|qa|prod)")
-    parser.add_argument("--states", dest="states",
-                        default=os.environ.get("STATES", "ALL"),
-                        help="Comma-separated state list or ALL (provider fan-out scope)")
+    # REQUIRED, and no STATES-shaped default. This defaulted to "ALL", so a
+    # Controller that was handed no scope -- a propagation failure between
+    # the trigger and this process -- ran every state instead of refusing.
+    # A missing argument and a deliberate ALL must not look the same here.
+    parser.add_argument("--states", dest="states", required=True,
+                        help="Comma-separated state list, or ALL. MANDATORY: the trigger argues it and propagates it; nothing invents one.")
     # The run's ONE window, and the only time limit in the system. It is
     # argued per run by the operator (operator ruling 2026-10-24), so there is
     # no default: a silent 120 would be this code choosing the operator's
@@ -98,9 +101,12 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     # Gate the rebuild of the fdaProductToDiagnosisResolution collection. Off by
     # default: a normal run consumes the current published collection. On via
     # --build-fda-drug or BUILD_FDA_DRUG env in {1,true,yes}.
-    _bfd_default = _truthy(os.environ.get("BUILD_FDA_DRUG", ""))
+    # REQUIRED, and it carries its value rather than its presence. As a
+    # store_true flag, false travelled as the flag's ABSENCE, so a
+    # propagation failure and a deliberate false were indistinguishable
+    # here and the FDA build was skipped silently either way.
     parser.add_argument("--build-fda-drug", dest="build_fda_drug",
-                        action="store_true", default=_bfd_default,
+                        type=_truthy, required=True,
                         help="Rebuild the fdaProductToDiagnosisResolution collection "
                              "this run (produces a candidate for operator-gated "
                              "release). Default off: consume the current published "

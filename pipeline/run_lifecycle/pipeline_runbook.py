@@ -1420,7 +1420,10 @@ def _controller_cloud_init(run_id: str, data_version: int,
     # contracts -- that the shared pipeline-control image does not; run
     # f3f7d1eb died on exactly that gap.
     image = f"{VM_ACR}.azurecr.io/medicare-control:{VM_IMAGE_TAG}"
-    bim = "--build-fda-drug" if build_fda_drug else ""
+    # The VALUE, always. An empty string here meant the Controller read
+    # false from the flag being absent, which is a propagation failure
+    # wearing the costume of a decision.
+    bim = "--build-fda-drug " + ("true" if build_fda_drug else "false")
     sas = f"--start-at-step {start_at_step}" if start_at_step else ""
     yaml_body = f"""#cloud-config
 apt:
