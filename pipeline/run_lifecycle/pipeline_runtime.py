@@ -29,13 +29,22 @@ PIPELINE_ADMIN_DB = "pipelineAdmin"
 DISCREPANCY_LOG_COLLECTION = "discrepancyLog"
 
 
-def get_mongo(identity: str = "pipelineEditor",
-              cluster: str = "ChatHealthyDataPipelines"):
-    return ChatHealthyMongoUtilities().getConnection(identity, cluster)
+def get_mongo():
+    """The pipeline cluster, as pipelineEditor.
+
+    The identity and cluster are literal here. They were parameters
+    with defaults, which reads as configurable and was not: no caller
+    ever passed either one. A reader could not tell from a call site
+    which identity opened which cluster, and that is the whole point
+    of naming them at the call site."""
+    return ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyDataPipelines")
 
 
-def get_frontend_mongo(identity: str = "pipelineEditor"):
-    return ChatHealthyMongoUtilities().getConnection(identity, "ChatHealthyFrontEnd")
+def get_frontend_mongo():
+    """The front-end cluster, as pipelineEditor."""
+    return ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyFrontEnd")
 
 
 def load_discrepancy_config(env_prefix: str) -> dict:
@@ -70,6 +79,27 @@ def _severity_for(dr_cfg: dict, finding_class: str) -> str:
             finding_class=finding_class,
         )
     return entry["severity"]
+
+
+def _discrepancy_ceiling() -> int:
+    """The run's findings ceiling, as the trigger argued it.
+
+    DISCREPANCY_ABORT is placed on every container by the runbook, which
+    vets it and refuses to fire without it. There is no default here and no
+    configured substitute: failure_thresholds.discrepancy_abort held 1000 in
+    the config and nothing read it, and StepContext carried the same 1000
+    and nothing read that either. A ceiling this code chose would be this
+    code deciding when the operator's run is unfit."""
+    raw = os.environ.get("DISCREPANCY_ABORT", "").strip()
+    if not raw.isdigit() or int(raw) < 1:
+        raise ChatHealthyException(
+            mode="config_error", component="PipelineRuntime",
+            message=("DISCREPANCY_ABORT is absent or unusable in this "
+                     "container. It is the run's findings ceiling, "
+                     "argued at the trigger and placed on every "
+                     "container. No default is applied."),
+            supplied=raw[:40])
+    return int(raw)
 
 
 def build_discrepancy_ops(
@@ -133,7 +163,24 @@ def build_discrepancy_ops(
         },
         upsert=True,
     )
-    return [record_op, aggregate_op]
+    # The run's total across every class and artifact. The per-class
+    # aggregates cannot answer 'how many findings has this run made',
+    # and that is the quantity the argued ceiling is measured against.
+    # Same bulk write, so a finding and its contribution to the total
+    # land together.
+    run_total_op = UpdateOne(
+        {"_id": f"{run_id}:run:total"},
+        {
+            "$setOnInsert": {
+                "kind": "run_total",
+                "run_id": run_id,
+                "recorded_at": recorded_at,
+            },
+            "$inc": {"count": 1},
+        },
+        upsert=True,
+    )
+    return [record_op, aggregate_op, run_total_op]
 
 
 def write_finding(
@@ -155,6 +202,7 @@ def write_finding(
     reaches the configured fatal_at_count — the run's single fatal (§7.5).
     """
     severity = _severity_for(dr_cfg, finding_class)
+    ceiling = _discrepancy_ceiling()
     record_key_kind = (dr_cfg.get("business_record_keys") or {}).get(artifact)
     recorded_at = datetime.now(timezone.utc).isoformat()
     log_coll.bulk_write(
@@ -172,12 +220,22 @@ def write_finding(
     fatal_at_count = ((dr_cfg.get("finding_types") or {})
                       .get(finding_class, {}).get("fatal_at_count"))
     count = None
+    run_total = None
     is_fatal = severity == "fatal"
     if not is_fatal and fatal_at_count is not None:
         aggregate = log_coll.find_one(
             {"_id": f"{run_id}:{artifact}:type:{finding_class}"}, {"count": 1})
         count = (aggregate or {}).get("count")
         is_fatal = count is not None and count >= fatal_at_count
+    # The run's own ceiling, argued at the trigger. fatal_at_count is a
+    # per-class limit and answers a different question; this is the
+    # total the run is allowed to accumulate before its output is unfit
+    # and it stops rather than finish (EPIC-010-F-001-S-006).
+    if not is_fatal:
+        total_doc = log_coll.find_one(
+            {"_id": f"{run_id}:run:total"}, {"count": 1})
+        run_total = (total_doc or {}).get("count")
+        is_fatal = run_total is not None and run_total >= ceiling
     if is_fatal:
         # already_recorded_fatal marks this event as ALREADY captured in
         # discrepancyLog as a domain-class fatal aggregate, so the downstream
@@ -197,6 +255,8 @@ def write_finding(
             step=stage,
             count=count,
             fatal_at_count=fatal_at_count,
+            run_total=run_total,
+            discrepancy_abort=ceiling,
             already_recorded_fatal=True,
         )
     return severity

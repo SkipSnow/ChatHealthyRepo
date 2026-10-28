@@ -35,7 +35,11 @@ class PipelineArgs:
     embedding_enabled: bool = False
     batch_size: int = 1000
     pool_size: int = 51
-    discrepancy_threshold: int = 1000
+    # No invented ceiling. The run's findings ceiling is DISCREPANCY_ABORT,
+    # argued at the trigger and read where it is enforced
+    # (pipeline_runtime._discrepancy_ceiling). This field held 1000 and no
+    # code ever read it, beside a config key holding the same 1000 that no
+    # code read either.
     run_id: str | None = None
     # START AT (operator design 2026-10-22): begin the DAG walk at this step.
     # No history, no prior-run reference -- the infrastructure gates every

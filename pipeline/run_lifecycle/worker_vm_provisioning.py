@@ -156,6 +156,7 @@ runcmd:
       -e CH_SPACE_NAME='worker' -e CH_COMPONENT='worker' \\
       -e CH_LOG_DESTINATION='stderr,mongo' -e CH_LOG_DB='{_req("CH_LOG_DB")}' \\
       -e CH_LOG_LEVEL='{_req("CH_LOG_LEVEL")}' \\
+      -e DISCREPANCY_ABORT='{_req("DISCREPANCY_ABORT")}' \\
       -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{_req("CH_MONGO_HOST_CHATHEALTHYFRONTEND")}' \\
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{_req("CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES")}' \\
       -e RUN_ID='{run_id}' -e ENV_PREFIX='{_req("ENV_PREFIX")}' \\
