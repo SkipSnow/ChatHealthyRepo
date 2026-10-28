@@ -836,7 +836,7 @@ def ensure_pipeline_automation_account(
         ])
 
 
-def ensure_acr(target, env: str) -> str:
+def ensure_acr(target, env: str, package_selection=None) -> str:
     block = _env_block(target, env, "azure_container_registry")
     name = block["registry_name"]
     rg = block["resource_group"]
@@ -859,17 +859,25 @@ def ensure_acr(target, env: str) -> str:
     # image_manifest.json in the build output). This deploy step only pushes
     # the already-built images and verifies the registry carries them.
     packages = _env_packages(target, env, "azure_container_registry")
-    _acr_push_built_images(packages, name, rg)
+    _acr_push_built_images(packages, name, rg, package_selection)
     return name
 
 
-def _acr_push_built_images(packages, name: str, rg: str) -> None:
+def _acr_push_built_images(packages, name: str, rg: str,
+                           package_selection=None) -> None:
     """Push the images the BUILD manufactured. Reads each docker_image
     package's image_manifest.json from the CANONICAL build output -- the
     workstation's gitignored build/ directory, never the chain's checkout
     (nothing deploys from the repo; the deploy reads 100% build output,
     operator mandate 2026-10-22). A missing manifest or a missing local
-    image is a hard fail -- the deploy never builds."""
+    image is a hard fail -- the deploy never builds.
+
+    --package is honoured here, not only when choosing targets. The
+    registry is a host target, so it passes the target filter whole and
+    then pushed every image package it declares: naming two of three
+    images failed on the third, which was never asked for and so was
+    never built. A package that WAS named and was not built is still a
+    hard fail -- that is the build-first rule and a different fault."""
     import json as _json
     import chain_provenance as _cp  # noqa: PLC0415
     _repo_root = _cp.repository_root(Path(__file__))
@@ -878,6 +886,8 @@ def _acr_push_built_images(packages, name: str, rg: str) -> None:
         if pkg.get("kind") != "docker_image":
             continue
         pkg_id = pkg.get("package_id")
+        if package_selection and pkg_id not in package_selection:
+            continue
         manifest_path = (_repo_root / "build"
                          / "target_azure_container_registry_pipeline"
                          / str(pkg_id) / "image_manifest.json")

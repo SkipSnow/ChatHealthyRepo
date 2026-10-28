@@ -3482,7 +3482,8 @@ def deploy_one(
              f"package(s) ensured")
         return target_id
     if target_kind == "azure_container_registry":
-        return pad.ensure_acr(target, env)
+        return pad.ensure_acr(target, env,
+                              package_selection=package_selection)
     if target_kind == "azure_container_apps_environment":
         return pad.ensure_aca_environment(target, env)
     if target_kind == "azure_container_app_job":
