@@ -232,7 +232,8 @@ def fire_farewell_vm_delete() -> None:
                    vm_name, type(exc).__name__, str(exc)[:200])
 
 
-def quiesce_mongo_state(run_id: str, final_status: str) -> None:
+def quiesce_mongo_state(run_id: str, final_status: str,
+                        fatal_exception=None) -> None:
     """Cancel the pipeline-run reservation on the front cluster, release the
     per-pipeline lock, mark the run manifest terminal, and on a non-success
     exit flip in-flight work_items to failed. Best-effort per step; a failure
@@ -277,13 +278,23 @@ def quiesce_mongo_state(run_id: str, final_status: str) -> None:
                 pipeline_name, run_id, str(exc)[:500],
             )
     try:
+        # The reason, persisted. This wrote status and ended_at only, so a
+        # failed run recorded THAT it failed and nothing about why: the
+        # exception was logged to a collection the operator's identity
+        # cannot read, and checkPipelineStatus reads a fatal_exception
+        # field nothing wrote. A run that cannot say why it died makes
+        # every diagnosis a guess.
+        terminal = {
+            "status": final_status,
+            "ended_at": datetime.datetime.utcnow(),
+        }
+        if fatal_exception is not None:
+            terminal["fatal_exception"] = (
+                f"{type(fatal_exception).__name__}: {fatal_exception}")[:4000]
+            terminal["abort_reason"] = getattr(
+                fatal_exception, "mode", None) or type(fatal_exception).__name__
         mongo["pipelineAdmin"]["pipeline.runs"].update_one(
-            {"run_id": run_id},
-            {"$set": {
-                "status": final_status,
-                "ended_at": datetime.datetime.utcnow(),
-            }},
-        )
+            {"run_id": run_id}, {"$set": terminal})
         _log.LogPipeline("INFO", "quiesce: manifest marked terminal run_id=%s status=%s",
                   run_id, final_status)
     except Exception as exc:

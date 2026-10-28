@@ -365,7 +365,7 @@ def _control(ns) -> int:
         fatal_on_worker_log_db_reports(run_id_now)
         if final_status != "succeeded":
             kill_active_workers()
-        quiesce_mongo_state(run_id_now, final_status)
+        quiesce_mongo_state(run_id_now, final_status, fatal_exception)
         # The Medicare discrepancy report -- one per run on success AND abend
         # (EPIC-010-F-001-S-008) -- counts the three published Medicare
         # collections, so the Medicare Controller emits it here, before staging

@@ -336,7 +336,7 @@ def _control(ns):
         fatal_on_worker_log_db_reports(run_id_now)
         if final_status != "succeeded":
             kill_active_workers()
-        quiesce_mongo_state(run_id_now, final_status)
+        quiesce_mongo_state(run_id_now, final_status, fatal_exception)
         # Provider-specific, and it reads the NPPES staging collection, so it
         # runs here (not in the generic release) and before staging is emptied.
         _emit_discrepancy_report(run_id_now, final_status,
