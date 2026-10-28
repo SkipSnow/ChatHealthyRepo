@@ -4162,6 +4162,7 @@
                 "AZ_VM_RESOURCE_GROUP": "local_env",
                 "AZ_VM_SIZE": "local_env",
                 "CH_LOG_DB": "local_env",
+                "CH_LOG_LEVEL": "local_env",
                 "ATLAS_PIPELINE_PUBLIC_KEY": "azure_key_vault",
                 "ATLAS_PIPELINE_PRIVATE_KEY": "azure_key_vault"
               },
@@ -4222,7 +4223,8 @@
               ],
               "secrets": {
                 "API_TOKEN_MAP": "local_env",
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "CH_LOG_LEVEL": "local_env"
               },
               "config": {
                 "runbook_name": "ChangeDBVersion",
@@ -4273,6 +4275,7 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
                 "PIPELINE_SECRET_NAMES": "local_env",
                 "CH_LOG_DB": "local_env",
+                "CH_LOG_LEVEL": "local_env",
                 "SPARKMAIL_API_KEY": "local_env",
                 "NOTIFICATION_FROM_EMAIL": "local_env",
                 "NOTIFICATION_TO_EMAIL": "local_env",
@@ -4359,7 +4362,8 @@
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "CH_LOG_LEVEL": "local_env"
               },
               "config": {
                 "runbook_name": "WatchdogRunbook",
@@ -4412,6 +4416,7 @@
                 "NOTIFICATION_FROM_EMAIL": "local_env",
                 "ENTITLEMENT_REPORT_TO_EMAIL": "local_env",
                 "CH_LOG_DB": "local_env",
+                "CH_LOG_LEVEL": "local_env",
                 "DEVOPSUSER_AZURE_TENANT_ID": "local_env",
                 "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
                 "DEVOPSUSER_AZURE_CLIENT_SECRET": "local_env",
@@ -6044,6 +6049,7 @@
               ],
               "secrets": {
                 "CH_LOG_DB": "local_env",
+                "CH_LOG_LEVEL": "local_env",
                 "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
                 "KEY_VAULT_URI": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",

@@ -1233,7 +1233,11 @@ _MEDICARE_HYDRATE_KEYS = (
 )
 
 # Every resource the runbook itself must have present to run -- the full
-# hydrate set minus CH_LOG_LEVEL, the one optional key (it has a safe default).
+# hydrate set minus CH_LOG_LEVEL, which is NOT an Automation Variable: it is
+# computed per fire from the webhook body, handed to the Controller container
+# as an env var, and read back out of the Controller's environment by
+# worker_vm_provisioning so every Worker container runs at the same level.
+# Requiring it here would demand an Automation Variable nothing writes.
 # _check_resources() reports which of these are absent, all at once.
 _MEDICARE_REQUIRED_RESOURCES = tuple(
     k for k in _MEDICARE_HYDRATE_KEYS if k != "CH_LOG_LEVEL")
@@ -1678,10 +1682,20 @@ def _run_medicare() -> int:
         bim_raw = (body or {}).get("build_fda_drug")
         build_fda_drug = (bim_raw is True
                           or str(bim_raw or "").strip().lower() in ("1", "true", "yes"))
-        debug_level = str((body or {}).get("debug_level")
-                          or DEBUG_LEVEL_DEFAULT).strip().upper()
-        if debug_level not in _VALID_LOG_LEVELS:
-            debug_level = DEBUG_LEVEL_DEFAULT
+        # The resolver, not an inline coercion. This site used to replace a
+        # level it did not recognise with INFO and say nothing, so
+        # debug_level=true produced an INFO run that reported success while
+        # the operator believed they were reading DEBUG. _resolve_debug_level
+        # treats a present-but-bad value as fatal, which the Provider path
+        # has always done.
+        debug_level = _resolve_debug_level(body)
+        # The runbook's OWN process logs at the level the fire asked for, not
+        # at the Automation Variable's. The variable is the resting default;
+        # the webhook argument is this run's answer and it wins here, exactly
+        # as it does on the provider path. Without this the trigger's own log
+        # lines came out at INFO while every container it launched ran at the
+        # requested level.
+        os.environ["CH_LOG_LEVEL"] = debug_level
         states_raw = (body or {}).get("states")
         if states_raw is None:
             states_raw = (body or {}).get("state_scope")
