@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyBuildPackageManifestSchema.json",
-  "title": "ChatHealthy Build Package Manifest",
-  "description": "Per-target build-package manifest emitted by local_build / remote_build alongside the materialized deploy bytes under <build_root>/v{N}/<target_id>/. The manifest carries the target's slice of deployment_architecture.json (target_id, target_kind, environments, files, optional secrets), plus the build_number that mints v{N} and the build_sha that pins the source commit. Embedded file bytes are intentionally OMITTED from files[] — the materialized bytes live as actual files in the same package dir; carrying them in the manifest would double them. Secret VALUES never appear in this manifest (or anywhere in the package); the secrets map (when present) declares only the per-target {name -> store_id} bindings. local_deploy / remote_deploy read this file to drive shipping; SecretsResolver resolves values at deploy time from the bound store.",
+  "title": "ChatHealthy Build Record",
+  "description": "The form of the record a build writes beside the bytes it produced, and the deploy reads. It carries only what a build knows and the deployment record cannot: which build this is, which commit it came from, and the measured hashes of what was packaged. It carries no copy of the deployment record. A build writes one of these per package it built, and one for a target built without naming a package; the per-package form additionally carries package_id, digest and content_hashes.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,133 +10,79 @@
     "build_number",
     "build_sha",
     "target_id",
-    "target_kind",
-    "environments",
-    "files"
+    "architecture_sha256"
   ],
   "properties": {
     "$schema": {
       "type": "string",
-      "format": "uri"
+      "format": "uri",
+      "description": "The URI of this schema, so a reader can resolve the form of what it is holding."
     },
     "build_number": {
       "type": "integer",
       "minimum": 1,
-      "description": "System-wide build counter mint at build time, sourced from admin.Versions.latest.builds[env=dev].build on the front-end cluster (see DeploymentArchitectureDesignAndMigrationPlanPhase_v14.docx section 2.1 build_chathealthy.py). v{build_number} names the package directory."
+      "description": "The build counter at the moment this build ran. A build number cannot be declared before the build that mints it, which is why it is recorded here and not declared."
     },
     "build_sha": {
       "type": "string",
       "minLength": 7,
       "maxLength": 40,
-      "description": "Short git SHA of HEAD when the build ran. Pins the source bytes from which this package was materialized."
+      "description": "Short git SHA of HEAD when the build ran. Pins the source the bytes were produced from."
     },
     "target_id": {
       "type": "string",
       "pattern": "^target_[a-z0-9_]{1,64}$",
-      "description": "Same identifier as in deployment_architecture.json's DeploymentTargetRecord."
+      "description": "The deployment target these bytes were built for."
     },
-    "target_kind": {
+    "architecture_sha256": {
       "type": "string",
-      "enum": [
-        "hf_space",
-        "cloudflare_pages_project",
-        "azure_function_app",
-        "host_os_process",
-        "docker_local_container",
-        "mongodb_collection",
-        "github_actions_workflow_runner"
-      ]
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Hash of the deployment record this build read its instructions from. A deploy re-reads that record and refuses when the hash has moved, so a record edited between build and deploy cannot pass unnoticed."
     },
-    "environments": {
-      "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["env_binding", "node_address"],
-        "properties": {
-          "env_binding": {
-            "type": "string",
-            "enum": ["local", "dev", "qa", "prod"]
-          },
-          "node_address": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 1024
-          },
-          "azure": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["resource_group", "function_app", "task_hub"],
-            "properties": {
-              "resource_group": {"type": "string", "minLength": 1, "maxLength": 256},
-              "function_app":   {"type": "string", "minLength": 1, "maxLength": 256},
-              "task_hub":       {"type": "string", "minLength": 1, "maxLength": 256}
-            }
-          }
-        }
-      }
+    "package_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "The package these bytes compose. Present on a per-package record, absent on a target record."
     },
-    "files": {
-      "type": "array",
-      "minItems": 1,
-      "description": "Lean list of files that compose this target's package. Mirrors deployment_architecture.json's files[] entries but with embedded_content + layout STRIPPED — the materialized bytes live as actual files under the package dir at source_location.",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["feature_id", "source_location", "handler_type", "disposition"],
-        "properties": {
-          "feature_id": {
-            "type": "string",
-            "pattern": "^EPIC-[0-9]{3}-F-[0-9]{3}$"
-          },
-          "source_location": {
-            "type": "string",
-            "pattern": "^(?!.*\\.\\.)[^\\\\:/][^\\\\:]*(?:/[^\\\\:/]+)*$",
-            "maxLength": 1024
-          },
-          "handler_type": {
-            "type": "string",
-            "enum": [
-              "python_source",
-              "python_test",
-              "python_requirements",
-              "dockerfile",
-              "workflow_yaml",
-              "shell_script",
-              "bat_script",
-              "markdown",
-              "json",
-              "static_asset",
-              "cert_or_key"
-            ]
-          },
-          "disposition": {
-            "type": "string",
-            "enum": ["managed", "referenced"]
-          },
-          "content_hash": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{64}$"
-          }
-        }
-      }
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "One hash over every byte the package carries, each file hashed with its package-relative path in sorted order, line endings normalised. Answers whether this package is the one that was built."
     },
-    "secrets": {
+    "content_hashes": {
       "type": "object",
-      "description": "Per-target secret / environment key declarations carried forward from deployment_architecture.json. Map of key NAME -> store id. Values themselves NEVER appear in any package file.",
+      "description": "The hash of each file the package carries, keyed by its package-relative path, line endings normalised. Answers which file moved, which a single digest cannot. This is the build stating what it measured; it is never written back into the deployment record the build reads.",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
       "additionalProperties": {
         "type": "string",
-        "enum": [
-          "local_env",
-          "gha_secret",
-          "hf_space_secret",
-          "cloudflare_env",
-          "azure_function_app_setting",
-          "azure_automation_variable"
-        ]
+        "pattern": "^[0-9a-f]{64}$"
       }
+    },
+    "env": {
+      "type": "string",
+      "enum": ["local", "dev", "qa", "prod"],
+      "description": "The environment this build was made for."
+    },
+    "git_head_sha": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 40,
+      "description": "Short git SHA of HEAD, as the deploy gate reads it."
+    },
+    "build": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The build number as the deploy gate reads it."
+    },
+    "built_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the build ran, in UTC."
     }
   }
 }
