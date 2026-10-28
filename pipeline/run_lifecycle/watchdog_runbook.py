@@ -12,7 +12,7 @@ a VM is deleted ONLY when the checks confirm it is safe to reap:
   1. Reservation check.
      Read `chathealthyfrontend.pipeline.cluster_reservations` for the
      matching `run_id`. If a reservation exists AND has not expired
-     (created_at + expected_duration_minutes + 30-min grace < now), the
+     (created_at + expected_duration_minutes + 10-min grace < now), the
      run is still legitimately live -> SKIP this VM entirely. This is the
      primary safeguard against killing our own jobs.
 
@@ -156,7 +156,7 @@ MISSING_MANIFEST_GRACE_MINUTES = int(os.environ.get(
     "WATCHDOG_MISSING_MANIFEST_GRACE_MINUTES", "30"
 ))
 RESERVATION_EXTRA_GRACE_MINUTES = int(os.environ.get(
-    "WATCHDOG_RESERVATION_EXTRA_GRACE_MINUTES", "30"
+    "WATCHDOG_RESERVATION_EXTRA_GRACE_MINUTES", "10"
 ))
 
 _HOSTNAME = socket.gethostname()
