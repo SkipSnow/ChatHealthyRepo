@@ -140,7 +140,25 @@
           }
         },
         "failure_thresholds": {
-          "$ref": "#/$defs/FailureThresholds"
+          "type": "object",
+          "description": "The run's ceilings. discrepancy_abort is the per-run total of accumulating findings the run is allowed before its output is unfit; the orchestrator totals findings and aborts at the next step exit once it is crossed.",
+          "additionalProperties": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "required": [
+            "discrepancy_abort"
+          ],
+          "properties": {
+            "discrepancy_abort": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Per-run ceiling on the total number of findings across every class and artifact. Crossing it aborts the run at the next step exit."
+            }
+          }
         },
         "source_freshness": {
           "type": "array",
@@ -149,7 +167,77 @@
           }
         },
         "discrepancy_report": {
-          "$ref": "#/$defs/DiscrepancyReport"
+          "$ref": "#/$defs/DiscrepancyReport",
+          "type": "object",
+          "description": "How the run's findings are graded and reported. Every class the pipeline can emit is named here; a class the run emits that this block does not name is a configuration defect.",
+          "properties": {
+            "report_cap_per_class": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Instances of one class the report lists before it summarizes the remainder as a count. Governs display only, never what the log keeps."
+            },
+            "business_record_keys": {
+              "type": "object",
+              "description": "Per production artifact, the document field identifying one business record in that artifact. The log collapses findings on that field.",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "finding_types": {
+              "type": "object",
+              "description": "Every finding class the pipeline can emit, keyed by class name. The class is the named reason; severity is an attribute of it.",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "severity",
+                  "fatal_at_count",
+                  "max"
+                ],
+                "properties": {
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "warning",
+                      "error",
+                      "fatal"
+                    ],
+                    "description": "A fatal class names an invariant a correct run never violates, so it aborts on first occurrence."
+                  },
+                  "fatal_at_count": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "description": "Occurrences at which this class escalates to fatal and aborts the run. null when volume never escalates it."
+                  },
+                  "max": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "description": "Occurrences of this class allowed before the run's output is unfit. null when the class is unbounded."
+                  },
+                  "report_display_cap": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "description": "Optional per-class override of the block's report_cap_per_class: instances of THIS class the report lists before summarizing the remainder as a count. Display only; the log keeps every finding regardless. Absent means the block-level cap applies."
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "report_cap_per_class",
+            "business_record_keys",
+            "finding_types"
+          ]
         },
         "metadata": {
           "$ref": "#/$defs/ConfigMetadata"
