@@ -157,7 +157,10 @@ _HOSTNAME = socket.gethostname()
 
 # Shared trigger constants (identical in both source runbooks).
 _VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
-DEBUG_LEVEL_DEFAULT = "INFO"
+# No debug-level default exists. The level is argued at the trigger or the
+# trigger refuses to fire. A default here is the same defect as a default
+# window: a run logging at a level nobody chose cannot be told apart
+# afterwards from one logging at a level that was chosen.
 # The reservation and the per-pipeline lock last as long as the RUN'S OWN
 # WINDOW -- the one the operator argues at the trigger -- and not one minute
 # more or less (operator ruling 2026-10-24). They used to carry 24h and 12h,
@@ -165,7 +168,19 @@ DEBUG_LEVEL_DEFAULT = "INFO"
 # still working, the reaper deleted the reservation and PAUSED the data
 # cluster out from under it, and the lock self-healed into a second
 # concurrent run. A fallback is used only when the trigger argues no window.
-_WINDOW_FALLBACK_MINUTES = 24 * 60
+# The reservation and the lock outlive the run's own window by this much.
+# THE RUN controls its end: it abends itself when its window expires. The
+# reaper exists for the run that could not -- a dead controller, a box
+# that never booted. If the reservation expired at the same instant the
+# run's window did, the reaper and the run would race for the same
+# deadline and the reaper would often win, so a run that was ending
+# correctly would be recorded as abandoned.
+_RESERVATION_GRACE_MINUTES = 10
+
+# No window fallback exists. The run's window is argued at the trigger or
+# the trigger refuses to fire: a default here would hand every run a
+# 24-hour lock and reservation nobody asked for, and the operator would
+# have no way to tell an argued window from an assumed one.
 ATLAS_ADMIN_BASE = os.environ.get(
     "AUTOMATION_ATLAS_ADMIN_BASE", "https://cloud.mongodb.com/api/atlas/v2"
 )
@@ -313,7 +328,8 @@ def _acquire_pipeline_lock(
         "run_id": run_id,
         "vm_name": vm_name,
         "acquired_at": now.isoformat(),
-        "expires_at": (now + timedelta(minutes=window_minutes)).isoformat(),
+        "expires_at": (now + timedelta(
+            minutes=window_minutes + _RESERVATION_GRACE_MINUTES)).isoformat(),
     }
     try:
         coll.insert_one(doc)
@@ -472,7 +488,8 @@ def _create_reservation(mongo, run_id: str, vm_name: str,
     main.finally; reservation_reaper reaps expiry_at < now otherwise."""
     coll = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
     now = datetime.datetime.utcnow()
-    expiry = now + datetime.timedelta(minutes=window_minutes)
+    expiry = now + datetime.timedelta(
+        minutes=window_minutes + _RESERVATION_GRACE_MINUTES)
     coll.replace_one(
         {"_id": run_id},
         {
@@ -605,7 +622,8 @@ def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
                           data_version: int,
                           window_minutes: int,
                           google_maps_enabled: bool = False,
-                          debug_level: str = DEBUG_LEVEL_DEFAULT) -> str:
+                          *,
+                          debug_level: str) -> str:
     """Return the base64-encoded cloud-init user_data blob for the provider
     run VM. The VM pulls the image as pipelineEditor and runs the container's
     DEFAULT CMD (Controller); on clean exit it fires a farewell az vm delete,
@@ -764,7 +782,8 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
                   window_minutes: int,
                   data_version: int = 0,
                   google_maps_enabled: bool = False,
-                  debug_level: str = DEBUG_LEVEL_DEFAULT) -> dict:
+                  *,
+                  debug_level: str) -> dict:
     """PUT a fresh Pipeline Run VM into snet-pipeline-compute. Async by nature:
     ARM returns a provisioning-state URL, not a completed VM. The runbook
     returns immediately after the PUT; cloud-init runs on the VM once it
@@ -929,7 +948,8 @@ def _wake_mongo_then_provision_vm(
     window_minutes: int,
     data_version: int = 0,
     google_maps_enabled: bool = False,
-    debug_level: str = DEBUG_LEVEL_DEFAULT,
+    *,
+    debug_level: str,
 ) -> dict:
     """Resume the Atlas cluster to IDLE, then provision the VM. Sequential: a
     host that boots against a still-REPAIRING cluster dies in its own gate. The
@@ -973,10 +993,92 @@ def _raise_bad_debug_level(raw) -> None:
             "pipeline_runbook: debug_level must be one of "
             + ", ".join(_VALID_LOG_LEVELS)
             + f" (case-insensitive). Got {raw!r}. Fire again with a valid "
-            + f"value or omit it for the {DEBUG_LEVEL_DEFAULT} default."
+            + " value. The level is required; there is no default."
         ),
         component="pipeline_runbook",
     )
+
+
+def _raise_missing_discrepancy_abort(raw) -> None:
+    """Raise-only helper: discrepancy_abort is required and is a positive
+    whole number of findings."""
+    raise ChatHealthyException(
+        mode="missing_resources", component="pipeline_runbook",
+        message=("discrepancy_abort is required and must be a "
+                 "positive whole number of findings. It is the "
+                 "ceiling this run's accumulating findings are "
+                 "measured against. No default is applied and no "
+                 "configured value substitutes for it. Fire again "
+                 "with a value."),
+        http_status=400,  # Bad Request: a required argument
+                          # is absent or unusable. The Automation
+                          # webhook already answered 202 with a
+                          # JobId before this ran, so the code is
+                          # recorded on the job rather than
+                          # returned to the caller.
+        supplied=str(raw)[:120])
+
+
+def _resolve_discrepancy_abort(webhook_body) -> int:
+    """The run's findings ceiling, argued at the trigger.
+
+    Argued, never configured and never defaulted. failure_thresholds
+    .discrepancy_abort carried 1000 in the config and no code read it;
+    StepContext carried discrepancy_threshold = 1000 and no code read
+    that either. Two numbers agreeing by coincidence, one declared and
+    ignored, one invented and unused."""
+    raw = (webhook_body or {}).get("discrepancy_abort")
+    if raw is None:
+        _raise_missing_discrepancy_abort(raw)
+    try:
+        ceiling = int(raw)
+    except (TypeError, ValueError):
+        _raise_missing_discrepancy_abort(raw)
+    if ceiling < 1:
+        _raise_missing_discrepancy_abort(raw)
+    return ceiling
+
+
+def _raise_missing_window(raw) -> None:
+    """Raise-only helper: expected_duration_minutes is required and is a
+    positive whole number of minutes."""
+    raise ChatHealthyException(
+        mode="missing_resources", component="pipeline_runbook",
+        message=("expected_duration_minutes is required and must be a "
+                 "positive whole number of minutes. It is THE run's "
+                 "window: it sets the pipeline lock and the cluster "
+                 "reservation expiry, and nothing else bounds the "
+                 "run. No default is applied. Fire again with a "
+                 "value."),
+        http_status=400,  # Bad Request: a required argument
+                          # is absent or unusable. The Automation
+                          # webhook already answered 202 with a
+                          # JobId before this ran, so the code is
+                          # recorded on the job rather than
+                          # returned to the caller.
+        supplied=str(raw)[:120])
+
+
+def _resolve_window_minutes(webhook_body) -> int:
+    """The run's window in minutes, argued at the trigger. Absent, or
+    present and not a positive whole number, is fatal.
+
+    This used to read `or _WINDOW_FALLBACK_MINUTES`, so a fire that named
+    no window silently received 24 hours. The window is what computes the
+    reservation's expiry_at and the pipeline lock's expires_at; the reaper
+    then reads that wall-clock expiry off the reservation row and enforces
+    it. So an assumed window became an enforced deadline, and afterwards a
+    run whose window was assumed is indistinguishable from one chosen."""
+    raw = (webhook_body or {}).get("expected_duration_minutes")
+    if raw is None:
+        _raise_missing_window(raw)
+    try:
+        minutes = int(raw)
+    except (TypeError, ValueError):
+        _raise_missing_window(raw)
+    if minutes < 1:
+        _raise_missing_window(raw)
+    return minutes
 
 
 def _resolve_debug_level(webhook_body) -> str:
@@ -988,7 +1090,7 @@ def _resolve_debug_level(webhook_body) -> str:
     if raw is None:
         raw = body.get("debuglevel")
     if raw is None:
-        return DEBUG_LEVEL_DEFAULT
+        _raise_bad_debug_level(raw)
     level = str(raw).strip().upper()
     if level not in _VALID_LOG_LEVELS:
         _raise_bad_debug_level(raw)
@@ -1041,8 +1143,7 @@ def _run_provider() -> int:
     # this runbook writes lasts exactly this long and not a minute more
     # (operator ruling 2026-10-24). A scheduled fire that argues none falls
     # back, and the fallback is stated once, here.
-    window_minutes = int((webhook_body or {}).get(
-        "expected_duration_minutes") or _WINDOW_FALLBACK_MINUTES)
+    window_minutes = _resolve_window_minutes(webhook_body)
     if webhook_body:
         invocation_mode = webhook_body.get("invocation_mode", "webhook")
     load_mode = webhook_body.get("load_mode", LOAD_MODE_DEFAULT) if webhook_body else LOAD_MODE_DEFAULT
@@ -1345,7 +1446,8 @@ def _controller_cloud_init(run_id: str, data_version: int,
                            debug_level: str, states: list[str],
                            provider_collection: str,
                            start_at_step: str | None,
-                           window_minutes: int) -> str:
+                           window_minutes: int,
+                           discrepancy_abort: int) -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
     VMs, then self-delete. The Controller presents pipelineController for ARM
@@ -1395,6 +1497,7 @@ runcmd:
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{MONGO_HOST_PIPELINE}' \\
       -e RUN_ID='{run_id}' -e DATA_VERSION='{data_version}' -e ENV_PREFIX='{ENV_PREFIX}' \
       -e EXPECTED_DURATION_MINUTES='{window_minutes}' \\
+      -e DISCREPANCY_ABORT='{discrepancy_abort}' \\
       -e PIPELINE_NAME='medicare' -e GOOGLE_MAPS_ENABLED='0' \\
       -e PIPELINE_LOG_ACCOUNT_URL='{PIPELINE_LOG_ACCOUNT_URL}' \\
       -e AZURE_VM_NAME='{vm_name}' \\
@@ -1437,14 +1540,15 @@ def _provision_controller_vm(run_id: str, data_version: int,
                              states: list[str],
                              provider_collection: str,
                              start_at_step: str | None,
-                             window_minutes: int) -> dict:
+                             window_minutes: int,
+                             discrepancy_abort: int) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
     user_data = _controller_cloud_init(run_id, data_version, build_fda_drug,
                                        vm_name, debug_level, states,
                                        provider_collection, start_at_step,
-                                       window_minutes)
+                                       window_minutes, discrepancy_abort)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
@@ -1534,7 +1638,8 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
         {"_id": run_id, "run_id": run_id, "vm_name": vm_name,
          "cluster_name": ATLAS_PIPELINE_CLUSTER, "requester": "pipeline_runbook",
          "start_time": now,
-         "expiry_at": now + datetime.timedelta(minutes=window_minutes),
+         "expiry_at": now + datetime.timedelta(
+             minutes=window_minutes + _RESERVATION_GRACE_MINUTES),
          "reservation_class": "pipeline_run", "pipeline_name": PIPELINE_NAME,
          "status": "active"},
         upsert=True)
@@ -1670,8 +1775,8 @@ def _run_medicare() -> int:
         body = _extract_request_body()
         invocation_mode = body.get("invocation_mode", "webhook") if body else "scheduled"
         # THE run's window, argued by the operator at the trigger.
-        window_minutes = int((body or {}).get(
-            "expected_duration_minutes") or _WINDOW_FALLBACK_MINUTES)
+        window_minutes = _resolve_window_minutes(body)
+        discrepancy_abort = _resolve_discrepancy_abort(body)
         try:
             data_version = int((body or {}).get("data_version"))
         except (TypeError, ValueError):
@@ -1741,7 +1846,8 @@ def _run_medicare() -> int:
         # where the pipeline package exists; the sandbox trigger cannot run it.
         _provision_controller_vm(run_id, data_version, build_fda_drug,
                                  debug_level, states, provider_collection,
-                                 start_at_step, window_minutes)
+                                 start_at_step, window_minutes,
+                                 discrepancy_abort)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
         log("runbook_exit", run_id=run_id)
