@@ -1085,6 +1085,13 @@ def set_hf_config(
                             f"firm:{firm_key} but the record's firm block "
                             f"declares no {firm_key!r}")
             return str(firm_block[firm_key])
+        if qualifier.startswith("secret_names_of:") and repo_root is not None:
+            # The names a node is declared to fetch, derived from the
+            # vault target's own declarations rather than copied into a
+            # store, so declaring a secret both seeds the vault and
+            # tells every node to read it.
+            return _declared_secret_names(repo_root,
+                                          qualifier.split(":", 1)[1])
         if qualifier.startswith("rename_from:"):
             other_name = qualifier.split(":", 1)[1]
             other_qual = (target.secrets or {}).get(other_name)\
@@ -3015,6 +3022,81 @@ def require_branch_matches_env_binding(
 
 
 
+def _declared_secret_names(repo_root: Path, target_id: str) -> str:
+    """The Key Vault names a target declares, as the comma list a node
+    reads to know which secrets to fetch.
+
+    Derived, never kept. This list used to be a hand-maintained string in
+    the operator's .env, while bootstrap's own docstring said the deploy
+    placed it there from what the manifest declares. It did not. So a new
+    source could be declared, seeded into the vault by the deploy, and
+    still never fetched by the node -- which is exactly how UMLS_API_KEY
+    reached the vault and starved the Worker.
+
+    Declared names use env-var spelling; Key Vault names use hyphens, the
+    same conversion seed_kv_secrets_from_env applies when it writes them.
+    """
+    path = repo_root / ARCHITECTURE_REL
+    if not path.is_file():
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: {path} not found.")
+    record = json.loads(path.read_text(encoding="utf-8"))
+    for entry in record.get("DeploymentTargetRecord", []) or []:
+        if entry.get("target_id") != target_id:
+            continue
+        # Material a node never fetches is never listed. Certificates, keys
+        # and CA material are materialised as files, and the mongo- family is
+        # read from the vault by the Mongo utility itself at connect time.
+        # Listing them would tell a node to fetch what it must not hold, and
+        # would make a run die on a tuning secret nobody meant it to read.
+        never_fetched = ("cert-", "certs-", "key-", "ca-", "mongo-")
+        declared = sorted(
+            n.replace("_", "-") for n in (entry.get("secrets") or {}).keys())
+        return ",".join(n for n in declared
+                        if not n.startswith(never_fetched))
+    raise ChatHealthyException(
+        mode="key_error",
+        component="_deploy_chain",
+        message=f"secret_names_of:{target_id} names no target in the record")
+
+
+def _refuse_unfetchable_secrets(vault: str, repo_root, target_id: str) -> None:
+    """Refuse a deploy that would tell a node to fetch what the vault lacks.
+
+    The node's fetch list is derived from this target's declarations, so the
+    deploy holds both the list and the vault and can prove they agree. A
+    mismatch found here costs a deploy; the same mismatch found at run time
+    costs a run, and reads as a pipeline defect rather than a missing fact."""
+    # The chain's own az helper: it carries the Windows shell handling and
+    # the error-capture the deploy relies on everywhere else.
+    import pipeline_azure_deploy as pad  # noqa: PLC0415
+    wanted = [n for n in
+              _declared_secret_names(repo_root, target_id).split(",") if n]
+    if not wanted:
+        return
+    listed = pad._az_json(
+        ["keyvault", "secret", "list", "--vault-name", vault,
+         "--query", "[].name"]) or []
+    present = {str(n).strip() for n in listed if str(n).strip()}
+    if not present:
+        raise ChatHealthyException(
+            mode="aborted", component="_deploy_chain",
+            message=f"could not list secrets in {vault}, so the deploy cannot "
+                    f"prove a node can fetch what it is told to fetch")
+    absent = sorted(n for n in wanted if n not in present)
+    if absent:
+        raise ChatHealthyException(
+            mode="missing_resources", component="_deploy_chain",
+            message=f"{vault} does not hold {len(absent)} secret(s) that every "
+                    f"pipeline node is declared to fetch: {', '.join(absent)}. "
+                    f"Seed them, or stop declaring them on {target_id}. A run "
+                    f"would fail on the first one, inside a container.",
+            missing=",".join(absent))
+    step(f"  verified {len(wanted)} declared secret(s) are fetchable from {vault}")
+
+
 def entry_value(name, qualifier, target, env, resolver, repo_root=None):
     """The value one declared secret or variable carries, or None where the
     value is established by the platform at install time.
@@ -3047,6 +3129,13 @@ def entry_value(name, qualifier, target, env, resolver, repo_root=None):
                         f"as firm:{firm_key} but the record's firm block "
                         f"declares no {firm_key!r}")
         return str(firm_block[firm_key])
+    if qualifier.startswith("secret_names_of:") and repo_root is not None:
+        # The names a node is declared to fetch, derived from the vault
+        # target's own declarations rather than copied into a store, so
+        # declaring a secret both seeds the vault and tells every node to
+        # read it.
+        return _declared_secret_names(repo_root,
+                                      qualifier.split(":", 1)[1])
     if qualifier.startswith("rename_from:"):
         other = qualifier.split(":", 1)[1]
         other_qual = ((target.secrets or {}).get(other)
@@ -3359,6 +3448,14 @@ def deploy_one(
         # Prefer exact env key names as KV secret names (dash form for CA;
         # underscore form for Mongo etc. — store both styles as declared).
         pad.seed_kv_secrets_from_env(vault, list((target.secrets or {}).keys()))
+        # Every name a node will be told to fetch must exist in this vault,
+        # proven HERE rather than discovered by a run. A declared secret the
+        # vault does not hold fails bootstrap on the Worker box -- loudly, but
+        # 14 minutes into a run, with the reason in a log collection and
+        # nowhere else. The deploy already knows both halves, so it is the
+        # place that can refuse. This is what UMLS_API_KEY needed and did not
+        # have: declared, absent, and only answerable by reading a worker log.
+        _refuse_unfetchable_secrets(vault, repo_root, target.target_id)
         # Facts the manifest states outright, rather than looks up in a .env.
         # Every identity that authenticates to Mongo and holds a cert secret in
         # this vault must be tagged -- not just service principals. The data

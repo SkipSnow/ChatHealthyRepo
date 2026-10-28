@@ -80,6 +80,13 @@ KV_IDENTITY_SECRETS = frozenset({
 })
 KV_CA_PREFIX = "ca-"                # every CA secret, public and private
 KV_LEGACY_CERT_PREFIX = "certs-"    # superseded certs-pipeline-* secrets
+# The mongo- family is read from the vault by ChatHealthyMongoUtilities
+# itself, by prefix, at the moment it opens a connection. It is library
+# tuning rather than a node secret, so it never belongs in os.environ --
+# the same reason certificate material does not. Listing these here keeps
+# the node's declared fetch list honest: a name a node is told to fetch
+# is a name it genuinely needs.
+KV_MONGO_PREFIX = "mongo-"
 KV_CA_PUBLIC = "ca-root-cert"
 KV_CA_INTERMEDIATE_CHAIN = "ca-intermediate-cert"
 
@@ -235,6 +242,7 @@ def _load_all_secrets_into_env(client: SecretClient) -> int:
     # environment variable.
     skip_prefixes = (
         KV_CERT_PREFIX, KV_KEY_PREFIX, KV_LEGACY_CERT_PREFIX, KV_CA_PREFIX,
+        KV_MONGO_PREFIX,
     )
     n = 0
     for name in declared:
