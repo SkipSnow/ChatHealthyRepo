@@ -54,8 +54,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                         help="LLD step name; resolved via STEP_RUNNERS")
     parser.add_argument("--env-prefix", dest="env_prefix",
                         default=os.environ.get("ENV_PREFIX", "dev"))
-    parser.add_argument("--states", dest="states",
-                        default=os.environ.get("STATES", "ALL"))
+    # A Worker checks it has what it needs before it works, and refuses
+    # if it does not. This defaulted to ALL, so a Worker the Controller
+    # handed no scope fanned out over every state -- a propagation
+    # failure answered with the largest run available instead of a
+    # refusal. The Controller is this process's upstream, and an
+    # upstream is not more trustworthy than a user.
+    parser.add_argument("--states", dest="states", required=True,
+                        help="Comma-separated state list, or ALL. MANDATORY: propagated by the Controller; never invented here.")
     parser.add_argument("--log-level", dest="log_level",
                         default=os.environ.get("LOG_LEVEL", "INFO"))
     return parser.parse_args(argv)
