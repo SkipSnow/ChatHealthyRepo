@@ -1046,6 +1046,38 @@ def _raise_missing_window(raw) -> None:
         supplied=str(raw)[:120])
 
 
+def _raise_missing_provider_collection(raw) -> None:
+    """Raise-only helper: providerCollection is required and names the
+    provider source as cluster.db.collection."""
+    raise ChatHealthyException(
+        mode="missing_resources", component="pipeline_runbook",
+        message=("providerCollection is required and names the Provider "
+                 "collection this run joins against, as "
+                 "cluster.db.collection. It is not derived from "
+                 "data_version and no default is applied: the run builds "
+                 "the provider indexes on whatever collection this names, "
+                 "so an absent value built them on a different collection "
+                 "and left the real one unindexed. Fire again with a "
+                 "value."),
+        http_status=400,  # Bad Request: a required argument is absent.
+        supplied=str(raw)[:120])
+
+
+def _resolve_provider_collection(webhook_body) -> str:
+    """The provider source, argued at the trigger. Absent is fatal.
+
+    This used to be a plain .get() with no check, so an omitted value became
+    None and the Controller command line carried the literal string 'None'
+    -- and the worker's index step silently substituted a different
+    collection for it."""
+    raw = ((webhook_body or {}).get("providerCollection")
+           or (webhook_body or {}).get("provider_collection"))
+    value = str(raw or "").strip()
+    if not value:
+        _raise_missing_provider_collection(raw)
+    return value
+
+
 def _resolve_window_minutes(webhook_body) -> int:
     """The run's window in minutes, argued at the trigger. Absent, or
     present and not a positive whole number, is fatal.
@@ -1839,8 +1871,7 @@ def _run_medicare() -> int:
         # the Controller VM, which HAS the pipeline package and does the
         # authoritative parse + existence check in build_providermedicare_base
         # via provider_source.
-        provider_collection = ((body or {}).get("providerCollection")
-                               or (body or {}).get("provider_collection"))
+        provider_collection = _resolve_provider_collection(body)
         # START AT (operator design 2026-10-22): begin the DAG walk at the
         # named step. Pure pass-through -- the orchestrator validates the step
         # name and gates every step on StepDataDependenciesAreMet; the runbook
@@ -1851,7 +1882,8 @@ def _run_medicare() -> int:
         log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
             invocation_mode=invocation_mode, data_version=data_version,
             build_fda_drug=build_fda_drug, debug_level=debug_level,
-            states=states, start_at_step=start_at_step)
+            states=states, start_at_step=start_at_step,
+            provider_collection=provider_collection)
 
         blocking = _acquire_pipeline_lock(mongo, PIPELINE_NAME, run_id, vm_name,
                                           window_minutes)

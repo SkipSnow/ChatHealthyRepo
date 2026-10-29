@@ -149,7 +149,21 @@ def _wait_for_cluster_ready(
 
 
 def _providers_collection_and_client(provider_collection: str | None) -> tuple:
-    fqn = provider_collection or "PipelinePublicHealthData.providers"
+    # No default. This read `or "PipelinePublicHealthData.providers"`, so a run
+    # whose provider collection did not arrive indexed a DIFFERENT collection
+    # than the one argued -- and MongoDB creates a collection on reference, so
+    # the step reported success having built the declared index set on an empty
+    # phantom while the real collection kept none. The join then thrashes.
+    fqn = (provider_collection or "").strip()
+    if not fqn:
+        raise ChatHealthyException(
+            mode="missing_resources", component="ensure_provider_indexes",
+            message=("provider_collection did not reach this step, so the "
+                     "provider indexes cannot be built on the collection the "
+                     "run was told to join against. It is argued at the "
+                     "trigger as providerCollection and carried to the "
+                     "Controller as --provider-collection. No default is "
+                     "applied."))
     # Accept the operator's canonical cluster.db.collection (3-part) and the
     # provider pipeline's bare db.collection (2-part). The cluster is hardcoded
     # below, so a leading cluster segment is dropped -- take the trailing pair.

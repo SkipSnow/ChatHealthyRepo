@@ -559,10 +559,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--package", default="",
-        help="Deprecated and not needed. A build produces every package the "
-             "named targets declare, read from deployment_architecture.json. "
-             "Supplying a list that disagrees with the record is an illegal "
-             "state and stops the build.",
+        help="Comma-separated list of package_id values, read from "
+             "deployment_architecture.json. REQUIRED for dev, qa and prod "
+             "whenever the named targets carry more than one package: there "
+             "is no 'all packages' shortcut, so touching one capability "
+             "never rebuilds the others. --env local is exempt and builds "
+             "every declared package. Naming a package the target does not "
+             "declare is an illegal state and stops the build.",
     )
     args = parser.parse_args(argv)
 
@@ -684,6 +687,8 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     # declaration of one fact. Dropping --package builds every declared one.
     # A subset build is the operator's explicit choice, not a silent omission,
     # so it does not drift the record the way an unstated omission would.
+    # Dropping --package builds every declared one for --env local only; the
+    # guard below requires the flag for dev, qa and prod.
     known = {p for t in targets for p in _declared_packages(t, args.env)}
     if not known:
         raise ChatHealthyException(
@@ -715,8 +720,10 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     packages_wanted = supplied or set(known)
     for _t in targets:
         _step(f"  {_t.target_id}: install order {package_install_order(_t)}")
-    _step(f"building every declared package {sorted(packages_wanted)} "
-          f"across {len(targets)} target(s)")
+    _step(f"building {len(packages_wanted)} of {len(known)} declared "
+          f"package(s) {sorted(packages_wanted)} across {len(targets)} "
+          f"target(s)"
+          + ("" if supplied else " -- every declared one, none named"))
 
     if args.env == "local":
         build_n = _read_dev_build_number()

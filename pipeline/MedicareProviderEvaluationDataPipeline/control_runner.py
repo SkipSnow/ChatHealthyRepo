@@ -120,13 +120,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                              "run dies fatally. No history, no prior-run "
                              "reference. Reads START_AT_STEP env if omitted.")
     parser.add_argument("--provider-collection", dest="provider_collection",
-                        default=os.environ.get("PROVIDER_COLLECTION", "").strip() or None,
+                        required=True,
                         help="Fully-qualified provider source as "
                              "cluster.db.collection (e.g. ChatHealthyDataPipelines."
-                             "PipelinePublicHealthData.Provider_v_5). MANDATORY: the "
+                             "PipelinePublicHealthData.Provider_v_5). REQUIRED: the "
                              "Provider collection this run joins against, named "
-                             "explicitly rather than derived from data_version. Reads "
-                             "PROVIDER_COLLECTION env if the flag is omitted.")
+                             "explicitly rather than derived from data_version. The "
+                             "runbook always supplies it; absence is fatal here "
+                             "rather than resolved from the environment.")
     return parser.parse_args(argv)
 
 
