@@ -3091,7 +3091,14 @@ def entry_value(name, qualifier, target, env, resolver, repo_root=None):
                 message=f"target {target.target_id!r}: entry {name!r} declared "
                         f"as firm:{firm_key} but the record's firm block "
                         f"declares no {firm_key!r}")
-        return str(firm_block[firm_key])
+        value = firm_block[firm_key]
+        if isinstance(value, (list, tuple)):
+            # Same as the other resolver: a declared list travels as the
+            # comma string its consumer parses. str() of a list ships
+            # "['A', 'B']" and the node asks the vault for a name
+            # beginning with a bracket.
+            return ",".join(str(v) for v in value)
+        return str(value)
     if qualifier.startswith("rename_from:"):
         other = qualifier.split(":", 1)[1]
         other_qual = ((target.secrets or {}).get(other)
