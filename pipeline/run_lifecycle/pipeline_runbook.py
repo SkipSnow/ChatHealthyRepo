@@ -1652,17 +1652,21 @@ def _resolve_states(raw) -> list[str]:
     return scope
 
 
-def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
-                                window_minutes: int) -> None:
-    """The one and only place that manages the pipeline data cluster for a run.
+def _reserve_cluster(mongo, run_id: str, vm_name: str,
+                     window_minutes: int) -> None:
+    """Reserve the pipeline data cluster for this run's whole window.
 
-    1. Reserve the run FIRST -- before the (tens-of-minutes) resume -- so the
-       run holds a live lease for the whole wake and the reservation reaper does
-       not reap it as controller-never-started.
-    2. Resume the always-paused cluster and poll until it reports IDLE.
-
-    Missing Atlas credentials RAISE -- a run that cannot wake its data cluster
-    aborts visibly rather than march on."""
+    Reserving is separated from resuming because the two reservations a run
+    holds -- this one and its controller VM -- must BOTH exist before the
+    tens-of-minutes cluster wake begins. They did not: the reservation was
+    written, the resume was waited out, and only then was the VM created.
+    For the length of that wait the reservation named a VM that did not
+    exist, and the reaper's liveness test is VM existence, so on 2026-10-29
+    it stopped run 735a7926 at age 15.7 minutes while the runbook was still
+    polling the cluster -- printing the reservation's own expiry, a day in
+    the future, in the same breath. A run that holds a lease is alive; a
+    window in which half its claim is unmade is a window in which it is
+    indistinguishable from an abandoned one."""
     now = datetime.datetime.utcnow()
     mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].replace_one(
         {"_id": run_id},
@@ -1677,6 +1681,15 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
     log("reservation_created", run_id=run_id, vm_name=vm_name,
         window_minutes=window_minutes)
 
+
+def _resume_cluster_and_wait() -> None:
+    """Resume the always-paused data cluster and poll until it reports IDLE.
+
+    Called only once both of the run's reservations are in place, so the
+    reaper sees a complete claim throughout the wake.
+
+    Missing Atlas credentials RAISE -- a run that cannot wake its data
+    cluster aborts visibly rather than march on."""
     missing = [n for n, v in (("ATLAS_PROJECT_ID", ATLAS_PROJECT_ID),
                               ("ATLAS_PIPELINE_PUBLIC_KEY", ATLAS_PIPELINE_PUBLIC_KEY),
                               ("ATLAS_PIPELINE_PRIVATE_KEY", ATLAS_PIPELINE_PRIVATE_KEY),
@@ -1896,7 +1909,11 @@ def _run_medicare() -> int:
                                 invocation_mode, states, start_at_step)
         log("run_manifest_written", run_id=run_id)
 
-        _reserve_and_resume_cluster(mongo, run_id, vm_name, window_minutes)
+        # BOTH reservations before the wake. The cluster reservation names the
+        # controller VM, and the reaper's liveness test is whether that VM
+        # exists, so the VM is created here -- not after the tens-of-minutes
+        # resume. Nothing in between: a run never holds half a claim.
+        _reserve_cluster(mongo, run_id, vm_name, window_minutes)
         reservation_created = True
 
         # provider_collection's authoritative parse + existence check happens on
@@ -1905,8 +1922,14 @@ def _run_medicare() -> int:
         _provision_controller_vm(run_id, data_version, build_fda_drug,
                                  debug_level, states, provider_collection,
                                  start_at_step, window_minutes)
-        runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
+
+        # Both claims are now in place, so the wake can take as long as it
+        # takes. The Controller's own first step waits for the data cluster
+        # too; its bookkeeping -- lock, heartbeat, log -- lives on the
+        # always-on front-end cluster, so it loses nothing by booting first.
+        _resume_cluster_and_wait()
+        runbook_owns_lock = False  # Controller owns lock release from here
         log("runbook_exit", run_id=run_id)
         return 0
     except Exception as exc:  # noqa: BLE001

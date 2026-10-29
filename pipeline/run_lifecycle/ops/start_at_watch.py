@@ -33,7 +33,13 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E
 # and it is where to write.
 _DEFAULT_LOG = "_oneshots/medicare_status.log"
 LOG = _DEFAULT_LOG
-FIRED_AFTER_UTC = datetime.datetime(2026, 10, 25, 13, 51)
+# Runs admitted after this watch began, not after a date written into the
+# source. The constant used to be the wall-clock of one particular fire
+# (2026-10-25 13:51), so every later watch asked for "the newest run since
+# four days ago" and latched the most recent TERMINAL run -- on 2026-10-29
+# it reported ADMITTED for a run that had failed nine hours earlier and
+# exited. A watch reports on the run it was started to watch.
+FIRED_AFTER_UTC = datetime.datetime.utcnow()
 
 
 LOG_TAIL_LINES = 25
