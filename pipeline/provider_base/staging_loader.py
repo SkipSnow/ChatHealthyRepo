@@ -521,10 +521,18 @@ def _require_mongo(mongo) -> None:
 
 
 def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...]) -> int:
-    """Full-load hygiene: delete EVERY existing row from every source's
-    staging collection (full drain each run). Rows from prior runs are
-    never preserved regardless of state_scope overlap. Returns the delete
-    count.
+    """Full-load hygiene: DROP the staging collection. A full load keeps no
+    prior row regardless of state_scope overlap, so there is nothing to
+    preserve and nothing to filter. Returns the row count discarded.
+
+    drop(), not delete_many({}). A delete removes documents one at a time
+    and maintains every index on the collection as it goes: on the Part D
+    staging collection -- roughly 28 million rows -- the drain alone ran
+    for tens of minutes before a single new row landed, and the run looked
+    hung at 8 of 9 partitions. A drop discards the collection and its
+    indexes at once, and the loader recreates the indexes afterwards on an
+    empty collection, which is instant. This is the same reasoning the
+    Medicare clear step already carries for the published collections.
 
     Applies to every source. The non-NPPES sources are all small (nucc
     ~530 KB, specialty_catalog ~230 KB, census ~7 MB, usda ~160 KB,
@@ -533,8 +541,9 @@ def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...
     (surfaced 2026-08-01: prior fires' StagingSpecialtyCatalog rows
     with lowercase raw.code broke provider_flags_enrichment when the
     engine walked the collection without a run_id filter)."""
-    res = coll.delete_many({})
-    return int(res.deleted_count or 0)
+    discarded = coll.estimated_document_count()
+    coll.drop()
+    return int(discarded or 0)
 
 
 # Reference sources are non-partitioned reference tables (NUCC taxonomy,
@@ -550,12 +559,16 @@ _REFERENCE_SOURCE_NAMES = frozenset({
 
 
 def _drop_prior_reference_rows(coll, source_name: str) -> int:
-    """Wholesale drain of a reference-source staging collection before
-    the fresh load. Returns delete count."""
+    """Wholesale replacement of a reference-source staging collection
+    before the fresh load. Returns the row count discarded.
+
+    drop(), for the same reason as the full-load drain: a wholesale
+    replacement has nothing to preserve, so it need not walk the rows."""
     if source_name not in _REFERENCE_SOURCE_NAMES:
         return 0
-    res = coll.delete_many({})
-    return int(res.deleted_count or 0)
+    discarded = coll.estimated_document_count()
+    coll.drop()
+    return int(discarded or 0)
 
 
 def _stream_sha256(local_path: str) -> str:
