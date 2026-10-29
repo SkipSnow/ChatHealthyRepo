@@ -88,17 +88,7 @@ def _states_default_from_env() -> str:
             return ",".join(str(s) for s in parsed) or "ALL"
         if isinstance(parsed, str):
             return parsed or "ALL"
-    # No ALL fallback. A Controller handed no scope ran every state,
-    # which answers a propagation failure with the most expensive run
-    # there is. The trigger argues the scope and propagates it.
-    scope = os.environ.get("STATES", "").strip()
-    if not scope:
-        raise ChatHealthyException(
-            mode="missing_resources", component="control_runner",
-            message=("STATES is absent: this Controller was handed no fan-out scope. "
-                     "It is argued at the trigger and propagated here; no default "
-                     "is applied, because an omitted scope used to mean every state."))
-    return scope
+    return os.environ.get("STATES", "ALL")
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:

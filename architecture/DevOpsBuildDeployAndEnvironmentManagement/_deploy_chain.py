@@ -1084,14 +1084,12 @@ def set_hf_config(
                     message=f"target {target_id!r}: entry {name!r} declared as "
                             f"firm:{firm_key} but the record's firm block "
                             f"declares no {firm_key!r}")
-            return str(firm_block[firm_key])
-        if qualifier.startswith("secret_names_of:") and repo_root is not None:
-            # The names a node is declared to fetch, derived from the
-            # vault target's own declarations rather than copied into a
-            # store, so declaring a secret both seeds the vault and
-            # tells every node to read it.
-            return _declared_secret_names(repo_root,
-                                          qualifier.split(":", 1)[1])
+            value = firm_block[firm_key]
+        if isinstance(value, (list, tuple)):
+            # A declared list travels as the comma string its consumer
+            # parses. str() of a list would hand the node "['A', 'B']".
+            return ",".join(str(v) for v in value)
+        return str(value)
         if qualifier.startswith("rename_from:"):
             other_name = qualifier.split(":", 1)[1]
             other_qual = (target.secrets or {}).get(other_name)\
@@ -3022,46 +3020,6 @@ def require_branch_matches_env_binding(
 
 
 
-def _declared_secret_names(repo_root: Path, target_id: str) -> str:
-    """The Key Vault names a target declares, as the comma list a node
-    reads to know which secrets to fetch.
-
-    Derived, never kept. This list used to be a hand-maintained string in
-    the operator's .env, while bootstrap's own docstring said the deploy
-    placed it there from what the manifest declares. It did not. So a new
-    source could be declared, seeded into the vault by the deploy, and
-    still never fetched by the node -- which is exactly how UMLS_API_KEY
-    reached the vault and starved the Worker.
-
-    Declared names use env-var spelling; Key Vault names use hyphens, the
-    same conversion seed_kv_secrets_from_env applies when it writes them.
-    """
-    path = repo_root / ARCHITECTURE_REL
-    if not path.is_file():
-        raise ChatHealthyException(
-            mode="aborted",
-            component="_deploy_chain",
-            message=f"ERROR: {path} not found.")
-    record = json.loads(path.read_text(encoding="utf-8"))
-    for entry in record.get("DeploymentTargetRecord", []) or []:
-        if entry.get("target_id") != target_id:
-            continue
-        # Material a node never fetches is never listed. Certificates, keys
-        # and CA material are materialised as files, and the mongo- family is
-        # read from the vault by the Mongo utility itself at connect time.
-        # Listing them would tell a node to fetch what it must not hold, and
-        # would make a run die on a tuning secret nobody meant it to read.
-        never_fetched = ("cert-", "certs-", "key-", "ca-", "mongo-")
-        declared = sorted(
-            n.replace("_", "-") for n in (entry.get("secrets") or {}).keys())
-        return ",".join(n for n in declared
-                        if not n.startswith(never_fetched))
-    raise ChatHealthyException(
-        mode="key_error",
-        component="_deploy_chain",
-        message=f"secret_names_of:{target_id} names no target in the record")
-
-
 def _refuse_unfetchable_secrets(vault: str, repo_root, target_id: str) -> None:
     """Refuse a deploy that would tell a node to fetch what the vault lacks.
 
@@ -3072,8 +3030,13 @@ def _refuse_unfetchable_secrets(vault: str, repo_root, target_id: str) -> None:
     # The chain's own az helper: it carries the Windows shell handling and
     # the error-capture the deploy relies on everywhere else.
     import pipeline_azure_deploy as pad  # noqa: PLC0415
-    wanted = [n for n in
-              _declared_secret_names(repo_root, target_id).split(",") if n]
+    # The node's declared fetch list -- configuration, declared once in the
+    # record's firm block. NOT the vault's inventory: the vault answers
+    # what it holds, the list answers what a least-privilege node reads,
+    # and reading the first as the second is what widened the list past
+    # the identity's grants and killed a run.
+    wanted = [n for n in (_firm_block(repo_root).get(
+        "pipeline_node_secrets") or []) if str(n).strip()]
     if not wanted:
         return
     listed = pad._az_json(
@@ -3129,13 +3092,6 @@ def entry_value(name, qualifier, target, env, resolver, repo_root=None):
                         f"as firm:{firm_key} but the record's firm block "
                         f"declares no {firm_key!r}")
         return str(firm_block[firm_key])
-    if qualifier.startswith("secret_names_of:") and repo_root is not None:
-        # The names a node is declared to fetch, derived from the vault
-        # target's own declarations rather than copied into a store, so
-        # declaring a secret both seeds the vault and tells every node to
-        # read it.
-        return _declared_secret_names(repo_root,
-                                      qualifier.split(":", 1)[1])
     if qualifier.startswith("rename_from:"):
         other = qualifier.split(":", 1)[1]
         other_qual = ((target.secrets or {}).get(other)

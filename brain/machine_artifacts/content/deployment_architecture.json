@@ -4273,7 +4273,7 @@
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
-                "PIPELINE_SECRET_NAMES": "secret_names_of:target_azure_key_vault_pipeline",
+                "PIPELINE_SECRET_NAMES": "firm:pipeline_node_secrets",
                 "CH_LOG_DB": "local_env",
                 "CH_LOG_LEVEL": "local_env",
                 "SPARKMAIL_API_KEY": "local_env",
@@ -11267,7 +11267,33 @@
       "name": "SkipSnow",
       "email": "skip@chathealthy.ai"
     },
-    "embedding_model": "text-embedding-3-large"
+    "embedding_model": "text-embedding-3-large",
+    "pipeline_node_secrets": [
+      "ATLAS-PIPELINE-PRIVATE-KEY",
+      "ATLAS-PIPELINE-PUBLIC-KEY",
+      "ATLAS-PRIVATE-KEY",
+      "ATLAS-PROJECT-ID",
+      "ATLAS-PUBLIC-KEY",
+      "CLOUDFLARE-PIPELINE-AUTH-HEADER",
+      "GEMINI-API-KEY",
+      "GOOGLE-MAPS-API-KEY",
+      "KEY-VAULT-URI",
+      "NOTIFICATION-FROM-EMAIL",
+      "NOTIFICATION-TO-EMAIL",
+      "OPENAI-API-KEY",
+      "PIPELINE-STORAGE-CONNECTION-STRING",
+      "SOURCE-URL-CENSUS-ZCTA-COUNTY",
+      "SOURCE-URL-NPPES-NPI",
+      "SOURCE-URL-NUCC",
+      "SOURCE-URL-USDA-RUCC",
+      "SPARKMAIL-API-KEY",
+      "SPECIALTY-CLASSIFICATION-CATALOG-URL",
+      "UMLS-API-KEY",
+      "ca-intermediate-cert",
+      "ca-root-cert",
+      "cert-pipelineEditor",
+      "key-pipelineEditor"
+    ]
   },
   "IdentityCatalog": [
     {
