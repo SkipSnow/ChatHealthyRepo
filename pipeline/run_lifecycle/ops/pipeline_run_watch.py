@@ -1,125 +1,178 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Watch a pipeline run and say, every interval, what is true of it.
+"""Watch the Start At fire (2026-10-22): discover the run, feed the status log
+every 5 minutes unconditionally, and print one line per state change so the
+Monitor surfaces admission and terminal.
 
-Written to be read by whoever comes back to a run that failed while nobody
-was watching. It records the run's status, the step rows, the host, whether
-the controller process is alive, and the last log lines -- the set of facts
-that had to be reconstructed by hand after the run of 2026-08-15, when a
-controller died and left nothing behind.
-
-    python pipeline/ops/pipeline_run_watch.py [--minutes 15]
-                                                   [--pipeline provider]
-
-Each pass appends a block to the report file and exits when the run reaches
-a terminal state.
+stdout lines (Monitor events): ADMITTED / STATUS-CHANGE / TERMINAL / WATCHER-ERROR.
+The 5-minute tabular status goes to _oneshots/medicare_status.log via
+checkPipelineStatus.py <run_id>.
 """
-from __future__ import annotations
-
-import argparse
-import os
-import pathlib
+import datetime
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta, timezone
 
-_HERE = pathlib.Path(__file__).resolve()
-for _parent in _HERE.parents:
-    if (_parent / "pipeline").is_dir():
-        sys.path.insert(0, str(_parent))
-        sys.path.insert(0, str(_parent / "ChatHealthyLib" / "src"))
-        _ROOT = _parent
-        break
+sys.path.insert(0, "ChatHealthyLib/src")
+sys.path.insert(0, ".")
+from pipeline.run_lifecycle.pipeline_env import load_pipeline_env  # noqa: E402
 
-_ENV = _ROOT / ".env"
-if _ENV.is_file():
-    for _line in _ENV.read_text(encoding="utf-8", errors="replace").splitlines():
-        if "=" in _line and not _line.strip().startswith("#"):
-            _k, _v = _line.split("=", 1)
-            os.environ.setdefault(_k.strip(), _v.strip())
-
-os.environ.setdefault("CH_SPACE_NAME", "pipeline-run-watch")
-os.environ.setdefault("CH_COMPONENT", "pipeline-run-watch")
-os.environ["CH_LOG_DESTINATION"] = "stdout"
-
-from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
+load_pipeline_env()
+from bson import ObjectId  # noqa: E402
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
 
-log = ChatHealthyLoggingService()
-
-TERMINAL = ("succeeded", "failed", "aborted", "completed")
-
-
-def _az(args: list[str]) -> str:
-    r = subprocess.run(["az"] + args, capture_output=True, text=True, shell=True)
-    return r.stdout.strip() if r.returncode == 0 else ""
+LOG = "_oneshots/medicare_status.log"
+FIRED_AFTER_UTC = datetime.datetime(2026, 10, 25, 13, 51)
 
 
-def _hosts(resource_group: str) -> list[str]:
-    import json
-    raw = _az(["vm", "list", "--resource-group", resource_group, "-o", "json"])
-    try:
-        return [v["name"] for v in json.loads(raw or "[]")]
-    except ValueError:
-        return []
+LOG_TAIL_LINES = 25
+LINE_CHARS = 300
 
 
-def _report(db, pipeline: str, resource_group: str) -> bool:
-    """One pass. Returns True when the run has reached a terminal state."""
-    run = db["pipeline.runs"].find_one(
-        {"pipeline_name": pipeline}, sort=[("started_at", -1)])
-    stamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
-    if not run:
-        log.LogPipeline("INFO", "%s  no %s run recorded", stamp, pipeline)
-        return False
+def runs_coll():
+    m = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    return m["pipelineAdmin"]["pipeline.runs"]
 
-    status = str(run.get("status", "")).lower()
-    log.LogPipeline("INFO", "%s  run=%s status=%s vm=%s controller_pid=%s reason=%s",
-             stamp, run.get("run_id"), status, run.get("vm_name"),
-             run.get("controller_pid"), run.get("failure_reason"))
 
-    steps = list(db["pipeline.run_steps"].find({"run_id": run.get("run_id")})) \
-        if "pipeline.run_steps" in db.list_collection_names() else []
-    log.LogPipeline("INFO", "%s  step rows recorded: %d", stamp, len(steps))
+def log_coll():
+    m = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    return m["pipelineAdmin"]["Log_dev"]
 
-    hosts = _hosts(resource_group)
-    log.LogPipeline("INFO", "%s  hosts in %s: %s", stamp, resource_group, hosts or "none")
 
-    since = datetime.now(timezone.utc) - timedelta(minutes=20)
-    recent = list(db["Log"].find({"timeStamp": {"$gte": since}})
-                  .sort("timeStamp", -1).limit(6))
-    if not recent:
-        log.LogPipeline("INFO", "%s  NO LOG LINES in the last 20 minutes -- the run is silent",
-                 stamp)
-    for row in reversed(recent):
-        log.LogPipeline("INFO", "%s    %s %s | %s", stamp, str(row.get("timeStamp"))[11:19],
-                 str(row.get("component"))[:18],
-                 str(row.get("formatted") or row.get("message"))[:150])
+def _run_log_tail(run_id: str, limit: int = LOG_TAIL_LINES) -> list[str]:
+    """The run's own log lines, newest last. Read only when the status API did
+    not answer: the API is where status comes from, and the log is where the
+    reason the API is silent comes from."""
+    rows = list(log_coll().find(
+        {"run_id": run_id},
+        {"timestamp": 1, "asctime": 1, "level": 1, "levelname": 1,
+         "component": 1, "step": 1, "message": 1, "msg": 1}
+    ).sort([("_id", -1)]).limit(limit))
+    if not rows:
+        # A run whose controller never started stamps no run_id, so fall back
+        # to the newest lines from any component and say so.
+        rows = list(log_coll().find(
+            {}, {"timestamp": 1, "asctime": 1, "level": 1, "levelname": 1,
+                 "component": 1, "step": 1, "message": 1, "msg": 1}
+        ).sort([("_id", -1)]).limit(limit))
+        if rows:
+            rows[-1] = dict(rows[-1])
+            rows[-1]["message"] = (
+                "(no line carries this run_id -- newest lines from any "
+                "component follow) " + str(rows[-1].get("message")
+                                            or rows[-1].get("msg") or ""))
+    out = []
+    for r in reversed(rows):
+        when = r.get("timestamp") or r.get("asctime") or "?"
+        lvl = r.get("level") or r.get("levelname") or "?"
+        who = r.get("component") or "?"
+        step = f"[{r['step']}]" if r.get("step") else ""
+        text = str(r.get("message") or r.get("msg") or "")
+        # One log line carries the whole work-item payload -- the entire
+        # pipeline config, thousands of characters. Unbounded, it buries the
+        # status file it was meant to explain.
+        if len(text) > LINE_CHARS:
+            text = text[:LINE_CHARS] + f" ...[{len(text)} chars, truncated]"
+        out.append(f"    {when} {lvl} {who}{step} {text}")
+    return out
 
-    if status in TERMINAL:
-        log.LogPipeline("INFO", "%s  run reached %s -- watch ends", stamp, status)
-        return True
-    return False
+
+def feed_status_log(run_id: str | None, note: str) -> None:
+    """One visible block per tick, APPENDED to the log.
+
+    Per-step status comes from the run-status API; the admission header
+    (status/heartbeat/vm/phase) is read from the run record -- the only thing
+    that exists before the controller's API answers.
+
+    When the API call FAILS, the whole failure is written verbatim (never
+    truncated) and the run's own log tail is written beneath it, so the file
+    says both that the call failed and what the run was doing when it did
+    (operator ruling 2026-10-24).
+    """
+    with open(LOG, "a", encoding="utf-8") as f:
+        f.write(f"\n===== tick {datetime.datetime.utcnow().isoformat()}Z "
+                f"{note} =====\n")
+        if run_id:
+            try:
+                r = runs_coll().find_one({"run_id": run_id}) or {}
+                hb = r.get("controller_heartbeat_at")
+                age = (f"{int((datetime.datetime.utcnow() - hb).total_seconds())}s ago"
+                       if hb else "none yet")
+                f.write(f"  run={run_id} status={r.get('status')} "
+                        f"start_at={r.get('start_at_step')}\n"
+                        f"  admitted={r.get('started_at')} "
+                        f"controller_heartbeat={age} "
+                        f"vm={r.get('vm_name') or 'not provisioned yet'} "
+                        f"phase={r.get('controller_phase') or '-'}\n")
+            except Exception as exc:  # noqa: BLE001
+                f.write(f"  (run record unreadable: {type(exc).__name__}: {exc})\n")
+            f.flush()
+            proc = subprocess.run(
+                [sys.executable,
+                 "pipeline/run_lifecycle/ops/checkPipelineStatus.py", run_id],
+                capture_output=True, text=True, timeout=240, check=False)
+            body = (proc.stdout or "") + (proc.stderr or "")
+            f.write(body if body.endswith("\n") else body + "\n")
+            failed = proc.returncode != 0 or "unreachable" in body.lower()
+            if failed:
+                # Say the same words every five minutes so the file reads as a
+                # heartbeat rather than a string of errors: the API is served
+                # by the controller, so no answer before the controller is up
+                # is the normal case, not a fault.
+                waiting_on = ("the controller is not up yet"
+                              if not (r or {}).get("controller_heartbeat_at")
+                              else "the controller is up but not answering")
+                f.write(f"  WAITING FOR THE STATUS API -- {waiting_on} "
+                        f"(exit={proc.returncode}); checking again in 5 minutes\n")
+                f.write("  --- the run's log, newest last ---\n")
+                try:
+                    lines = _run_log_tail(run_id)
+                    f.write("\n".join(lines) + "\n" if lines
+                            else "    (the log holds no lines yet)\n")
+                except Exception as exc:  # noqa: BLE001
+                    f.write(f"    (log unreadable: {type(exc).__name__}: {exc})\n")
+        f.flush()
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Watch a pipeline run.")
-    parser.add_argument("--minutes", type=int, default=15,
-                        help="minutes between passes (default 15)")
-    parser.add_argument("--pipeline", default="provider")
-    parser.add_argument("--resource-group",
-                        default=os.environ.get("AUTOMATION_RESOURCE_GROUP",
-                                               "rg-chathealthy-pipeline-dev"))
-    args = parser.parse_args()
-
-    db = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]
-    log.LogPipeline("INFO", "watching %s every %d minute(s)", args.pipeline, args.minutes)
+    run_id = None
+    last_status = None
+    last_feed = 0.0
     while True:
-        if _report(db, args.pipeline, args.resource_group):
-            return 0
-        time.sleep(args.minutes * 60)
+        try:
+            if run_id is None:
+                # Discovery is by the record's own insertion time, carried by
+                # the ObjectId, because started_at is not written until the
+                # controller is up -- a filter on it cannot see a run that was
+                # admitted seconds ago. No start_at_step filter: the step the
+                # DAG begins at is the operator's choice per fire, not a
+                # property the watcher may assume.
+                r = runs_coll().find_one(
+                    {"pipeline_name": "medicare",
+                     "_id": {"$gte": ObjectId.from_datetime(FIRED_AFTER_UTC)}},
+                    sort=[("_id", -1)])
+                if r:
+                    run_id = r["run_id"]
+                    last_status = r.get("status")
+                    print(f"ADMITTED run_id={run_id} status={last_status}", flush=True)
+            else:
+                r = runs_coll().find_one({"run_id": run_id})
+                status = (r or {}).get("status", "?")
+                if status != last_status:
+                    print(f"STATUS-CHANGE run_id={run_id} {last_status} -> {status}",
+                          flush=True)
+                    last_status = status
+                if status in ("succeeded", "failed", "aborted", "error"):
+                    feed_status_log(run_id, f"TERMINAL {status}")
+                    print(f"TERMINAL run_id={run_id} status={status}", flush=True)
+                    return 0 if status == "succeeded" else 1
+            if time.time() - last_feed >= 300:
+                feed_status_log(run_id, f"run_id={run_id or 'awaiting admission'}")
+                last_feed = time.time()
+        except Exception as exc:  # noqa: BLE001
+            print(f"WATCHER-ERROR {type(exc).__name__}: {str(exc)[:200]}", flush=True)
+            time.sleep(60)
+        time.sleep(30)
 
 
 if __name__ == "__main__":
