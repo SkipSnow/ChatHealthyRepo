@@ -57,6 +57,8 @@ RUN rm /app/pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \
     && rm -rf /app/pipeline/run_lifecycle/tests /app/pipeline/run_lifecycle/ops \
        /app/pipeline/provider_base/tests \
        /app/pipeline/MedicareProviderEvaluationDataPipeline/tests \
+       /app/pipeline/MedicareProviderEvaluationDataPipeline/ops \
+       /app/pipeline/run_lifecycle/.dockerignore \
        /app/pipeline/run_lifecycle/Dockerfile.control \
        /app/pipeline/run_lifecycle/Dockerfile.worker \
        /app/pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-control \
