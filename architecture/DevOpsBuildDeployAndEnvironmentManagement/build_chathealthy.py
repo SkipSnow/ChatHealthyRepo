@@ -559,10 +559,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--package", default="",
-        help="Deprecated and not needed. A build produces every package the "
-             "named targets declare, read from deployment_architecture.json. "
-             "Supplying a list that disagrees with the record is an illegal "
-             "state and stops the build.",
+        help="Comma-separated list of package_id values, read from "
+             "deployment_architecture.json. REQUIRED for dev, qa and prod "
+             "whenever the named targets carry more than one package: there "
+             "is no 'all packages' shortcut, so building one capability "
+             "never rebuilds the others. --env local is exempt and builds "
+             "every declared package. Naming a package the target does not "
+             "declare is an illegal state and stops the build.",
     )
     args = parser.parse_args(argv)
 
