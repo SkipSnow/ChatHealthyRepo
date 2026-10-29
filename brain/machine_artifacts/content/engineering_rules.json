@@ -179,7 +179,8 @@
                   "excluded_exact",
                   [
                     "promote_chathealthy.py",
-                    "deploy_chathealthy.py"
+                    "deploy_chathealthy.py",
+                    "build_chathealthy.py"
                   ]
                 ]
               ]
