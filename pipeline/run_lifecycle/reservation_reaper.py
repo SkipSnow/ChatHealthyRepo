@@ -486,6 +486,28 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware, status):
         log.LogPipeline("INFO", "Run %s verdict: %s (%s)", run_id, verdict.state, verdict.detail)
         if verdict.is_running:
             return False
+        # A run that has not reported a host yet cannot be judged by whether
+        # its host exists. The reservation names the controller VM from the
+        # start, but the run's own vm_name is written by the controller once
+        # it is up, so before that the verdict is "no longer exists" for a
+        # run whose VM was never yet created -- which is every run for the
+        # length of the cluster wake. _run_verdict already abstains on this
+        # and correct_orphaned_runs is safe because of it; this path asked
+        # for a verdict without the same guard, and on 2026-10-29 stopped
+        # run 735a7926 at age 15.7 minutes, 42 minutes into a legitimate
+        # Atlas resume, while printing that run's own reservation expiry a
+        # day in the future. The lease is what says a run is alive.
+        if not run or not run.get("vm_name"):
+            if expiry is not None:
+                if getattr(expiry, "tzinfo", None) is None:
+                    expiry = expiry.replace(tzinfo=timezone.utc)
+                if expiry > now_aware:
+                    log.LogPipeline(
+                        "INFO",
+                        "Run %s holds a live reservation and has not reported "
+                        "a host yet (expiry=%s); not reaping on a host-"
+                        "existence verdict", run_id, expiry)
+                    return False
         if not verdict.has_stopped:
             if expiry is not None:
                 if getattr(expiry, "tzinfo", None) is None:
