@@ -999,6 +999,33 @@ def _raise_bad_debug_level(raw) -> None:
     )
 
 
+def _raise_incremental_unsupported(raw) -> None:
+    """Raise-only helper: incremental loading is not implemented.
+
+    A full load drops every staging collection and reloads it, and the
+    published collections are rebuilt whole. Nothing in the chain preserves
+    a prior run's rows or resolves only the difference, so a run asking for
+    incremental would silently perform a full load under a name that says
+    otherwise -- and its record would claim something untrue."""
+    raise ChatHealthyException(
+        mode="value_error", component="pipeline_runbook",
+        message=("load_mode=incremental is not supported: no step in "
+                 "the chain loads incrementally. A full load drops "
+                 "every staging collection and rebuilds the published "
+                 "collections whole. Fire with load_mode='full'."),
+        supplied=str(raw)[:40], http_status=400)
+
+
+def _resolve_load_mode(webhook_body) -> str:
+    """The run's load mode. Only "full" exists; anything else is refused at
+    the trigger rather than discovered to be a lie in the run record."""
+    raw = (webhook_body or {}).get("load_mode") or LOAD_MODE_DEFAULT
+    mode = str(raw).strip().lower()
+    if mode != "full":
+        _raise_incremental_unsupported(raw)
+    return mode
+
+
 def _raise_missing_window(raw) -> None:
     """Raise-only helper: expected_duration_minutes is required and is a
     positive whole number of minutes."""
@@ -1106,7 +1133,7 @@ def _run_provider() -> int:
     window_minutes = _resolve_window_minutes(webhook_body)
     if webhook_body:
         invocation_mode = webhook_body.get("invocation_mode", "webhook")
-    load_mode = webhook_body.get("load_mode", LOAD_MODE_DEFAULT) if webhook_body else LOAD_MODE_DEFAULT
+    load_mode = _resolve_load_mode(webhook_body)
     state_scope = _resolve_state_scope(
         webhook_body.get("state_scope") if webhook_body else STATE_SCOPE_DEFAULT
     )
@@ -1748,6 +1775,10 @@ def _run_medicare() -> int:
         invocation_mode = body.get("invocation_mode", "webhook") if body else "scheduled"
         # THE run's window, argued by the operator at the trigger.
         window_minutes = _resolve_window_minutes(body)
+        # Medicare reads no load_mode -- every run is a full load -- so a
+        # body asking for incremental would be ignored rather than
+        # refused, and the run record would not say it was ignored.
+        _resolve_load_mode(body)
         try:
             data_version = int((body or {}).get("data_version"))
         except (TypeError, ValueError):
