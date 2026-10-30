@@ -27,6 +27,8 @@ canonical entry's source_texts, which is what the tests assert.
 
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
 import os
 from typing import Any, Optional
 
@@ -93,6 +95,22 @@ def _code_key(entry: dict) -> tuple:
     icd10 = entry.get("icd10") or {}
     return (tuple(sorted(icd10.get("level3") or [])),
             tuple(sorted(icd10.get("level4") or [])))
+
+
+def _as_decimal(val):
+    """A trust value as an exact Decimal, or None.
+
+    The judged pass round-trips trust through the model as text; the
+    contract requires bsonType decimal. This is the one place the text
+    becomes a number again."""
+    if val is None or val == "":
+        return None
+    if isinstance(val, Decimal):
+        return val
+    try:
+        return Decimal(str(val))
+    except (TypeError, ValueError, InvalidOperation):
+        return None
 
 
 def _lowest_trust(entries: list[dict]):
@@ -226,7 +244,13 @@ def canonicalize_molecule(entries: list[dict], *, molecule: str,
             "name": c.name,
             "icd10": {"level3": list(c.level3), "level4": list(c.level4)},
             "_crosswalk_provenance": "inference",
-            "trust": c.trust,
+            # Back to Decimal before it is published. The model is asked
+            # for the trust as a string because a model emits text, but
+            # the contract pins this field to bsonType decimal, so a
+            # string reaches the store as a string and the store refuses
+            # the molecule -- the same refusal that aborted run 39747592
+            # on an integral confidence, at a second site.
+            "trust": _as_decimal(c.trust),
             "source_texts": list(c.source_texts),
         } for c in result.indications]
 

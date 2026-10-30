@@ -64,7 +64,7 @@ def _row(npi="1003000126", generic="ATORVASTATIN CALCIUM"):
     }
 
 
-def _label(set_id):
+def _label(set_id, confidence=0.95):
     return {
         "set_id": set_id,
         "molecule": "atorvastatin",
@@ -75,17 +75,17 @@ def _label(set_id):
         "indications": [{"indication": "treatment of hyperlipidemia",
                          "confidence_rationale": "label",
                          "codes": [{"icd10_code": "E78", "level": 3,
-                                    "confidence": 0.95, "description": None}]}],
+                                    "confidence": confidence, "description": None}]}],
         "usage_summary": "lowers LDL",
-        "resolution_confidence": 0.9,
         "drug_class": "RX",
     }
 
 
-def _fda_doc():
+def _fda_doc(confidence=0.95):
     """The exact document finalize_fda_molecules writes."""
     mid = molecule_id("atorvastatin")
-    doc = fda_molecule_union([_label("s1"), _label("s2")])
+    doc = fda_molecule_union([_label("s1", confidence),
+                              _label("s2", confidence)])
     doc["_id"] = mid
     doc["molecule_id"] = mid
     doc["run_id"] = "run-x"
@@ -98,6 +98,25 @@ def _fda_doc():
 
 def test_fda_molecule_document_conforms():
     _assert_valid(_fda_doc(), "ChatHealthyFdaProductToDiagnosisResolutionSchema.json")
+
+
+def test_an_integral_crosswalk_confidence_still_conforms():
+    """A confidence of exactly 1.0 or 0.0 is an ordinary model answer.
+
+    The crosswalk is asked for a confidence from 0 to 1 on each ICD-10
+    code, and full certainty on an obvious mapping -- \"for the treatment of
+    hypertension\" -> I10 -- is a normal outcome, as is a flat refusal to
+    guess. Every fixture in this suite pinned a FRACTIONAL confidence, so
+    the type boundary was never crossed and this file -- whose stated
+    purpose is that a build path producing a document the contract rejects
+    fails HERE, before any run exists -- passed while the build shipped a
+    Python int. The store refused one molecule of 20,142 on 2026-10-29 and
+    ended a run 3h24m old with its collection already dropped.
+    """
+    for confidence in (1.0, 0.0, 1, 0):
+        _assert_valid(_fda_doc(confidence),
+                      "ChatHealthyFdaProductToDiagnosisResolutionSchema.json")
+
 
 
 def _providermedicare_record(npi: str, mid: str, rows: list[dict]) -> dict:

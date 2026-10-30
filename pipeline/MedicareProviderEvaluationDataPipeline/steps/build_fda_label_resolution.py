@@ -99,6 +99,55 @@ def _get_tool(ctx) -> FDADrugEnrichmentTool:
 
 _ACTIVE_INGREDIENT_HEADERS = ("active ingredients", "active ingredient(s)", "active ingredient")
 
+# A Drug Facts dosing preamble sits in front of the substance name as a
+# parenthetical -- "(in each gram) Bacitracin zinc", "(in each caplet)",
+# "(in each patch) Nicotine" -- and survived both the header strip and the
+# cut-at-first-digit rule, so 297 molecules reached
+# fdaProductToDiagnosisResolution with an _id beginning '('. One carried
+# 1,400 characters of inactive-ingredient prose as its key.
+_PREAMBLE_OPEN = "("
+_PREAMBLE_CLOSE = ")"
+
+# A molecule key is a name. Anything longer is prose that escaped the parse.
+_MAX_MOLECULE_NAME = 120
+
+# Words that mark the text a dosage or section statement, not a substance.
+# Pharmaceutical excipients. active_ingredient is supposed to carry the
+# actives, but a Drug Facts panel whose prose lands in that field offers
+# the vehicle as well -- water, glycerin, sodium chloride -- and a wrong
+# key is worse than no key: it publishes a drug record under a solvent.
+# The parse proposes, this list refuses. It is NOT a vocabulary check: the
+# design pairs the SPL parse with RxNorm for that, and this is the
+# deterministic floor under it.
+_EXCIPIENTS = frozenset({
+    "water", "purified water", "water for injection", "sterile water",
+    "glycerin", "glycerol", "sodium chloride", "hydrochloric acid",
+    "sodium hydroxide", "benzalkonium chloride", "sucrose", "lactose",
+    "mannitol", "titanium dioxide", "magnesium stearate", "talc",
+    "gelatin", "starch", "cellulose", "microcrystalline cellulose",
+    "hydroxypropyl cellulose", "povidone", "croscarmellose sodium",
+    "silicon dioxide", "propylene glycol", "polyethylene glycol",
+    "alcohol", "ethyl alcohol", "isopropyl alcohol", "petrolatum",
+    "mineral oil", "carbomer", "edetate disodium", "citric acid",
+    "sodium citrate", "sodium benzoate", "methylparaben",
+    "propylparaben", "xanthan gum", "sorbitol", "dextrose",
+})
+
+_NOT_A_SUBSTANCE = ("in each", "per tablet", "per capsule", "per ml",
+                    "per dose", "inactive ingredient", "purpose", "uses")
+
+
+def _strip_dose_preamble(text: str) -> str:
+    """Drop leading parenthetical dosing phrases, however many there are."""
+    out = text.strip()
+    while out.startswith(_PREAMBLE_OPEN):
+        close = out.find(_PREAMBLE_CLOSE)
+        if close == -1:
+            return ""
+        out = out[close + 1:].strip()
+    return out
+
+
 
 def _molecule_from_active_ingredient(value) -> str:
     """Recover the molecule from raw.active_ingredient when the harmonized openFDA
@@ -123,14 +172,25 @@ def _molecule_from_active_ingredient(value) -> str:
             piece = piece.strip()
             if not piece:
                 continue
+            piece = _strip_dose_preamble(piece)
+            if not piece:
+                continue
             cut = len(piece)
             for i, ch in enumerate(piece):
                 if ch.isdigit():
                     cut = i
                     break
             name = piece[:cut].strip(" ,;:-")
-            if name:
-                names.append(name)
+            # A key is a name. Prose that escaped the parse is not a
+            # molecule and must never become an _id.
+            if not name or len(name) > _MAX_MOLECULE_NAME:
+                continue
+            lowered_name = name.lower().strip(" .,;:")
+            if any(w in lowered_name for w in _NOT_A_SUBSTANCE):
+                continue
+            if lowered_name in _EXCIPIENTS:
+                continue
+            names.append(name)
     return ", ".join(names)
 
 
@@ -174,8 +234,12 @@ def _shape_fda_record(raw: dict) -> dict:
                 # (first cut; the description path and the spl positional + RxNorm/UNII
                 # vocabulary path are the next increments per the field-mining study).
                 recovered = _molecule_from_active_ingredient(raw.get("active_ingredient"))
-                shaped["molecule"] = recovered
-                shaped["_molecule_source"] = "active_ingredient" if recovered else "absent"
+                if recovered:
+                    shaped["molecule"] = recovered
+                    shaped["_molecule_source"] = "active_ingredient"
+                else:
+                    shaped["molecule"] = ""
+                    shaped["_molecule_source"] = "absent"
     else:
         shaped["_molecule_source"] = "provided"
     if not str(shaped.get("indication_text") or "").strip():
@@ -243,6 +307,12 @@ def run_step(ctx) -> dict:
         missing = [f for f in ("molecule", "indication_text")
                    if not str(rec.get(f) or "").strip()]
         if missing:
+            # No key, no record -- operator ruling 2026-10-29. But a label
+            # that cannot be keyed HERE is judged at the earliest moment of
+            # the run, before the RxNorm vocabulary is staged, so it is held
+            # rather than discarded and re-asked at enrichment. Previously
+            # the only trace was this finding: 63,178 of them in run
+            # 39747592, and the labels themselves went nowhere.
             rt.record_discrepancy(
                 reason="FDA_all_other_Attribute_failures",
                 step="build_fda_label_resolution", artifact="fda",

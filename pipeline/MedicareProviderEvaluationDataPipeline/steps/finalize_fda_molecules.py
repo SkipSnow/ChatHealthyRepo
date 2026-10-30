@@ -39,13 +39,15 @@ from pymongo.errors import BulkWriteError
 
 from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
+    _trust_stats,
     _bson, fda_molecule_union, molecule_id)
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_indication_canonicalizer import (
     IndicationCanonicalizer, canonicalize_molecule)
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_rxnorm_identity import (
     build_index, resolve_identity)
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_store_contract import (
-    record_refused_writes, validator_for)
+    PUBLISHED_CONTRACTS, load_contract, json_view, record_refused_writes,
+    validator_for)
 from pipeline.MedicareProviderEvaluationDataPipeline.steps.build_fda_label_resolution import (
     TRANSIENT_COLLECTION)
 
@@ -98,23 +100,60 @@ def _rxnorm_rxcui_by_molecule(ctx, reg, mongo) -> dict[str, list[str]]:
     return by_mid
 
 
-def _insert_conforming(coll, docs: list[dict], keys: list[str], *,
-                       record_discrepancy) -> int:
-    """Insert a batch; return how many the store accepted.
+def _conformance_errors(doc: dict, validator) -> list[str]:
+    """Every way this document fails the published contract, or none."""
+    return [f"{'.'.join(str(p) for p in e.absolute_path) or '<root>'}: "
+            f"{e.message}"
+            for e in validator.iter_errors(json_view(doc))]
 
-    UNORDERED, so a molecule the validator refuses does not abandon the ones
-    that conform. Each refused document becomes its own schema_violation
-    finding carrying its molecule id.
+
+def _insert_conforming(coll, docs: list[dict], keys: list[str], *,
+                       record_discrepancy, validator=None) -> int:
+    """Write the documents that conform; hold the ones that do not.
+
+    A non-compliant record is never offered to the store. It is checked
+    against the published contract HERE and, failing, held in keyNotFound
+    with the reason -- the same place a label with no key is held, because
+    it is the same fact: this cannot be published, and it is kept to be
+    managed rather than lost.
+
+    This was always the rule and the code never honoured it. The store was
+    the first thing to discover non-compliance: on 2026-10-29 one molecule
+    of 20,142 carried a trust of int 1 against a contract pinning decimal,
+    MongoDB refused it with code 121, the finding fired at severity fatal,
+    and a run 3h24m old ended with its collection already dropped. Checked
+    first, that molecule would have been held and the other 20,141
+    published.
+
+    UNORDERED on the insert that remains, so a document the store refuses
+    anyway -- a refusal is now a genuine anomaly, not a routine event --
+    does not abandon the ones that conform.
     """
+    conforming: list[dict] = []
+    conforming_keys: list[str] = []
+    for doc, key in zip(docs, keys):
+        errors = _conformance_errors(doc, validator) if validator else []
+        if errors:
+            record_discrepancy(
+                reason="FDA_all_other_Attribute_failures",
+                step="finalize_fda_molecules", artifact="fda",
+                record_key=key,
+                detail={"kind": "record_not_contract_conforming",
+                        "errors": errors[:5]})
+            continue
+        conforming.append(doc)
+        conforming_keys.append(key)
+    if not conforming:
+        return 0
     try:
-        coll.insert_many(docs, ordered=False)
-        return len(docs)
+        coll.insert_many(conforming, ordered=False)
+        return len(conforming)
     except BulkWriteError as exc:
         refused = record_refused_writes(
-            details=exc.details, keys=keys, artifact="fda",
+            details=exc.details, keys=conforming_keys, artifact="fda",
             step="finalize_fda_molecules",
             record_discrepancy=record_discrepancy, exception=exc)
-        return len(docs) - refused
+        return len(conforming) - refused
 
 
 def _staged_rows(coll, projection: dict, page_size: int = 20000):
@@ -247,6 +286,14 @@ def run_step(ctx) -> dict:
     rxnorm_joined = 0
     resolved = 0
     unresolved = 0
+    # The published contract, read once, as a validator this step applies
+    # BEFORE offering anything to the store. The store's own validator
+    # stays installed and is the backstop; this is the rule that a
+    # non-compliant record is never written in the first place.
+    from jsonschema import Draft202012Validator  # noqa: PLC0415
+    contract_validator = Draft202012Validator(
+        load_contract(PUBLISHED_CONTRACTS["fda_drug"]))
+
     pending: list[dict] = []
     pending_keys: list[str] = []
     no_indication = 0
@@ -271,6 +318,15 @@ def run_step(ctx) -> dict:
             if (doc.get("molecule") or {}).get("clean_names") else mid,
             canonicalizer=canonicalizer)
         doc["indications"] = canonical["indications"]
+        # The trust block is a distribution OVER the indications beside
+        # it, so it is recomputed after the collapse. fda_molecule_union
+        # computed it over the pre-canonical set, and the collapse keeps
+        # only the lowest trust of each group -- 50-odd wordings folding
+        # to 3 on one phenylephrine molecule -- so the published block
+        # described a larger population than the published indications.
+        doc["trust"] = _trust_stats(
+            [i["trust"] for i in doc["indications"]
+             if i.get("trust") is not None])
         collapsed += canonical["collapsed_deterministically"]
         judged += canonical["judged"]
         if canonical["lost"] or canonical["duplicated"]:
@@ -292,10 +348,18 @@ def run_step(ctx) -> dict:
         # carries no identity field and is recorded as a finding.
         mol = doc.get("molecule") or {}
         identity = {"rxcui_in": None, "unii": None, "path": None, "also": []}
+        # Every brand AND every generic. The generic was pinned at index 0
+        # across all iterations, so a molecule carrying several generic
+        # names only ever offered the ladder the first: 2,123 molecules
+        # resolved to no identity in run 39747592.
+        generics = mol.get("label_generic_names") or [None]
         for brand in (mol.get("label_brand_names") or [None]):
-            identity = resolve_identity(
-                identity_index, brand_name=brand,
-                generic_name=(mol.get("label_generic_names") or [None])[0])
+            for generic in generics:
+                identity = resolve_identity(
+                    identity_index, brand_name=brand,
+                    generic_name=generic)
+                if identity["rxcui_in"]:
+                    break
             if identity["rxcui_in"]:
                 break
         if identity["rxcui_in"]:
@@ -355,13 +419,15 @@ def run_step(ctx) -> dict:
         if len(pending) >= 500:
             written += _insert_conforming(
                 target_coll, pending, pending_keys,
-                record_discrepancy=rt.record_discrepancy)
+                record_discrepancy=rt.record_discrepancy,
+                validator=contract_validator)
             pending, pending_keys = [], []
 
     if pending:
         written += _insert_conforming(
             target_coll, pending, pending_keys,
-            record_discrepancy=rt.record_discrepancy)
+            record_discrepancy=rt.record_discrepancy,
+            validator=contract_validator)
 
     # The indexes this collection's queries need, created by the step that
     # creates the collection and after the fold, so the build never fights

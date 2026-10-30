@@ -210,10 +210,34 @@ class ClusterLifecycleManager:
                 "reservation in place rather than writing a second one",
                 job_id)
             return doc
-        try:
-            coll.insert_one(doc)
-        except DuplicateKeyError:
-            pass
+        # COMPLETE the row rather than lose to it. The runbook writes this
+        # reservation first, from the operator's trigger, carrying
+        # expiry_at and nothing about the window itself. This call then
+        # built a document holding expected_duration_minutes,
+        # expected_end_time and expected_min_minutes, attempted
+        # insert_one, lost on the duplicate _id, swallowed the error and
+        # discarded all three. So a run fired with 1440 minutes held a
+        # reservation reading expected_duration_minutes=null,
+        # expected_end_time=null, expected_min_minutes=0 -- run
+        # 39747592 on 2026-10-29 -- and anything reading the window off
+        # the reservation read nothing. The window was never lost in
+        # transit; it was thrown away at the write.
+        #
+        # expiry_at is NOT touched. The runbook owns it, sets it from the
+        # window plus its grace, and the reaper, Watchdog and Controller
+        # all reap and renew on it. A second writer moving it would
+        # shorten or extend a live claim.
+        window_fields = {
+            "expected_duration_minutes": doc["expected_duration_minutes"],
+            "expected_min_minutes": doc["expected_min_minutes"],
+            "expected_end_time": doc["expected_end_time"],
+        }
+        rest = {k: v for k, v in doc.items()
+                if k not in window_fields and k not in ("_id", "expiry_at")}
+        coll.update_one(
+            {"_id": job_id},
+            {"$set": window_fields, "$setOnInsert": {**rest, "expiry_at": doc["expiry_at"]}},
+            upsert=True)
         return doc
 
     # ── v0.1 API: ClusterStatus ──────────────────────────────

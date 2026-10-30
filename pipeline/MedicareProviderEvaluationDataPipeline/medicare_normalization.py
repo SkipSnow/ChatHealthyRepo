@@ -86,6 +86,29 @@ def _num(val: Any) -> Decimal | int | None:
     return int(d) if d == d.to_integral_value() else d
 
 
+def _confidence(val: Any) -> Decimal | None:
+    """A crosswalk confidence as an exact decimal, or None when absent.
+
+    NOT _num. _num returns int when a value is integral, which is right for
+    the CMS counts it was written for -- a count of 59 is published as 59,
+    not 59.0 -- and wrong for a 0-to-1 confidence, which the published
+    contract pins to bsonType decimal: "Python computes it as
+    decimal.Decimal and MongoDB stores it as Decimal128; never a binary
+    float." A confidence of exactly 1.0 or 0.0 therefore became a Python
+    int, was stored as an integer, and the store refused the molecule:
+    record mol_2e7f69fae066e7ce, batch 69, 499 of 500 inserted, run
+    39747592 aborted 3h24m in on 2026-10-29. Every other label in that
+    batch had a fractional confidence, which is why it took until the
+    500th record to surface.
+    """
+    if val is None or val == "" or isinstance(val, bool):
+        return None
+    try:
+        return Decimal(str(val).replace(",", ""))
+    except (TypeError, ValueError, InvalidOperation):
+        return None
+
+
 def _dedup_names(names: Iterable[Any]) -> list[str]:
     """Names in first-seen order, blanks dropped, folded case-insensitively so
     OMEPRAZOLE and Omeprazole are one name."""
@@ -387,6 +410,35 @@ def _dedup_normalized(names: Any, normalizer: Callable[[Any], str]) -> list[str]
 _FDA_CLASS_ORDER = ("RX", "OTC", "UNDETERMINED")
 
 
+def _trust_stats(values: list) -> dict:
+    """max/min/median/avg over confidences, where ZERO counts.
+
+    _stats_over excludes zero from min -- "a 0 is not a min", operator-
+    pinned 2026-10-20 for CMS counts, and right for them: a provider with
+    no claims is not the minimum claimant. A confidence of zero is the
+    opposite: it is a real measurement, the model's honest refusal to
+    guess. Sharing the counts rule made trust.min null mean two different
+    things -- no confidence was recorded, and the lowest confidence was
+    zero -- indistinguishably. So the distribution of a confidence is
+    computed here and the counts rule is left alone.
+    """
+    nums = [v for v in values if isinstance(v, (int, Decimal))
+            and not isinstance(v, bool)]
+    if not nums:
+        return {"max": None, "min": None, "median": None, "avg": None}
+    # Decimal always, never _exact_mean: that returns an int when the
+    # division comes out even, which is the type the store refuses and
+    # the defect that ended run 39747592. A confidence is a measure, so
+    # its statistics keep the measure's type whatever the value.
+    ordered = sorted(Decimal(str(v)) for v in nums)
+    middle = len(ordered) // 2
+    median = (ordered[middle] if len(ordered) % 2
+              else (ordered[middle - 1] + ordered[middle]) / Decimal(2))
+    return {"max": max(ordered), "min": min(ordered),
+            "median": median,
+            "avg": sum(ordered) / Decimal(len(ordered))}
+
+
 def _stats_over(values: list) -> dict:
     """max/min/median/avg over numeric values (operator-pinned terms,
     2026-10-20): median = the middle value; avg = the sum divided by the
@@ -435,13 +487,13 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
     Each label result carries: set_id, molecule (clean name string),
     molecule_source, openfda (raw sub-document), indications
     [{indication, confidence_rationale, codes:[{icd10_code, level,
-    confidence, description}]}], usage_summary, resolution_confidence.
+    confidence, description}]}], usage_summary.
 
     Unions: set_ids (the contributing record keys); molecule.clean_names and
     _molecule_sources; molecule.rxcui/unii/substance_name from openfda;
     indications deduped by normalized text with ICD-10 codes unioned by code
     and split to level3/level4; drug_class as the SET of label classes;
-    aggregated max/min/median/avg over the labels' resolution_confidence."""
+    aggregated max/min/median/avg over the indications' own crosswalk trust."""
     set_ids: list[str] = []
     # Each label's own product type, kept beside its set_id. The molecule's
     # drug_class is a union across every label it folds, so without this the
@@ -510,7 +562,7 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
                          if c.get("level") == 3})
         level4 = sorted({c["icd10_code"] for c in entry["codes"]
                          if c.get("level") == 4})
-        code_confs = [_num(c.get("confidence")) for c in entry["codes"]
+        code_confs = [_confidence(c.get("confidence")) for c in entry["codes"]
                       if isinstance(c.get("confidence"), (int, float, str))]
         code_confs = [c for c in code_confs if c is not None]
         indications.append({
@@ -541,9 +593,11 @@ def fda_molecule_union(label_results: list[dict]) -> dict:
         "indications": indications,
         "drug_class": {"classes": [c for c in _FDA_CLASS_ORDER if c in classes]},
         # The molecule's trust is the distribution of its own indications'
-        # trust. The per-label resolution_confidence the resolver no longer
-        # emits is why this block read null on every record.
-        "trust": _stats_over([i["trust"] for i in indications
+        # trust. It read null on every record until 2026-10-27, when the
+        # computation still aggregated a resolution_confidence that no
+        # model output ever carried. It aggregates the per-indication
+        # crosswalk trusts now; the old field is gone, not merely unemitted.
+        "trust": _trust_stats([i["trust"] for i in indications
                               if i["trust"] is not None]),
     }
     if usage_parts:
