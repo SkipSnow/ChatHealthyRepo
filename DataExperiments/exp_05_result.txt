@@ -1,0 +1,102 @@
+EXPERIMENT 5 -- unique-prefix extension for CMS truncation
+run at 2026-10-30 05:33:36   MIN_PREFIX=6
+
+rx exact keys=47,142  single-ingredient prefix list=40,708  (combination names excluded: 8,112)
+cms_set5 built: multi_ingredient=756
+fda_set5 built: labels=35,035 distinct_sets=2,140
+
+PREFIX EXTENSION AUDIT
+  cms  prefix_unique    occurrences=123      distinct_tokens=79
+  cms  unresolved       occurrences=820      distinct_tokens=416
+  fda  prefix_unique    occurrences=313      distinct_tokens=142
+  fda  unresolved       occurrences=612      distinct_tokens=137
+
+  extensions actually used (CMS side, top 25 distinct tokens)
+     insulin nph hum              -> INSULIN ISOPHANE                 (4 uses)
+     lamivu                       -> LAMIVUDINE                       (4 uses)
+     insulin lispro protamin      -> INSULIN LISPRO PROTAMINE         (4 uses)
+     clindamycin phos             -> CLINDAMYCIN                      (3 uses)
+     dextrose iso                 -> ISO-OSMOTIC DEXTROSE             (3 uses)
+     insulin aspart prot          -> INSULIN ASPART PROTAMINE         (3 uses)
+     sitagliptin phos             -> SITAGLIPTIN                      (3 uses)
+     butalb                       -> BUTALBITAL                       (3 uses)
+     nitrofurantoin monohyd       -> NITROFURANTOIN                   (2 uses)
+     amlodipine bes               -> AMLODIPINE                       (2 uses)
+     naproxen sod                 -> NAPROXEN                         (2 uses)
+     clidinium br                 -> CLIDINIUM                        (2 uses)
+     olmesartan med               -> OLMESARTAN                       (2 uses)
+     collagenase clostridium hist -> COLLAGENASE CLOSTRIDIUM HISTOLYT (2 uses)
+     ampicillin sod               -> AMPICILLIN                       (2 uses)
+     butalbit                     -> BUTALBITAL                       (2 uses)
+     iron fum                     -> IRON FUMARATE                    (2 uses)
+     emtricit                     -> EMTRICITABINE                    (2 uses)
+     esomeprazole mag             -> ESOMEPRAZOLE                     (2 uses)
+     alogliptin benz              -> ALOGLIPTIN                       (2 uses)
+     cyanocobalamin vitamin b     -> COBALAMIN                        (2 uses)
+     drospir                      -> DROSPIRENONE                     (2 uses)
+     cabozantinib s               -> CABOZANTINIB                     (2 uses)
+     elviteg                      -> ELVITEGRAVIR                     (2 uses)
+     acetamin                     -> PARACETAMOL                      (2 uses)
+
+  rejected as AMBIGUOUS (top 20 by candidate count)
+     multivit                     81 candidate ingredients
+     propylene glyc               51 candidate ingredients
+     phospho                      28 candidate ingredients
+     glycero                      17 candidate ingredients
+     technetium tc                13 candidate ingredients
+     magnesium l                  9 candidate ingredients
+     indium in                    9 candidate ingredients
+     noreth                       7 candidate ingredients
+     bacillus calmette            7 candidate ingredients
+     dexametha                    7 candidate ingredients
+     norgest                      7 candidate ingredients
+     dexameth                     7 candidate ingredients
+     benzoyl                      6 candidate ingredients
+     citric ac                    6 candidate ingredients
+     citric                       6 candidate ingredients
+     hydrocort                    6 candidate ingredients
+     hyoscy                       6 candidate ingredients
+     smallpox                     6 candidate ingredients
+     dextrose 10                  5 candidate ingredients
+     peginterferon alfa           5 candidate ingredients
+
+=== RESULT ===
+  OVERALL   pairs=84.58%   claims=97.68%
+  DEV       pairs=87.09%   claims=97.68%
+  HOLDOUT   pairs=80.07%   claims=82.26%
+  still residual: 487 pairs / 34,331,217 claims
+
+STILL RESIDUAL -- top 30
+  Brnd_Name                      Gnrc_Name                         claims parsed                    
+  Shingrix                       Varicella-Zoster Ge/As01b/Pf   3,710,214 varicella + zoster ge + as
+  Nitrofurantoin Mono-Macro      Nitrofurantoin Monohyd/M-Cry   2,999,261 nitrofurantoin monohyd + c
+  Arexvy                         Rsvpref3 Antigen/As01e/Pf      2,698,120 rsvpref3 antigen + as01e  
+  Triamterene-Hydrochlorothiazid Triamterene/Hydrochlorothiaz   2,214,275 triamterene + hydrochlorot
+  Fluticasone-Salmeterol         Fluticasone Propion/Salmeter   1,991,497 fluticasone propion + salm
+  Abrysvo                        Rsv Vacc, Pref A And Pref B/   1,501,907 rsv vacc pref a + pref b  
+  Basaglar Kwikpen U-100         Insulin Glargine,hum.Rec.Anl   1,303,212 insulin glargine hum rec a
+  Boostrix Tdap                  Diphth,pertuss(Acell),tet Va   1,297,505 diphth pertuss acell tet v
+  Nano 2nd Gen Pen Needle        Pen Needle, Diabetic           1,228,077 needle diabetic           
+  Clotrimazole-Betamethasone     Clotrimazole/Betamethasone D   1,206,036 clotrimazole + betamethaso
+  Breztri Aerosphere             Budesonide/Glycopyr/Formoter   1,165,471 budesonide + glycopyr + fo
+  Neomycin-Polymyxin-Dexameth    Neomycin/Polymyxin B/Dexamet     928,759 neomycin + polymyxin b + d
+  Sod Sulf-Potass Sulf-Mag Sulf  Sodium, Potassium,mag Sulfat     841,837 sodium potassium mag sulfa
+  Gavilyte-G                     Peg3350/Sod Sulf,bicarb,cl/K     643,346 peg3350 + sod sulf bicarb 
+  Omega-3 Acid Ethyl Esters      Omega-3 Acid Ethyl Esters        612,009 omega + 3 acid ethyl ester
+  Toujeo Solostar                Insulin Glargine,hum.Rec.Anl     500,102 insulin glargine hum rec a
+  Ultra-Fine Mini Pen Needle     Pen Needle, Diabetic             469,358 needle diabetic           
+  Alcohol Prep Pads              Alcohol Antiseptic Pads          424,118 alcohol antiseptic pads   
+  Ultra-Fine Short Pen Needle    Pen Needle, Diabetic             408,332 needle diabetic           
+  Gavilyte-C                     Peg3350/Sod Sulf,bicarb,cl/K     333,760 peg3350 + sod sulf bicarb 
+  Toujeo Max Solostar            Insulin Glargine,hum.Rec.Anl     331,369 insulin glargine hum rec a
+  Kerendia                       Finerenone                       329,040 finerenone                
+  Peg 3350-Electrolyte           Sodium Chloride/Nahco3/Kcl/P     316,621 sodium chloride + nahco3 +
+  Ultra-Fine Nano Pen Needle     Pen Needle, Diabetic             266,368 needle diabetic           
+  Autoshield Duo Pen Needle      Pen Needle,dual Safety,diabe     260,190 needle dual safety diabetc
+  Twinrix                        Hepatitis A And B Vaccine/Pf     259,716 hepatitis a + b vaccine   
+  Ubrelvy                        Ubrogepant                       238,556 ubrogepant                
+  Fiasp Flextouch                Insulin Aspart (Niacinamide)     230,995 insulin aspart niacinamide
+  Betamethasone Diprop Augmented Betamethasone/Propylene Glyc     226,005 betamethasone + propylene 
+  Humulin N                      Insulin Nph Human Isophane       198,573 insulin nph human isophane
+
+written to C:\CHATHealthyLLC\DataExperiments\exp_05_result.txt

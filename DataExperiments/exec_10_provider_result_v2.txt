@@ -1,0 +1,132 @@
+EXECUTION STEP 10 -- Provider_v_5 -> relational, DE+AL providers
+run at 2026-10-31 12:02:41
+
+NPIs with a prescription FILLED in DE/AL: 18,759
+created 5 provider tables
+scanning Provider_v_5 for billing offices in DE/AL ...
+NPIs with a BILLING OFFICE in DE/AL: 136,904
+union to port: 137,173  (filled-only=269 office-only=118,414 both=18,490)
+  fetched 2,000/137,173 NPIs, matched 2,000  1s
+  fetched 4,000/137,173 NPIs, matched 4,000  1s
+  fetched 6,000/137,173 NPIs, matched 6,000  1s
+  fetched 8,000/137,173 NPIs, matched 8,000  1s
+  fetched 10,000/137,173 NPIs, matched 10,000  2s
+  fetched 12,000/137,173 NPIs, matched 12,000  2s
+  fetched 14,000/137,173 NPIs, matched 14,000  2s
+  fetched 16,000/137,173 NPIs, matched 16,000  3s
+  fetched 18,000/137,173 NPIs, matched 18,000  3s
+  fetched 20,000/137,173 NPIs, matched 20,000  3s
+  fetched 22,000/137,173 NPIs, matched 22,000  4s
+  fetched 24,000/137,173 NPIs, matched 24,000  4s
+  fetched 26,000/137,173 NPIs, matched 26,000  4s
+  fetched 28,000/137,173 NPIs, matched 28,000  5s
+  fetched 30,000/137,173 NPIs, matched 30,000  5s
+  fetched 32,000/137,173 NPIs, matched 32,000  5s
+  fetched 34,000/137,173 NPIs, matched 34,000  6s
+  fetched 36,000/137,173 NPIs, matched 36,000  6s
+  fetched 38,000/137,173 NPIs, matched 38,000  6s
+  fetched 40,000/137,173 NPIs, matched 40,000  6s
+  fetched 42,000/137,173 NPIs, matched 42,000  7s
+  fetched 44,000/137,173 NPIs, matched 44,000  7s
+  fetched 46,000/137,173 NPIs, matched 46,000  7s
+  fetched 48,000/137,173 NPIs, matched 48,000  8s
+  fetched 50,000/137,173 NPIs, matched 50,000  8s
+  fetched 52,000/137,173 NPIs, matched 52,000  8s
+  fetched 54,000/137,173 NPIs, matched 54,000  9s
+  fetched 56,000/137,173 NPIs, matched 56,000  9s
+  fetched 58,000/137,173 NPIs, matched 58,000  9s
+  fetched 60,000/137,173 NPIs, matched 60,000  10s
+  fetched 62,000/137,173 NPIs, matched 62,000  10s
+  fetched 64,000/137,173 NPIs, matched 64,000  10s
+  fetched 66,000/137,173 NPIs, matched 66,000  10s
+  fetched 68,000/137,173 NPIs, matched 68,000  11s
+  fetched 70,000/137,173 NPIs, matched 70,000  11s
+  fetched 72,000/137,173 NPIs, matched 72,000  11s
+  fetched 74,000/137,173 NPIs, matched 74,000  12s
+  fetched 76,000/137,173 NPIs, matched 76,000  12s
+  fetched 78,000/137,173 NPIs, matched 78,000  12s
+  fetched 80,000/137,173 NPIs, matched 80,000  13s
+  fetched 82,000/137,173 NPIs, matched 82,000  13s
+  fetched 84,000/137,173 NPIs, matched 84,000  13s
+  fetched 86,000/137,173 NPIs, matched 86,000  13s
+  fetched 88,000/137,173 NPIs, matched 88,000  14s
+  fetched 90,000/137,173 NPIs, matched 90,000  14s
+  fetched 92,000/137,173 NPIs, matched 92,000  14s
+  fetched 94,000/137,173 NPIs, matched 94,000  15s
+  fetched 96,000/137,173 NPIs, matched 96,000  15s
+  fetched 98,000/137,173 NPIs, matched 98,000  15s
+  fetched 100,000/137,173 NPIs, matched 100,000  16s
+  fetched 102,000/137,173 NPIs, matched 102,000  16s
+  fetched 104,000/137,173 NPIs, matched 104,000  16s
+  fetched 106,000/137,173 NPIs, matched 106,000  17s
+  fetched 108,000/137,173 NPIs, matched 108,000  17s
+  fetched 110,000/137,173 NPIs, matched 110,000  17s
+  fetched 112,000/137,173 NPIs, matched 112,000  17s
+  fetched 114,000/137,173 NPIs, matched 114,000  18s
+  fetched 116,000/137,173 NPIs, matched 116,000  18s
+  fetched 118,000/137,173 NPIs, matched 118,000  18s
+  fetched 120,000/137,173 NPIs, matched 120,000  19s
+  fetched 122,000/137,173 NPIs, matched 122,000  19s
+  fetched 124,000/137,173 NPIs, matched 124,000  19s
+  fetched 126,000/137,173 NPIs, matched 126,000  20s
+  fetched 128,000/137,173 NPIs, matched 128,000  20s
+  fetched 130,000/137,173 NPIs, matched 130,000  20s
+  fetched 132,000/137,173 NPIs, matched 132,000  20s
+  fetched 134,000/137,173 NPIs, matched 134,000  21s
+  fetched 136,000/137,173 NPIs, matched 136,000  21s
+  fetched 137,173/137,173 NPIs, matched 137,173  21s
+indexed
+SpecialtyMetaData_v_5 fields excluded as embeddings: embedding, embedding_generated_at, embedding_model
+nucc_specialty=884 rows (embeddings excluded)
+
+=== PORT RESULT ===
+  provider                        137,173
+  provider_taxonomy               169,882
+  provider_practice_address       168,811
+  provider_business_address       137,173
+  provider_license                124,639
+  nucc_specialty                      884
+
+  NPIs requested=137,173 matched in Provider_v_5=137,173 missing=0
+
+=== THE STATE SWAP -- CMS claim state vs the firm's practice state ===
+  claim    providers     no firm addr     agrees   DISAGREES
+  AL          15,158               56     14,943         159
+  DE           3,601                4      3,537          60
+
+  examples where they disagree:
+    1003127101  claim=DE  firm practice states=['PA']
+    1003255993  claim=AL  firm practice states=['NY']
+    1003493677  claim=DE  firm practice states=['CT']
+    1003519117  claim=DE  firm practice states=['NY']
+    1013303171  claim=AL  firm practice states=['FL']
+    1023697554  claim=AL  firm practice states=['GA']
+    1023713500  claim=AL  firm practice states=['PA']
+    1023755345  claim=DE  firm practice states=['PA']
+
+=== NUCC SPECIALTY NOW AVAILABLE (was absent from T2) ===
+  providers with a taxonomy=137,040 rows=169,882 distinct NUCC codes=786
+    390200000X   Student in an Organized Health Care Educatio 8,802 providers
+    225100000X   Physical Therapist                           8,694 providers
+    363LF0000X   Family Nurse Practitioner                    6,317 providers
+    183500000X   Pharmacist                                   5,762 providers
+    207Q00000X   Family Medicine Physician                    4,816 providers
+    101YM0800X   Mental Health Counselor                      4,505 providers
+    207R00000X   Internal Medicine Physician                  4,461 providers
+    163W00000X   Registered Nurse                             4,077 providers
+    106S00000X   Behavior Technician                          3,757 providers
+    1041C0700X   Clinical Social Worker                       3,698 providers
+
+=== CLAIM-SPECIALTY TEXT vs NUCC -- why Prscrbr_Type is not the specialty ===
+  providers with both a claim specialty text and a NUCC code: 18,690
+  Prscrbr_Type (claim text)    primary NUCC label                       providers
+  Nurse Practitioner           Women's Health Nurse Practitioner        5,002
+  Family Practice              Student in an Organized Health Care Educ 1,790
+  Internal Medicine            Surgery Physician                        1,703
+  Dentist                      Public Health Dentistry                  1,637
+  Physician Assistant          Surgical Physician Assistant             1,090
+  Optometry                    Vision Therapy Optometrist               608
+  Emergency Medicine           Surgery Physician                        560
+  Student in an Organized Heal Urology Physician                        530
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_10_provider_result_v2.txt

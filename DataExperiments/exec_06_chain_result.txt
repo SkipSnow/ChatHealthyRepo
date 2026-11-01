@@ -1,0 +1,64 @@
+EXECUTION STEP 6 -- T3, T4, T5 for Delaware and Alabama
+run at 2026-10-30 09:42:21
+
+=== T3 molecule_indication ===
+  molecules with at least one FDA label: 1,014 (35,390 molecule-label links)
+  molecules with at least one trial    : 483 (52,435 molecule-trial links)
+  N1 trial MeSH      rows=20,738 molecules=473 indications=2,663
+  MeSH vocabulary for N2: 5,974 terms (>= 7 chars)
+  ICD vocabulary for N3: 97,426 descriptions
+  molecules with label prose: 1,014
+    scanned 250/1,014 molecules  20s
+    scanned 500/1,014 molecules  53s
+    scanned 750/1,014 molecules  88s
+    scanned 1,000/1,014 molecules  128s
+
+  T3 by rung:
+    rung  provenance            source      authority              rows  molecules  indications
+    N1    joined_coded_source   trial       investigational      20,738        473        2,663
+    N2    adopted_vocabulary    fda_label   approved              5,177        953          668
+    N3    adopted_vocabulary    fda_label   approved                 10         10            6
+    N5    unresolved            fda_label   approved                 51         51            0
+  molecules with at least one NORMALISED indication: 1,012 of 1,186 (85.3%)
+
+=== T4 indication_icd ===
+  route                rows  indications      codes   level 3  level 4+
+  R3_direct               6            6          6         3         0
+  R3_mesh_desc          409          408        409       209         9
+  indications reaching ANY ICD code: 414 of 2,780 (14.9%)
+  -> the shortfall is what R2 (MeSH->UMLS->ICD, needs MRCONSO) and R5 (model) would have to cover
+  R4 CCSR clinical category attached to 208 of 415 rows (50.1%)
+
+=== T5 the delivered set ===
+  state      T5 rows   providers   molecules   indications  ICD codes
+  AL       2,178,176      14,230         689           413        414
+  DE         421,928       3,410         545           386        387
+
+  provenance mix of the delivered set:
+    adopted_vocabulary        2,600,104  100.00%
+
+  authority mix (approved vs investigational):
+    investigational           1,827,223   70.27%
+    approved                    772,881   29.73%
+
+  PROVIDER REACH -- what fraction of each state's providers are reachable by an ICD query:
+    AL   14,230 of 15,158 providers (93.9%)
+    DE   3,410 of 3,601 providers (94.7%)
+
+  worked example -- top ICD codes by claim volume, each state:
+    DE:
+      I50       L3  Heart failure                                providers=2,609  claims=1,993,043
+      I70       L3  Atherosclerosis                              providers=1,910  claims=464,430
+      N04       L3  Nephrotic syndrome                           providers=2,015  claims=447,651
+      U07.1     L2  COVID-19                                     providers=2,398  claims=435,602
+      M10       L3  Gout                                         providers=2,525  claims=429,034
+      R80       L3  Proteinuria                                  providers=2,085  claims=403,579
+    AL:
+      I50       L3  Heart failure                                providers=10,753 claims=11,382,870
+      F20       L3  Schizophrenia                                providers=8,113  claims=2,867,097
+      N04       L3  Nephrotic syndrome                           providers=9,098  claims=2,744,229
+      U07.1     L2  COVID-19                                     providers=10,349 claims=2,685,554
+      M10       L3  Gout                                         providers=10,029 claims=2,676,112
+      C90.0     L2  Multiple myeloma                             providers=9,753  claims=2,613,165
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_06_chain_result.txt

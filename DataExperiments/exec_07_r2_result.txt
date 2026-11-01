@@ -1,0 +1,36 @@
+EXECUTION STEP 7 -- R2 MeSH -> ICD-10-CM via UMLS crosswalk
+run at 2026-10-31 12:07:38
+
+descriptors the chain uses: 2,777
+cache on disk: 2,766 descriptors
+to fetch: 11
+fetched 11 descriptors in 1s; unrecoverable failures=0
+cache written: C:\DataExperiments\Sources\umls_crosswalk_cache.json
+
+=== R2 COVERAGE OF THE DESCRIPTORS ===
+  descriptors WITH an ICD-10-CM mapping : 1,509
+  descriptors with NO mapping in UMLS   : 1,268
+  mapping rows                          : 2,343
+  share of descriptors mapped           : 54.3%
+  3-character codes returned=400   4+ character=1,943
+  codes recognised by the loaded ICD-10-CM set: 2,176 of 2,214 (98.3%)
+
+=== WORKED EXAMPLES ===
+  D006333 (Heart Failure)
+     I50        L3  Heart failure
+     I50.1      L4  Left ventricular failure, unspecified
+     I50.81     L3  Right heart failure
+     I50.810    L4  Right heart failure, unspecified
+     I50.9      L4  Heart failure, unspecified
+  D003924 (Diabetes Mellitus, Type 2)
+     E11        L3  Type 2 diabetes mellitus
+  D012559 (Schizophrenia)
+     F20        L3  Schizophrenia
+     F20.9      L4  Schizophrenia, unspecified
+  D009369 (Neoplasms)
+     C80        L3  Malignant neoplasm without specification of site
+     C80.1      L4  Malignant (primary) neoplasm, unspecified
+     D36.9      L4  Benign neoplasm, unspecified site
+     D49        L3  Neoplasms of unspecified behavior
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_07_r2_result.txt

@@ -134,8 +134,10 @@ def _insert_conforming(coll, docs: list[dict], keys: list[str], *,
     for doc, key in zip(docs, keys):
         errors = _conformance_errors(doc, validator) if validator else []
         if errors:
+            # Named schema_violation now that the grade is record-level; it
+            # recorded the catch-all while that grade was fatal.
             record_discrepancy(
-                reason="FDA_all_other_Attribute_failures",
+                reason="schema_violation",
                 step="finalize_fda_molecules", artifact="fda",
                 record_key=key,
                 detail={"kind": "record_not_contract_conforming",

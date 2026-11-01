@@ -1,0 +1,8 @@
+EXECUTION STEP 11 -- T2 rebuilt on the canonical billing anchor
+run at 2026-10-31 11:18:12
+
+provider_spine rows=137,173 distinct npi=137,173  1:1 CONFIRMED
+provider_nucc  rows=137,040 distinct npi=137,040  1:1
+provider_practice_display rows=137,113  worst multiplicity=356 (carried AGGREGATED so it cannot fan the file out)
+
+=== T2 v2 -- no inflation against the NPI-keyed original ===

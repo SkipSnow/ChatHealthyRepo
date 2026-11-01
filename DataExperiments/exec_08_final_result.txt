@@ -1,0 +1,77 @@
+EXECUTION STEP 8 -- T4 all routes, T5, holdout
+run at 2026-10-31 12:07:40
+
+=== T4 indication_icd, routes in precedence order ===
+  R1 coverage            rows=168
+  R2 UMLS crosswalk      rows=2,117
+  R3 vocabulary          rows=16
+
+  route                provenance                rows  indications    codes       L3       L4
+  R1_coverage          joined_coded_source        168          168      168        5      163
+  R2_umls_crosswalk    joined_coded_source      2,117        1,337    1,997      765    1,352
+  R3_vocabulary        adopted_vocabulary          16           16       16       13        3
+
+  indications reaching an ICD code: 1,521 of 2,788 (54.6%)
+  R5 (model) would have to cover the remaining 1,267 (45.4%)
+  R4 CCSR category attached to 1,588 of 2,301 rows (69.0%)
+
+=== T5 the delivered set ===
+  state         rows   providers   molecules   indications   ICD codes
+  AL      14,729,967      14,514       1,006         1,517       2,163
+  DE       2,834,730       3,478         762         1,422       2,034
+
+  PROVENANCE MIX -- the share resting on a coded join:
+    joined_coded_source       13,773,334   78.41%
+    adopted_vocabulary         3,791,363   21.59%
+
+  AUTHORITY MIX -- approved label vs investigational trial:
+    investigational           13,804,710   78.59%
+    approved                   3,759,987   21.41%
+
+  LEVEL MIX:
+    level 3   rows=7,223,407     codes=735      41.12%
+    level 4   rows=10,341,290    codes=1,430    58.88%
+
+  CANDIDATE GRAINS -- row count at each, so the choice is informed:
+    provider x molecule                        477,588 rows
+    provider x indication                    4,703,238 rows
+    provider x ICD code                      7,349,410 rows
+    provider x ICD code, level 3 only        2,919,384 rows
+    provider x CCSR category                 1,959,161 rows
+
+  PROVIDER REACH:
+    AL   14,514 of 15,158 providers reachable by an ICD query (95.8%)
+    DE   3,478 of 3,601 providers reachable by an ICD query (96.6%)
+
+=== HOLDOUT -- rules written on one state, scored on the other ===
+  molecules in both states=839  DE only=31  AL only=316
+  A molecule seen in only one state was never visible while the rules
+  were written against the other. Those are the honest unseen cases.
+
+  population                     molecules  with indication     with ICD
+  seen in BOTH states                  839            93.7%        88.2%
+  seen in ONE state only               347            88.8%        83.0%
+
+  A gap between these two rows is the rules failing on unseen drugs.
+
+=== TOP ICD CODES BY CLAIMS, EACH STATE, LEVEL 3 ===
+  DE:
+    I50.81    Right heart failure                      prov=2,611   claims=1,994,147    R2_umls_crosswalk
+    I50       Heart failure                            prov=2,611   claims=1,994,147    R2_umls_crosswalk
+    I21       Acute myocardial infarction              prov=2,155   claims=1,866,157    R2_umls_crosswalk
+    I22       Subsequent ST elevation (STEMI) and non- prov=2,155   claims=1,866,157    R2_umls_crosswalk
+    I25.1     Atherosclerotic heart disease of native  prov=2,475   claims=1,247,084    R2_umls_crosswalk
+    E11       Type 2 diabetes mellitus                 prov=2,762   claims=883,297      R2_umls_crosswalk
+    F03       Unspecified dementia                     prov=2,216   claims=826,788      R2_umls_crosswalk
+    C50       Malignant neoplasm of breast             prov=2,937   claims=800,171      R2_umls_crosswalk
+  AL:
+    I50       Heart failure                            prov=10,793  claims=11,395,580   R2_umls_crosswalk
+    I50.81    Right heart failure                      prov=10,793  claims=11,395,580   R2_umls_crosswalk
+    I22       Subsequent ST elevation (STEMI) and non- prov=8,817   claims=9,959,784    R2_umls_crosswalk
+    I21       Acute myocardial infarction              prov=8,817   claims=9,959,784    R2_umls_crosswalk
+    I25.1     Atherosclerotic heart disease of native  prov=9,640   claims=7,346,043    R2_umls_crosswalk
+    E11       Type 2 diabetes mellitus                 prov=11,678  claims=5,563,621    R2_umls_crosswalk
+    F03       Unspecified dementia                     prov=8,841   claims=5,056,892    R2_umls_crosswalk
+    C50       Malignant neoplasm of breast             prov=12,260  claims=4,996,960    R2_umls_crosswalk
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_08_final_result.txt

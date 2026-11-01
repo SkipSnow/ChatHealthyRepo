@@ -1,0 +1,14 @@
+DELIVER THE FDA CANDIDATE -- download to finished job
+run at 2026-10-31 16:12:44
+target: PipelinePublicHealthData.QA_fdaProductToDiagnosisResolution_v_1
+
+=== 0 download the FDA sources ===
+   running fetch_all_sources.py openfda_labels rxnorm rxnorm_rel
+   fetch_all_sources.py ok in 3s
+
+=== 1 empty the schema ===
+   dropped 3 tables
+   no crosswalk cache yet; this run creates it
+
+=== 2 openFDA labels ===
+   running pg_load_02_fda.py 

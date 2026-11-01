@@ -1,0 +1,13 @@
+PORT THE PSEUDO-TARGETS TO DOCUMENTS
+run at 2026-10-31 09:17:08
+RULE 1 zero business logic   RULE 2 pseudo-target data only   RULE 3 values identical (verified, not asserted)
+target: mongodb://127.0.0.1:27018/MedicareReferenceTarget  (LOCAL -- Atlas is not touched)
+
+=== NUCCSpecialty ===
+   documents: 884
+
+=== ProviderMedicare ===
+   loading parents...
+   parents: 513,777
+   streaming children in key order...
+      2,000,000 child rows, 138,000 documents written

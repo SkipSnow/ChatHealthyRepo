@@ -1,0 +1,94 @@
+EXPERIMENT 2 -- baseline funnel, indexed
+run at 2026-10-30 05:26:21
+
+cms_key built and indexed: 3,159 pairs
+fda_key built and indexed:
+  brand      rows=35,915   distinct_literal=5,351    distinct_norm=5,068
+  generic    rows=35,795   distinct_literal=3,594    distinct_norm=3,304
+  substance  rows=40,908   distinct_literal=2,490    distinct_norm=2,324
+
+FUNNEL STAGES (each a single indexed equality join)
+  1_brand_exact            hits=22,175    pairs_claimed_total=2,040     0.1s
+  2_brand_normalized       hits=9,539     pairs_claimed_total=2,305     0.0s
+  3_generic_exact          hits=15,796    pairs_claimed_total=2,578     0.1s
+  4_generic_normalized     hits=1,081     pairs_claimed_total=2,598     0.0s
+  5_brand_as_ingredient    hits=88        pairs_claimed_total=2,600     0.0s
+
+FUNNEL RESULT
+
+by PAIRS
+  1_brand_exact             2,040   64.58%
+  2_brand_normalized          265    8.39%
+  3_generic_exact             273    8.64%
+  4_generic_normalized         20    0.63%
+  5_brand_as_ingredient         2    0.06%
+  9_residual                  559   17.70%
+
+by CLAIM VOLUME
+  1_brand_exact              1,244,487,900   84.11%
+  2_brand_normalized           147,554,323    9.97%
+  3_generic_exact               16,516,485    1.12%
+  4_generic_normalized              64,326    0.00%
+  5_brand_as_ingredient            696,436    0.05%
+  9_residual                    70,309,337    4.75%
+
+RESOLVED -- development vs holdout
+  set                 pairs      pairs %     claims %
+  DEVELOPMENT         2,030       84.58%       95.25%
+  HOLDOUT             1,129       78.21%       80.32%
+  OVERALL             3,159       82.30%       95.25%
+
+AMBIGUITY -- labels matched per resolved pair
+  stage                           1     2-10      >10      max
+  1_brand_exact               1,141      524      375      386
+  2_brand_normalized             23       78      164      386
+  3_generic_exact                70       88      115      280
+  4_generic_normalized            2        4       14       93
+  5_brand_as_ingredient           1        0        1       53
+
+RESIDUAL -- top 40 by claim volume
+  Brnd_Name                        Gnrc_Name                              claims    set
+  Hydrocodone-Acetaminophen        Hydrocodone/Acetaminophen          19,057,273    DEV
+  Amoxicillin-Clavulanate Potass   Amoxicillin/Potassium Clav          5,804,015    DEV
+  Losartan-Hydrochlorothiazide     Losartan/Hydrochlorothiazide        4,970,214    DEV
+  Shingrix                         Varicella-Zoster Ge/As01b/Pf        3,710,214    DEV
+  Nitrofurantoin Mono-Macro        Nitrofurantoin Monohyd/M-Cryst      2,999,261    DEV
+  Arexvy                           Rsvpref3 Antigen/As01e/Pf           2,698,120    DEV
+  Triamterene-Hydrochlorothiazid   Triamterene/Hydrochlorothiazid      2,214,275    DEV
+  Fluticasone-Salmeterol           Fluticasone Propion/Salmeterol      1,991,497    DEV
+  Abrysvo                          Rsv Vacc, Pref A And Pref B/Pf      1,501,907    DEV
+  Dextroamphetamine-Amphetamine    Dextroamphetamine/Amphetamine       1,438,899    DEV
+  Basaglar Kwikpen U-100           Insulin Glargine,hum.Rec.Anlog      1,303,212    DEV
+  Boostrix Tdap                    Diphth,pertuss(Acell),tet Vac       1,297,505    DEV
+  Nano 2nd Gen Pen Needle          Pen Needle, Diabetic                1,228,077    DEV
+  Clotrimazole-Betamethasone       Clotrimazole/Betamethasone Dip      1,206,036    DEV
+  Breztri Aerosphere               Budesonide/Glycopyr/Formoterol      1,165,471    DEV
+  Neomycin-Polymyxin-Dexameth      Neomycin/Polymyxin B/Dexametha        928,759    DEV
+  Sod Sulf-Potass Sulf-Mag Sulf    Sodium, Potassium,mag Sulfates        841,837    DEV
+  Gavilyte-G                       Peg3350/Sod Sulf,bicarb,cl/Kcl        643,346    DEV
+  Olmesartan-Hydrochlorothiazide   Olmesartan/Hydrochlorothiazide        619,004    DEV
+  Omega-3 Acid Ethyl Esters        Omega-3 Acid Ethyl Esters             612,009    DEV
+  Ipratropium-Albuterol            Ipratropium/Albuterol Sulfate         563,478    DEV
+  Toujeo Solostar                  Insulin Glargine,hum.Rec.Anlog        500,102    DEV
+  Butalbital-Acetaminophen-Caffe   Butalb/Acetaminophen/Caffeine         499,540    DEV
+  Dextroamphetamine-Amphet Er      Dextroamphetamine/Amphetamine         478,462    DEV
+  Ultra-Fine Mini Pen Needle       Pen Needle, Diabetic                  469,358    DEV
+  Alcohol Prep Pads                Alcohol Antiseptic Pads               424,118    DEV
+  Ultra-Fine Short Pen Needle      Pen Needle, Diabetic                  408,332    DEV
+  Diphenoxylate-Atropine           Diphenoxylate Hcl/Atropine            372,676    DEV
+  Phenytoin Sodium Extended        Phenytoin Sodium Extended             355,187    DEV
+  Gavilyte-C                       Peg3350/Sod Sulf,bicarb,cl/Kcl        333,760    DEV
+  Toujeo Max Solostar              Insulin Glargine,hum.Rec.Anlog        331,369    DEV
+  Kerendia                         Finerenone                            329,040    DEV
+  Peg 3350-Electrolyte             Sodium Chloride/Nahco3/Kcl/Peg        316,621    DEV
+  Bisoprolol-Hydrochlorothiazide   Bisoprolol/Hydrochlorothiazide        314,711    DEV
+  Ultra-Fine Nano Pen Needle       Pen Needle, Diabetic                  266,368    DEV
+  Autoshield Duo Pen Needle        Pen Needle,dual Safety,diabetc        260,190    DEV
+  Twinrix                          Hepatitis A And B Vaccine/Pf          259,716    DEV
+  Ubrelvy                          Ubrogepant                            238,556    DEV
+  Fiasp Flextouch                  Insulin Aspart (Niacinamide)          230,995    DEV
+  Betamethasone Diprop Augmented   Betamethasone/Propylene Glyc          226,005    DEV
+
+residual: 559 pairs carrying 70,309,337 claims
+
+written to C:\CHATHealthyLLC\DataExperiments\exp_02_result.txt

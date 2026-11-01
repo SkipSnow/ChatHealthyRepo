@@ -1,0 +1,52 @@
+BUILD THE PSEUDO-TARGET PUBLIC COLLECTIONS, LOCALLY
+run at 2026-10-30 22:02:16
+the port must have nothing to decide, so the deciding happens here
+
+=== pt_ProviderMedicare -- one row per molecule per provider ===
+   rows: 513,777
+
+=== pt_ProviderMedicare_indication -- the nested child rows ===
+   rows: 14,113,036
+
+=== pt_NUCCSpecialty -- one row per specialty code ===
+   rows: 884
+
+=== RULE 2 -- no internal field is present in any pseudo-target ===
+   clean -- 36 columns across 3 tables, none forbidden
+
+   excluded by name, and why:
+     asserts_unsupported_specificity    internal diagnostic, invariant
+     icd10_key                          BR-008 -- the dotless form is an internal join key
+     label_before                       internal before/after marker
+     label_before_fixes                 internal before/after marker
+     molecule_claims_nonadditive        internal fan-out warning; the volume is additive at the document grain and is carried as 'claims'
+     n_source_pairs                     internal collapse audit
+     rows_benes_suppressed              internal suppression audit
+     rung                               internal match-rung name
+
+=== RULE 3 -- every value identical to the staging source ===
+   claims                     target=32870482             staging=32870482             IDENTICAL
+   drug_cost                  target=4884586023.51        staging=4884586023.51        IDENTICAL
+   beneficiaries              target=9391621              staging=9391621              IDENTICAL
+   provider-molecule keys     target=513777               staging=513777               IDENTICAL
+   distinct ICD codes         target=1591                 staging=1591                 IDENTICAL
+   distinct indications       target=2340                 staging=2340                 IDENTICAL
+   specialty codes            target=884                  staging=884                  IDENTICAL
+
+=== THE ONE OPEN QUESTION FOR THE OPERATOR ===
+   247,443 rows carry a NULL beneficiaries (HIPAA suppression).
+   In the document the port can write the key as null, or omit it.
+   Omitting is the document convention and matches 'absent rather
+   than defaulted'. Writing null is the literal same VALUE.
+   This is a FORM question under Rule 3, not a value question, and
+   it is recorded here rather than decided.
+
+=== WHAT THE OPERATOR CAN NOW INSPECT ===
+   pt_providermedicare                   513,777 rows  13 columns
+      npi, molecule_id, fill_state, billing_state, state_differs, entity_type_code, entity_type_code_label, primary_nucc, primary_nucc_label, is_active, claims, drug_cost, beneficiaries
+   pt_providermedicare_indication     14,113,036 rows  13 columns
+      npi, molecule_id, indication_id, indication_text, corroborated_by_trial, icd10_code, who_level, is_billable, route, ccsr_category, body_system, provenance, confidence
+   pt_nuccspecialty                          884 rows  10 columns
+      nucc_code, display_name, grouping, classification, specialization, definition, section, can_prescribe, is_homeopathic, is_disqualified
+
+written to C:\CHATHealthyLLC\DataExperiments\pseudo_target_result.txt

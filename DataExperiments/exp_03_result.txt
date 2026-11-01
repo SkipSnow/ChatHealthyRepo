@@ -1,0 +1,101 @@
+EXPERIMENT 3 -- anatomy of the residual, and precision of the resolved
+run at 2026-10-30 05:27:43
+
+RESIDUAL BY CATEGORY  (559 pairs, 70,309,337 claims = 4.75% of all claims)
+
+  category                   pairs          claims  % of res % all clm
+  A_not_a_drug                 162       6,901,799     29.0%     0.47%
+  B_vaccine_or_biologic         34       9,829,141      6.1%     0.66%
+  C_combination_product        285      50,935,524     51.0%     3.44%
+  D_cms_name_truncated           8         259,803      1.4%     0.02%
+  E_cms_abbreviated              1              13      0.2%     0.00%
+  F_unexplained                 69       2,383,057     12.3%     0.16%
+
+  A_not_a_drug -- examples
+     Omnipod 5 Dexg7g6 Pods (Gen 5)     Insulin Pump Cart,auto,bt,g6/7          178,561
+     Droplet Insulin Syringe            Syringe And Needle,insulin,1ml            2,033
+     Ultra Thin                         Pen Needle, Diabetic                        432
+     Vanishpoint                        Syringe And Needle,insulin,1ml               15
+     Verifine Plus Pen Needle           Pen Needle, Diabetic                         14
+     Novofine Plus                      Pen Needle, Diabetic                        332
+
+  B_vaccine_or_biologic -- examples
+     Asceniv                            Immune Globulin,gamma(Igg)slra               41
+     Recombivax Hb                      Hepatitis B Virus Vaccine/Pf                 50
+     Ixchiq                             Chikungunya Vaccine, Live/Pf                150
+     Ipol                               Poliomyelitis Vaccine, Killed             6,998
+     Imovax Rabies Vaccine              Rabies Vacc, Human Diploid/Pf               216
+     Infanrix Dtap                      Diph,pertuss(Acell),tet Ped/Pf              159
+
+  C_combination_product -- examples
+     Bisoprolol-Hydrochlorothiazide     Bisoprolol/Hydrochlorothiazide          314,711
+     Hizentra                           Immun Glob G(Igg)/Pro/Iga 0-50           21,153
+     Cefazolin Sodium-Dextrose          Cefazolin Sodium/Dextrose,iso               530
+     Vimovo                             Naproxen/Esomeprazole Mag                    62
+     Emtricitabine-Tenofovir Disop      Emtricitabine/Tenofovir (Tdf)            30,721
+     Olmesartan-Hydrochlorothiazide     Olmesartan/Hydrochlorothiazide          619,004
+
+  D_cms_name_truncated -- examples
+     Prosol                             Parenteral Amino Acid 20% No.1           95,781
+     Clinisol                           Parenteral Amino Acid 15% No.5           12,401
+     Premasol                           Parenteral Amino Acid 10% No.7               32
+     Emcyt                              Estramustine Phosphate Sodium                14
+     Sodium Fluoride 5000 Dry Mouth     Fluoride (Sodium)                         2,599
+     Xiaflex                            Collagenase Clostridium Hist.             1,570
+
+  E_cms_abbreviated -- examples
+     Children's Multivitamin            Pediatric Multivitamin No.17                 13
+
+  F_unexplained -- examples
+     Zydelig                            Idelalisib                                  110
+     Bydureon Bcise                     Exenatide Microspheres                   85,420
+     Xospata                            Gilteritinib Fumarate                     1,846
+     Fuzeon                             Enfuvirtide                                  61
+     Fotivda                            Tivozanib Hcl                             1,527
+     Prevident 5000 Plus                Fluoride (Sodium)                         1,652
+
+DENOMINATOR -- a device is not a failed drug match
+  all pairs                        3,159
+  not a drug (devices, supplies)     162  6,901,799 claims
+  vaccine / biologic                  34  9,829,141 claims
+  drug pairs (fair denominator)    2,997
+  resolution against it            86.75% of pairs, 95.69% of claims
+
+PRECISION AUDIT -- do the many labels a pair matched AGREE?
+A pair matching 386 labels is only a success if those labels name
+the same ingredient. Checking agreement via the labels' own
+substance names.
+
+  stage                      pairs  1 ingred       2-3        >3    max
+  1_brand_exact              2,040     1,560       399        81     22
+  2_brand_normalized           265       176        66        23      7
+  3_generic_exact              273       126        92        55    145
+  4_generic_normalized          20         8         8         4      5
+  5_brand_as_ingredient          2         0         1         1     13
+
+  WORST OFFENDERS -- resolved pairs whose labels disagree most
+  stage                Brnd_Name                    Gnrc_Name                   labels  ingred       claims
+  3_generic_exact      Klor-Con 10                  Potassium Chloride             280     145       57,868
+  3_generic_exact      Klor-Con M10                 Potassium Chloride             280     145       60,402
+  3_generic_exact      Klor-Con M20                 Potassium Chloride             280     145      398,012
+  3_generic_exact      Klor-Con M15                 Potassium Chloride             280     145        2,369
+  3_generic_exact      Klor-Con 8                   Potassium Chloride             280     145        6,697
+  3_generic_exact      Dermacinrx Lidocan           Lidocaine                      163      30          678
+  3_generic_exact      Ala-Cort                     Hydrocortisone                 136      23           16
+  1_brand_exact        Clinimix E                   Aa 5 % No.6/D20w/Lytes No.       1      22           16
+  1_brand_exact        Clinimix E                   Amino Ac 8 %/D14w/Electrol       1      22          112
+  3_generic_exact      Oscimin Sl                   Hyoscyamine Sulfate             63      20           12
+  1_brand_exact        Plenamine                    Parenteral Amino Acid 15%        1      18          317
+  1_brand_exact        Clinimix                     Amino Acid 8 % In D14w           1      17           26
+  1_brand_exact        Clinimix                     Aa 4.25 % No.1/Dextrose 5        1      17           57
+  1_brand_exact        Travasol                     Parenteral Amino Acid 10%        1      16           51
+  1_brand_exact        Se-Natal 19                  Pnv 119/Iron Fum/Folic Aci       1      16           96
+  1_brand_exact        Se-Natal 19                  Pnv No.118/Iron Fumarate/F       1      16          160
+  3_generic_exact      Epivir                       Lamivudine                      40      16          113
+  3_generic_exact      Lamivudine Hbv               Lamivudine                      40      16        6,133
+  1_brand_exact        M-Natal Plus                 Pnv,calcium 72/Iron/Folic        4      15       10,357
+  1_brand_exact        Multivitamin With Fluoride   Pedi Multivit No.17 W-Fluo      13      15           88
+
+  pairs whose matched labels agree on ONE ingredient: 71.92%
+
+written to C:\CHATHealthyLLC\DataExperiments\exp_03_result.txt

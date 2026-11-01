@@ -1,0 +1,232 @@
+COMPLETENESS ACROSS THE THREE SOURCE DOMAINS -- FDA, NUCC, NPI
+run at 2026-10-30 16:15:03
+purpose: the port is nesting-only, so every field it emits must already exist as a column with values
+
+======================================================================
+1. FDA -- drug labels and the molecule identity built from them
+======================================================================
+
+  label rows loaded (national, OTC excluded) : 281,838
+  distinct set_id                            : 93,956
+  carrying indication prose                  : 281,829 (100.0%)
+  carrying an openfda product_type           : 35,674 (38.0%)
+  NOTE: the FDA record publishes 122 top-level fields. 12 were loaded; the cohort sections are now additionally kept (BR-020).
+  molecule-to-label links                    : 27,142 over 938 molecules
+  molecules reached from the claim file       : 1,186
+
+  FDA label -- fda_label (281,838 rows)
+     column                                        populated    share
+     set_id                                          281,838   100.0%
+     spl_id                                          281,838   100.0%
+     effective_time                                  281,838   100.0%
+     version                                         281,838   100.0%
+     product_type                                    106,215    37.7%   (sparse)
+     has_indication                                  281,838   100.0%
+     description                                     263,145    93.4%
+     spl_product_data_elements                       280,980    99.7%
+     active_ingredient                                 2,280     0.8%   (sparse)
+     indications_and_usage                           263,784    93.6%
+     package_label_principal_display_panel           280,614    99.6%
+     spl_unclassified_section                        121,480    43.1%   (sparse)
+     how_supplied                                    260,856    92.6%
+
+  COHORT NOTES (BR-020) -- stored verbatim, never interpreted
+     rows=299,580  distinct set_id=128,395
+     NOTE: rows exceed distinct set_id -- multiple cached download generations. Dedupe to the latest effective_time before any port.
+
+  FDA cohort notes -- fda_label_cohort (299,580 rows)
+     column                                        populated    share
+     set_id                                          299,580   100.0%
+     spl_id                                          299,580   100.0%
+     effective_time                                  299,580   100.0%
+     pediatric_use                                   157,973    52.7%
+     geriatric_use                                   134,167    44.8%   (sparse)
+     pregnancy                                       158,560    52.9%
+     pregnancy_or_breast_feeding                      92,687    30.9%   (sparse)
+     nursing_mothers                                 109,463    36.5%   (sparse)
+     use_in_specific_populations                      99,530    33.2%   (sparse)
+     labor_and_delivery                               41,191    13.7%   (sparse)
+     contraindications                               204,889    68.4%
+     boxed_warning                                    75,840    25.3%   (sparse)
+     pediatric_use_table                               2,873     1.0%   (sparse)
+     geriatric_use_table                               1,138     0.4%   (sparse)
+     pregnancy_table                                     331     0.1%   (sparse)
+     pregnancy_or_breast_feeding_table                    40     0.0%   (sparse)
+     nursing_mothers_table                                58     0.0%   (sparse)
+     use_in_specific_populations_table                 4,700     1.6%   (sparse)
+     labor_and_delivery_table                             17     0.0%   (sparse)
+     contraindications_table                             484     0.2%   (sparse)
+     boxed_warning_table                                 292     0.1%   (sparse)
+
+======================================================================
+2. NUCC -- the specialty vocabulary that classifies providers
+======================================================================
+
+  vocabulary entries : 884
+  NOTE: nucc_specialty holds the vocabulary as a JSONB blob. A nesting-only port (BR-028) cannot reach into JSON -- that is computation -- so the keys are surfaced as COLUMNS in chain_nucc. Surfacing an existing key is mechanical; nothing is computed.
+
+  NUCC vocabulary -- nucc_specialty (884 rows)
+     column                                        populated    share
+     load_seq                                            884   100.0%
+     nucc_code                                           884   100.0%
+     raw                                                 884   100.0%
+
+  NUCC as columns -- chain_nucc (884 rows)
+     column                                        populated    share
+     nucc_code                                           884   100.0%
+     display_name                                        884   100.0%
+     grouping                                            884   100.0%
+     classification                                      884   100.0%
+     specialization                                      643    72.7%
+     definition                                          876    99.1%
+     section                                             884   100.0%
+     notes                                               601    68.0%
+     can_prescribe                                       884   100.0%
+     is_homeopathic                                      884   100.0%
+     is_disqualified                                     884   100.0%
+     is_supplemented                                     884   100.0%
+
+  REACH -- is the vocabulary complete for the providers in scope?
+     distinct primary NUCC codes held by providers : 726
+     of those, ABSENT from the vocabulary          : 0
+     providers with NO primary NUCC                : 0 of 137,040 (0.00%)
+
+======================================================================
+3. NPI -- the provider registry
+======================================================================
+
+  providers ported                : 137,173 rows, 137,173 distinct NPI
+  BILLING addresses (BR-010)      : 137,173 rows, 137,173 NPI -- 1:1, valid anchor
+  PRACTICE addresses (BR-011)     : 137,113 rows over 137,113 NPI, worst 356 on one NPI -- display only
+  licenses                        : 124,639 rows over 101,140 NPI
+  taxonomies                      : 169,882 rows over 137,040 NPI
+
+  COVERAGE OF THE CLAIM FILE -- measured, not assumed
+     distinct prescriber NPI in the claim file  : 18,759
+     matched a provider record (on NPI alone)   : 18,759 (100.00%)
+     carrying a billing address                 : 18,759 (100.00%)
+
+  NPI -- provider (137,173 rows)
+     column                                        populated    share
+     npi                                             137,173   100.0%
+     entity_type_code                                137,040    99.9%
+     entity_type_code_label                          137,040    99.9%
+     provider_last_name_legal_name                   102,853    75.0%
+     provider_first_name                             102,853    75.0%
+     provider_middle_name                             63,235    46.1%   (sparse)
+     provider_credential_text                         76,184    55.5%
+     provider_sex_code                               102,853    75.0%
+     is_sole_proprietor                              102,853    75.0%
+     primary_taxonomy_code                           137,040    99.9%
+     can_prescribe                                   137,173   100.0%
+     is_homeopathic                                  137,173   100.0%
+     is_primary_care                                 137,173   100.0%
+     urban                                           137,173   100.0%
+     is_active                                       137,173   100.0%
+     provider_enumeration_date                       137,040    99.9%
+     last_update_date                                137,040    99.9%
+     filled_in_test_state                            137,173   100.0%
+     office_in_test_state                            137,173   100.0%
+
+  NPI -- provider_business_address (137,173 rows)
+     column                                        populated    share
+     npi                                             137,173   100.0%
+     line1                                           137,040    99.9%
+     line2                                            17,528    12.8%   (sparse)
+     city                                            137,040    99.9%
+     state                                           137,173   100.0%
+     zip                                             137,040    99.9%
+     county_fips                                           0     0.0%   <-- EMPTY in these states
+
+  NPI -- provider_practice_address (168,811 rows)
+     column                                        populated    share
+     npi                                             168,811   100.0%
+     seq                                             168,811   100.0%
+     line1                                           168,811   100.0%
+     line2                                            20,562    12.2%   (sparse)
+     city                                            168,811   100.0%
+     state                                           168,811   100.0%
+     zip                                             168,811   100.0%
+     county_fips                                     168,598    99.9%
+     county_name                                     168,598    99.9%
+     county_source                                   168,598    99.9%
+     rucc                                            167,876    99.4%
+     urban                                           168,811   100.0%
+     latitude                                        168,811   100.0%
+     longitude                                       168,811   100.0%
+     geo_source                                      168,811   100.0%
+     geo_precision                                   168,811   100.0%
+
+  NPI -- provider_nucc (137,040 rows)
+     column                                        populated    share
+     npi                                             137,040   100.0%
+     nucc_codes                                      137,040   100.0%
+     primary_nucc                                    137,040   100.0%
+     primary_nucc_label                              137,040   100.0%
+     n_taxonomies                                    137,040   100.0%
+
+  NPI -- provider_license (124,639 rows)
+     column                                        populated    share
+     npi                                             124,639   100.0%
+     seq                                             124,639   100.0%
+     raw                                             124,639   100.0%
+
+  NPI -- provider_taxonomy (169,882 rows)
+     column                                        populated    share
+     npi                                             169,882   100.0%
+     seq                                             169,882   100.0%
+     code                                            169,882   100.0%
+     code_label                                      169,882   100.0%
+     reference_status                                169,882   100.0%
+     is_primary                                      169,882   100.0%
+
+======================================================================
+4. FIELDS THAT EXIST BUT ARE EMPTY IN DELAWARE AND ALABAMA
+======================================================================
+
+  These are the fields the port will omit for want of VALUES rather
+  than for want of EXISTENCE. The schema must be able to tell those
+  apart, and this is the list -- measured, not declared.
+
+  provider_business_address:
+     county_fips
+
+======================================================================
+5. THE DELIVERED COLLECTION -- what the port will carry
+======================================================================
+
+  delivered rows   : 16,242,836
+  providers        : 18,081
+  molecules        : 937
+  indications      : 2,549
+  ICD codes        : 1,853
+  ProviderMedicare documents at the approved grain (one per molecule per provider, BR-024): 469,164
+
+  delivered -- chain_delivered (16,242,836 rows)
+     column                                        populated    share
+     npi                                          16,242,836   100.0%
+     fill_state                                   16,242,836   100.0%
+     billing_state                                16,242,836   100.0%
+     state_differs                                16,242,836   100.0%
+     entity_type_code                             16,177,095    99.6%
+     entity_type_code_label                       16,177,095    99.6%
+     primary_nucc                                 16,177,095    99.6%
+     primary_nucc_label                           16,177,095    99.6%
+     molecule_id                                  16,242,836   100.0%
+     indication_id                                16,242,836   100.0%
+     indication_text                              16,242,836   100.0%
+     rung                                         16,242,836   100.0%
+     corroborated_by_trial                        16,242,836   100.0%
+     icd10_code                                   16,242,836   100.0%
+     icd10_key                                    16,242,836   100.0%
+     who_level                                    16,242,836   100.0%
+     is_billable                                  16,242,647   100.0%
+     route                                        16,242,836   100.0%
+     ccsr_category                                 7,051,567    43.4%   (sparse)
+     body_system                                   7,051,567    43.4%   (sparse)
+     asserts_unsupported_specificity              16,242,836   100.0%
+     molecule_claims_nonadditive                  16,242,836   100.0%
+     provenance                                   16,242,836   100.0%
+     confidence                                   16,242,836   100.0%
+
+written to C:\CHATHealthyLLC\DataExperiments\completeness_result.txt

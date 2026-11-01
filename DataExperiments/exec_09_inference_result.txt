@@ -1,0 +1,43 @@
+EXECUTION STEP 9 -- N4 + R5 via the benchmarked tool
+run at 2026-10-31 12:26:35
+model=gpt-5.6-luna  catalog=icd10_categories_top3levels.xlsx
+authority: EPIC-010-F-007-S-008 benchmark; Pass 3 = 97.7% after retest-on-drop
+
+molecules with indication prose to crosswalk: 1,143
+inference records prepared: 1,143
+catalog codes loaded: 12,014
+
+  pass 1: fired=1,143 returned=1,143  8336s
+
+=== RETEST-ON-DROP (test plan section 5, mandatory) ===
+  fired=1,143 returned=1,143 dropped=0 (0.0%)
+  total elapsed 8336s
+
+=== WHAT THE INFERENCE PRODUCED ===
+  records persisted=1,143 indications=4,178 codes=10,085
+  molecules=1,143 indications=2,482 distinct codes=1,619  L3=5,123 L4=4,962 indications with NO code=16
+
+=== HALLUCINATION CHECK -- codes outside the catalog ===
+  distinct codes returned=1,619   outside the catalog=1
+  offenders: J229
+
+=== COVERAGE, against the benchmark's 97.7% ===
+  molecules reaching at least one ICD code: 1,142 of 1,143 (99.9%)
+
+=== SAMPLE OUTPUT ===
+  lit:0 9nacl|li Treatment of postmenopausal osteop M81       L3 0.97  Osteoporosis without current patho
+  lit:0 9nacl|li Treatment of postmenopausal osteop M810      L4 0.95  Age-related osteoporosis w/o curre
+  lit:0 9nacl|li Prevention of postmenopausal osteo M81       L3 0.97  Osteoporosis without current patho
+  lit:0 9nacl|li Prevention of postmenopausal osteo M810      L4 0.95  Age-related osteoporosis w/o curre
+  lit:0 9nacl|li Osteoporosis in men                M81       L3 0.94  Osteoporosis without current patho
+  lit:0 9nacl|li Osteoporosis in men                M818      L4 0.84  Other osteoporosis without current
+  lit:0 9nacl|li Glucocorticoid-induced osteoporosi M81       L3 0.91  Osteoporosis without current patho
+  lit:0 9nacl|li Glucocorticoid-induced osteoporosi M818      L4 0.75  Other osteoporosis without current
+  lit:0 9nacl|li Paget disease of bone              M88       L3 0.98  Osteitis deformans [Paget's diseas
+  lit:0 9nacl|li Paget disease of bone              M889      L4 0.92  Osteitis deformans of unspecified 
+  lit:0 9nacl|li Hypercalcemia of malignancy        E83       L3 0.96  Disorders of mineral metabolism
+  lit:0 9nacl|li Hypercalcemia of malignancy        E835      L4 0.93  Disorders of calcium metabolism
+  lit:0 9nacl|li Multiple myeloma                   C90       L3 0.99  Multiple myeloma and malignant pla
+  lit:0 9nacl|li Multiple myeloma                   C900      L4 0.98  Multiple myeloma
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_09_inference_result.txt

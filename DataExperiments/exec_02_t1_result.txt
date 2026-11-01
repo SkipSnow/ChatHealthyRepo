@@ -1,0 +1,49 @@
+EXECUTION STEP 2 -- T1 cms_drug_resolution over Delaware + Alabama
+run at 2026-10-31 15:23:54
+
+vocabulary: precise names=47,143  has_form folds=3,684  single-ingredient prefix list=45,660
+fda_mol: labels=35,035 distinct match sets=2,139 distinct identity sets=2,395
+  (identity sets exceed match sets: that difference IS the formulation distinction the fold would have erased)
+trials bridge (artifact-free, both sides): unique=37,248 ambiguous=3,400
+
+DE+AL distinct pairs to resolve: 1,910
+T1 built: 1,910 rows
+
+=== STAGE DISTRIBUTION (both states, pair-grained) ===
+  stage                  provenance             pairs         claims   pairs%   claims%
+  9_residual             unresolved               212        664,060   11.10%     1.98%
+  S1_brand_exact         joined_coded_source    1,253     27,583,784   65.60%    82.25%
+  S2_brand_normalized    adopted_vocabulary       215      3,629,941   11.26%    10.82%
+  S3_ingredient_set      joined_coded_source      175      1,452,864    9.16%     4.33%
+  S4_prefix_extended     inference                  5        142,570    0.26%     0.43%
+  S5_trials_bridge       joined_coded_source       50         61,323    2.62%     0.18%
+
+=== RESOLUTION, WITH AND WITHOUT THE INFERRED STAGE ===
+  including S4 inference : pairs=88.90%  claims=98.02%
+  EXCLUDING S4 inference : pairs=88.64%  claims=97.59%
+  cost of excluding it   : pairs=0.26 pts  claims=0.43 pts
+
+=== DELAWARE vs ALABAMA, never averaged ===
+  state    pairs          claims       pairs%      claims%
+  AL       1,834      29,065,240       89.20%       98.05%
+  DE       1,283       4,469,302       90.49%       97.82%
+
+=== RESIDUAL BY REASON ===
+  cms_truncated              pairs=83    claims=364,266
+  vaccine_biologic           pairs=15    claims=160,770
+  not_a_drug                 pairs=73    claims=95,594
+  unknown_to_vocabularies    pairs=41    claims=43,430
+
+=== FORMULATION DISTINCTION PRESERVED (operator ruling) ===
+  distinct molecule_id (precise)=1,186   distinct match_set (folded)=1,115
+  71 pairs would have collapsed had identity used the folded set
+    Atorvastatin Calcium         Atorvastatin Calcium       identity=rx:83366           folded=rx:83367
+    Amlodipine Besylate          Amlodipine Besylate        identity=rx:104416          folded=rx:17767
+    Levothyroxine Sodium         Levothyroxine Sodium       identity=rx:40144           folded=rx:10582
+    Losartan Potassium           Losartan Potassium         identity=rx:203160          folded=rx:52175
+    Pantoprazole Sodium          Pantoprazole Sodium        identity=rx:253191          folded=rx:40790
+    Rosuvastatin Calcium         Rosuvastatin Calcium       identity=rx:323828          folded=rx:301542
+    Metoprolol Succinate         Metoprolol Succinate       identity=rx:221124          folded=rx:6918
+    Trazodone Hcl                Trazodone Hcl              identity=rx:82112           folded=rx:10737
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_02_t1_result.txt

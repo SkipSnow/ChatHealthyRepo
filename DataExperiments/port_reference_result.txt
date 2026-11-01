@@ -1,0 +1,6 @@
+PORT TO THE REFERENCE DATA TARGET
+run at 2026-10-30 21:03:32
+RULE 1 nesting only, zero invention (BR-028/BR-022/BR-030)
+RULE 2 the front-end serving database is NOT touched (Rule-065 st.9)
+RULE 3 getConnection with hardcoded literals (Rule-065 st.3/st.10)
+

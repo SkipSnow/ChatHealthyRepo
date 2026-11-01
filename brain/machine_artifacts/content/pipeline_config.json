@@ -447,7 +447,7 @@
         },
         "finding_types": {
           "schema_violation": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
@@ -457,27 +457,27 @@
             "max": null
           },
           "missing_entity_type_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "invalid_npi": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "invalid_entity_type_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "error_specialty_embedding_failed": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "unresolved_taxonomy_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
@@ -520,17 +520,17 @@
           },
           "molecule_without_indication": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           },
           "indication_without_icd10": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           },
           "drug_without_rxnorm_molecule": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           }
         }
@@ -875,7 +875,7 @@
         },
         "finding_types": {
           "schema_violation": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
@@ -885,27 +885,27 @@
             "max": null
           },
           "missing_entity_type_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "invalid_npi": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "invalid_entity_type_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "error_specialty_embedding_failed": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "unresolved_taxonomy_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
@@ -948,17 +948,17 @@
           },
           "molecule_without_indication": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           },
           "indication_without_icd10": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           },
           "drug_without_rxnorm_molecule": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           }
         }
@@ -1304,7 +1304,7 @@
         },
         "finding_types": {
           "schema_violation": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
@@ -1314,27 +1314,27 @@
             "max": null
           },
           "missing_entity_type_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "invalid_npi": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "invalid_entity_type_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "error_specialty_embedding_failed": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
           "unresolved_taxonomy_code": {
-            "severity": "fatal",
+            "severity": "error",
             "fatal_at_count": null,
             "max": null
           },
@@ -1377,17 +1377,17 @@
           },
           "molecule_without_indication": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           },
           "indication_without_icd10": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           },
           "drug_without_rxnorm_molecule": {
             "severity": "error",
-            "fatal_at_count": 5000,
+            "fatal_at_count": 1000000,
             "max": null
           }
         }

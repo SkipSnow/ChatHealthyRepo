@@ -1,0 +1,20 @@
+EXECUTION STEP 4 -- ICD-side vocabularies
+run at 2026-10-31 15:24:06
+
+icd10_cm archive: icd10_cm (2.2 MB)
+  parsed order file: 98,186 codes
+  icd10cm=98,186  billable(leaf)=74,719  category_header=23,467  3-char=16,496
+  the validity flag IS the L3/L4 mechanism: a header is a category, a billable code is a leaf
+
+ccsr=75,725 codes  distinct CCSR cat1=525  body systems=19
+
+coverage_icd10=467,228 rows
+coverage_hcpc=23,001 rows
+articles bridging procedure<->diagnosis: 1,025
+
+=== JOIN PROOF: does the dotted normalisation actually bridge them? ===
+  coverage codes matching icd10cm on the dotted form: 56,675 of 56,751 (99.9%)
+  CCSR codes matching icd10cm on the dotted form:     75,115 of 75,725 (99.2%)
+  (without normalisation this join returns nothing: coverage is dotted, the other two are dotless)
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_04_icd_result.txt

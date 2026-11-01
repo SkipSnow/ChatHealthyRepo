@@ -1,0 +1,85 @@
+EXECUTION STEP 13 -- keep the FDA cohort notes
+run at 2026-10-31 14:46:07
+additive: fda_label is NOT reloaded and the measured chain is untouched
+
+shards found: 42
+  shard  1/42  labels read=20,000  rows kept so far  5s
+  shard  2/42  labels read=34,077  rows kept so far  10s
+  shard  3/42  labels read=54,077  rows kept so far  16s
+  shard  4/42  labels read=74,077  rows kept so far  23s
+  shard  5/42  labels read=79,555  rows kept so far  24s
+  shard  6/42  labels read=81,329  rows kept so far  25s
+  shard  7/42  labels read=101,329  rows kept so far  31s
+  shard  8/42  labels read=121,329  rows kept so far  38s
+  shard  9/42  labels read=141,329  rows kept so far  43s
+  shard 10/42  labels read=161,329  rows kept so far  49s
+  shard 11/42  labels read=176,379  rows kept so far  55s
+  shard 12/42  labels read=196,379  rows kept so far  62s
+  shard 13/42  labels read=196,787  rows kept so far  62s
+  shard 14/42  labels read=199,690  rows kept so far  63s
+  shard 15/42  labels read=211,002  rows kept so far  67s
+  shard 16/42  labels read=231,002  rows kept so far  74s
+  shard 17/42  labels read=251,002  rows kept so far  80s
+  shard 18/42  labels read=264,455  rows kept so far  84s
+  shard 19/42  labels read=284,455  rows kept so far  90s
+  shard 20/42  labels read=304,455  rows kept so far  96s
+  shard 21/42  labels read=317,811  rows kept so far  101s
+  shard 22/42  labels read=325,263  rows kept so far  103s
+  shard 23/42  labels read=345,263  rows kept so far  109s
+  shard 24/42  labels read=365,263  rows kept so far  115s
+  shard 25/42  labels read=379,569  rows kept so far  120s
+  shard 26/42  labels read=388,255  rows kept so far  123s
+  shard 27/42  labels read=408,255  rows kept so far  129s
+  shard 28/42  labels read=411,152  rows kept so far  130s
+  shard 29/42  labels read=411,464  rows kept so far  130s
+  shard 30/42  labels read=431,464  rows kept so far  137s
+  shard 31/42  labels read=451,464  rows kept so far  143s
+  shard 32/42  labels read=471,464  rows kept so far  150s
+  shard 33/42  labels read=476,531  rows kept so far  152s
+  shard 34/42  labels read=496,531  rows kept so far  158s
+  shard 35/42  labels read=516,531  rows kept so far  165s
+  shard 36/42  labels read=536,531  rows kept so far  172s
+  shard 37/42  labels read=548,075  rows kept so far  175s
+  shard 38/42  labels read=568,075  rows kept so far  181s
+  shard 39/42  labels read=570,800  rows kept so far  182s
+  shard 40/42  labels read=578,437  rows kept so far  184s
+  shard 41/42  labels read=598,437  rows kept so far  191s
+  shard 42/42  labels read=601,337  rows kept so far  192s
+
+=== WHAT WAS KEPT ===
+  labels read from the shards : 601,337
+  rows with any cohort note   : 299,580  (128,395 distinct set_id)
+
+  field                                  labels     share
+  pediatric_use                         157,973     26.3%
+  geriatric_use                         134,167     22.3%
+  pregnancy                             158,560     26.4%
+  pregnancy_or_breast_feeding            92,687     15.4%
+  nursing_mothers                       109,463     18.2%
+  use_in_specific_populations            99,530     16.6%
+  labor_and_delivery                     41,191      6.8%
+  contraindications                     204,889     34.1%
+  boxed_warning                          75,840     12.6%
+  pediatric_use_table                     2,873      0.5%
+  geriatric_use_table                     1,138      0.2%
+  pregnancy_table                           331      0.1%
+  pregnancy_or_breast_feeding_table          40      0.0%
+  nursing_mothers_table                      58      0.0%
+  use_in_specific_populations_table       4,700      0.8%
+  labor_and_delivery_table                   17      0.0%
+  contraindications_table                   484      0.1%
+  boxed_warning_table                       292      0.0%
+
+=== REACH INTO THE CHAIN -- molecules that gain a cohort note ===
+  molecules with at least one cohort note: 1,143 of 1,144 (99.9%)
+  molecules with a PEDIATRIC_USE section : 1,112
+
+=== A SAMPLE, VERBATIM -- what we can quote to a user ===
+  a6794dfa-adbb-491b-9d48-f89a44e866c5
+     Pediatric Use Safety and effectiveness in pediatric patients have not been established.
+  ef3590cc-49ae-44f7-85a9-7c11f58d467e
+     Pediatric Use Long-term effects of amphetamines in children have not been well established. Amphetamines are not recommended for use in children under 3 years of age with Attention Deficit Hyperactivity Disorder described under INDICATIONS AND USAGE .
+  718756d7-0131-b173-6c45-5ee039b311b0
+     8.4 Pediatric Use The safety and effectiveness of buprenorphine and naloxone sublingual film have not been established in pediatric patients. This product is not appropriate for the treatment of neonatal abstinence syndrome in neonates, because it contains naloxone, an opioid ant
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_13_cohort_result.txt

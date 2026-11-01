@@ -1,0 +1,99 @@
+EXECUTION STEP 12 -- rebuild T3/T4/T5 on the corrected T2
+run at 2026-10-30 14:24:27
+yardstick: the EPIC-010-F-007-S-008 benchmark, 97.7% after retest-on-drop, hallucination 0.000
+
+=== GATE: is the inference complete? ===
+  molecules with prose to crosswalk : 937
+  molecules present in llm_crosswalk: 937
+  complete; proceeding
+
+=== T3 molecule -> indication, rebuilt with the N4 output ===
+  rung                   rows   molecules   indications
+  N1                   20,738         473         2,663
+  N2                    3,995         837           641
+  n4_prompt2            3,279         937         2,111
+  N3                       23          23            11
+
+=== T4 indication -> ICD, all five routes ===
+
+=== CONFIDENCE SCALE -- 1.0 deterministic, 0..0.9 inferred ===
+  highest confidence on an INFERRED fact      : 0.891
+  lowest confidence on a DETERMINISTIC fact   : 1.0
+  inferred rows above the 0.9 ceiling         : 0
+  deterministic rows not at exactly 1.0       : 0
+  scale holds
+  route  provenance                 rows   indications       codes
+  R5     inference                 6,689         2,105       1,525
+  R2_umls_crosswalk joined_coded_source       2,103         1,329       1,984
+  R1_coverage joined_coded_source         168           168         168
+  R3_vocabulary adopted_vocabulary           16            16          16
+
+=== HALLUCINATION -- codes outside the 12,014-code catalog ===
+  catalog codes loaded: 12,014
+  distinct R5 codes: 1,525   outside the catalog: 1
+  hallucination rate: 0.0007   (benchmark 0.000)
+  offenders: N349
+  R5 codes in NEITHER form of the loaded 98,186-code set: 1
+
+=== T5 the delivered set, on the billing-anchored T2 ===
+  rows=30,047,546 providers=18,108 molecules=968 indications=3,618 codes=3,076
+
+  by FILL state (where the prescription was filled):
+    AL   rows=25,226,862    providers=14,592   codes=3,046
+    DE   rows=4,820,684     providers=3,516    codes=2,840
+  providers whose BILLING state differs from the fill state: 
+    1,656 -- the two facts are carried separately and never substituted
+
+=== THE FAN-OUT OVER-COUNT, BEFORE AND AFTER ===
+  naive SUM over every T5 row        : 1,759,263,403
+  the actual claim total at its grain: 32,870,482
+  inflation factor                   : 53.5x
+  -> this is exactly why the column is named _nonadditive, and why every figure below distinct-counts back to (npi, molecule_id).
+
+  CORRECT per-code volume: the same two codes that used to tie
+    code        providers         claims
+    E11            14,619      8,376,225
+    E11.9           5,455      2,127,212
+    I50            13,184      9,542,476
+    I50.81         13,184      9,542,476
+    I50.9          13,184      9,542,476
+
+  top 12 codes by CORRECTED claim volume:
+    code       providers         claims  description
+    I10           12,838     10,478,747  Essential (primary) hypertension
+    I50.9         13,184      9,542,476  Heart failure, unspecified
+    I50           13,184      9,542,476  Heart failure
+    I50.810       13,184      9,542,476  Right heart failure, unspecified
+    I50.81        13,184      9,542,476  Right heart failure
+    I50.1         13,184      9,542,476  Left ventricular failure, unspecified
+    I21           10,769      9,022,510  Acute myocardial infarction
+    I22           10,769      9,022,510  Subsequent STEMI & NSTEMI mocard infrc
+    E11           14,619      8,376,225  Type 2 diabetes mellitus
+    I25.1         12,111      7,198,305  Atherosclerotic heart disease of native co
+    C50           15,210      5,867,484  Malignant neoplasm of breast
+    N18.9         12,615      5,627,249  Chronic kidney disease, unspecified
+
+=== CHAIN COVERAGE, claim-weighted ===
+  claims reaching at least one ICD code: 29,647,349 of 32,870,482 (90.19%)
+  molecules reaching at least one ICD code: 968 of 1,186 (81.62%)
+
+  R5's own contribution -- what the inference added that the deterministic routes did not reach:
+    deterministic routes only : 27,721,816 of 32,870,482 (84.34%)
+    with R5                   : 29,647,349 of 32,870,482 (90.19%)
+    R5 added                  : 5.86 claim points
+
+=== PROVENANCE at the delivered grain, weakest-on-path ===
+    provenance             delivered facts     share
+    joined_coded_source       13,406,966    68.10%
+    inference                  3,716,920    18.88%
+    adopted_vocabulary         2,562,544    13.02%
+  read this as: the share of the delivered product that rests on a coded join versus on the model. A chain that is mostly inference is a different product from one that is mostly joined.
+
+=== CANDIDATE GRAINS -- reported, not chosen (design 4.8) ===
+    provider x molecule                   474,585 rows
+    provider x indication               6,645,306 rows
+    provider x ICD code                 9,206,381 rows
+    provider x ICD level 3 only         3,785,129 rows
+    provider x CCSR category            2,060,160 rows
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_12_chain_result.txt

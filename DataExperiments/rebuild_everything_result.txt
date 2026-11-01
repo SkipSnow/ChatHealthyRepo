@@ -1,0 +1,134 @@
+REBUILD EVERYTHING FROM RAW SOURCE
+run at 2026-10-31 11:46:37
+sources: C:\DataExperiments\Sources (13 GB, cached from Azure)
+the only non-deterministic stage is the LLM inference, and it is
+labelled where it runs
+
+=== STAGE 0a -- fetch and verify every raw source ===
+   running fetch_all_sources.py ...
+   fetch_all_sources.py ok in 7s
+
+=== STAGE 0b -- wake the pipeline cluster ===
+   state: {'state': 'IDLE', 'tier': 'M40', 'paused': False}
+   already awake
+=== STAGE 0 -- DROP EVERYTHING ===
+   dropped 0 tables
+   public schema is empty -- nothing is inherited
+
+=== STAGE 1 -- raw sources ===
+   running pg_load_01_schema_partd.py ...
+   pg_load_01_schema_partd.py ok in 10s
+   partd                                   500,000 rows
+   running pg_load_03_partd_pairs.py ...
+   pg_load_03_partd_pairs.py ok in 72s
+   partd_pair                                3,159 rows
+   running exec_01_partd_de_al.py ...
+   exec_01_partd_de_al.py ok in 70s
+   partd                                   554,317 rows
+   partd_pair_state                          3,117 rows
+   running pg_load_02_fda.py ...
+   pg_load_02_fda.py ok in 227s
+   fda_label                               281,838 rows
+   fda_name                                335,496 rows
+   running pg_load_04_rxnorm.py ...
+   pg_load_04_rxnorm.py ok in 180s
+   rxnconso                              1,460,270 rows
+   rxnrel                                7,499,361 rows
+   building rx_ing (the salt-fold ingredient vocabulary)...
+   rx_ing                                   51,258 rows
+   running pg_load_05_clinicaltrials.py ...
+   pg_load_05_clinicaltrials.py ok in 151s
+   ct_intervention                       1,259,863 rows
+   running exec_05_load_trial_conditions.py ...
+   exec_05_load_trial_conditions.py ok in 230s
+   ct_study                                609,551 rows
+   ct_condition                          1,097,950 rows
+   ct_mesh                               4,415,229 rows
+   running exec_04_load_icd.py ...
+   exec_04_load_icd.py ok in 13s
+   icd10cm                                  98,186 rows
+   ccsr                                     75,725 rows
+   coverage_icd10                          467,228 rows
+
+=== STAGE 2 -- the provider registry, from the pipeline cluster ===
+   running exec_10_port_provider.py ...
+   exec_10_port_provider.py ok in 57s
+   provider                                137,173 rows
+   provider_business_address               137,173 rows
+   nucc_specialty                              884 rows
+   surfacing the NUCC vocabulary from JSONB to columns (BR-030)...
+   chain_nucc                                  884 rows
+   BR-010 billing anchor is 1:1 (137,173)
+
+=== STAGE 3 -- the molecule bridge (BR-016) ===
+   running exec_02_build_t1.py ...
+   exec_02_build_t1.py ok in 12s
+   cms_drug_resolution                       1,910 rows
+   fda_mol                                  35,035 rows
+   fda_brand_norm                           35,899 rows
+   deriving provider_nucc and provider_spine...
+   provider_nucc 1:1 on NPI (137,040)
+   provider_spine                          137,173 rows
+   provider_nucc                           137,040 rows
+   running exec_03_build_t2.py ...
+   exec_03_build_t2.py ok in 55s
+   provider_molecule                       513,777 rows
+
+=== STAGE 4+5 -- label match (3 rungs), indications, UMLS ===
+   the three label rungs are INSIDE exec_06 now, because
+   molecule_indication is built from mol_label and a later repair
+   would leave the indications standing on the defect.
+   running exec_06_t3_t4_t5.py ...
+   exec_06_t3_t4_t5.py ok in 170s
+   mol_label                                36,996 rows
+   molecule_indication                      26,076 rows
+   running exec_07_r2_umls_crosswalk.py ...
+   exec_07_r2_umls_crosswalk.py ok in 2s
+   mesh_icd_umls                             2,343 rows
+   running exec_08_t4_t5_final.py ...
+   exec_08_t4_t5_final.py ok in 1134s
+   indication_icd                            2,301 rows
+
+=== STAGE 6 -- THE LLM INFERENCE (NOT DETERMINISTIC) ===
+   gpt-5.6-luna through FDADrugEnrichmentTool, PROMPT 2 verbatim.
+   A re-run gives similar, not identical, confidences. Every other
+   stage in this file is deterministic.
+   running exec_09_n4_r5_inference.py ...
+   exec_09_n4_r5_inference.py ok in 8359s
+   llm_crosswalk                            10,101 rows
+   running exec_14_recover_molecules.py ...
+   exec_14_recover_molecules.py ok in 13s
+   molecules crosswalked: 1,143
+
+=== STAGE 7 -- cohort notes, deduped to one row per label ===
+   running exec_13_fda_cohort_notes.py ...
+   exec_13_fda_cohort_notes.py ok in 199s
+   fda_label_cohort                        128,395 rows
+   BR-029 one row per label, enforced by a unique index
+
+=== STAGE 8 -- the chain ===
+   running build_chain.py ...
+   build_chain.py ok in 685s
+   chain_provider_molecule                 520,032 rows
+   chain_indication                          9,411 rows
+   chain_code                                8,829 rows
+   chain_delivered                      15,492,190 rows
+
+=== STAGE 9 -- confidence at the molecule grain ===
+   running fix_confidence_grain.py ...
+
+====================================================================
+REBUILD FAILED: STAGE 9 -- fix_confidence_grain.py exited 1 after 348s
+Traceback (most recent call last):
+  File "C:\CHATHealthyLLC\DataExperiments\fix_confidence_grain.py", line 192, in <module>
+    main()
+  File "C:\CHATHealthyLLC\DataExperiments\fix_confidence_grain.py", line 176, in main
+    cur.execute("""SELECT fill_state, count(DISTINCT npi), count(DISTINCT molecule_id),
+psycopg2.errors.UndefinedColumn: column "fill_state" does not exist
+LINE 1: SELECT fill_state, count(DISTINCT npi), count(DISTINCT molec...
+               ^
+
+
+====================================================================
+   dropped 50 tables -- nothing partial survives.
+   no number from this run is valid. Start again from source.

@@ -1,0 +1,12 @@
+FETCH RAW SOURCES
+run at 2026-10-31 16:12:44
+destination: C:\DataExperiments\Sources
+requested: openfda_labels, rxnorm, rxnorm_rel
+
+=== Azure: stchpipelinedev/dev-pipeline-sources ===
+   64 blobs in the container
+   openfda_labels              42 blob(s)      5578 MB  ok
+   rxnorm                       2 blob(s)       163 MB  ok
+   rxnorm_rel                   1 blob(s)       533 MB  ok
+
+=== ClinicalTrials.gov skipped (not requested) ===

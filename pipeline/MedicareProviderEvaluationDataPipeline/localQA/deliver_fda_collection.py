@@ -261,11 +261,22 @@ def build_pseudo_target(cur, run_id):
         -- fda_rxcui is the FDA's own RxNorm assignment, which stands beside
         -- the identity set this build resolves independently.
         fda_ids AS (
+          -- FILTER on every one of these. A LEFT JOIN LATERAL unnest yields a
+          -- NULL row for a label that carries none of the field, and
+          -- array_agg KEEPS nulls -- so without the filter a label with no
+          -- rxcui publishes [null] instead of nothing, which asserts "we
+          -- looked and found nothing" (BR-022) and is also just wrong.
+          -- With the filter, a molecule with none of a field aggregates to
+          -- NULL and doc_of omits the key entirely.
           SELECT f.ident_set AS molecule_id,
-                 array_agg(DISTINCT u.v ORDER BY u.v) AS unii,
-                 array_agg(DISTINCT s.v ORDER BY s.v) AS substance_name,
-                 array_agg(DISTINCT x.v ORDER BY x.v) AS fda_rxcui,
-                 array_agg(DISTINCT pc.v ORDER BY pc.v) AS pharm_classes
+                 array_agg(DISTINCT u.v ORDER BY u.v)
+                   FILTER (WHERE u.v IS NOT NULL)  AS unii,
+                 array_agg(DISTINCT s.v ORDER BY s.v)
+                   FILTER (WHERE s.v IS NOT NULL)  AS substance_name,
+                 array_agg(DISTINCT x.v ORDER BY x.v)
+                   FILTER (WHERE x.v IS NOT NULL)  AS fda_rxcui,
+                 array_agg(DISTINCT pc.v ORDER BY pc.v)
+                   FILTER (WHERE pc.v IS NOT NULL) AS pharm_classes
           FROM fda_mol f
           JOIN fda_label l ON l.set_id = f.set_id
           LEFT JOIN LATERAL unnest(string_to_array(nullif(btrim(l.unii),''),
@@ -352,7 +363,9 @@ def build_pseudo_target(cur, run_id):
                v.code_dotted                             AS code,
                length(v.code_dotless)                    AS depth,
                'inference'::text                         AS crosswalk_provenance,
-               round(max(l.confidence) * 0.9, 4)         AS trust
+               -- cast before rounding: confidence is double precision and
+               -- Postgres round(value, places) is defined on numeric only
+               round((max(l.confidence) * 0.9)::numeric, 4)   AS trust
         FROM llm_crosswalk l
         JOIN icd10cm v
           ON v.code_dotless = upper(replace(btrim(l.icd10_code), '.', ''))
@@ -530,9 +543,24 @@ def main():
     validator = schema_validator()
     emit("   validating every document against %s" % SCHEMA_FILE)
 
+    # Held records land here. Production writes the finding to
+    # pipelineAdmin.discrepancyLog; this QA path has no run, so it keeps them
+    # beside the data under the same class name.
+    cur.execute("""
+        DROP TABLE IF EXISTS pt_fda_schema_violation CASCADE;
+        CREATE TABLE pt_fda_schema_violation (
+          molecule_id    text,
+          finding_class  text,
+          error_path     text,
+          error_message  text,
+          n_errors       int,
+          run_id         text,
+          found_at       timestamptz DEFAULT now());
+    """)
+
     cur.execute("SELECT * FROM pt_fda_molecule")
     pcols = [d[0] for d in cur.description]
-    batch, written = [], 0
+    batch, written, held = [], 0, []
     parents = {}
     for r in cur.fetchall():
         p = dict(zip(pcols, r))
@@ -601,52 +629,92 @@ def main():
                            "built_at": built_at,
                            "source_snapshot": snapshot,
                            "crosswalk_artifact": artifact}
-        # VALIDATE BEFORE WRITING. A document that does not satisfy the
-        # signed schema stops the delivery; it never reaches the collection.
-        # THE SIGNED SCHEMA IS THE REQUIREMENT, so the FIRST document that
-        # fails it abends the run. There is no tolerance to set: a document
-        # that does not comply is not deliverable, and a threshold for how
-        # many are acceptable would be a number nobody asked for.
+        # A schema violation is record-level: hold the record, publish the
+        # rest, keep the violation as a finding.
         errs = sorted(validator.iter_errors(_plain(d)),
                       key=lambda e: list(e.path))
         if errs:
-            for e in errs[:5]:
-                emit("   SCHEMA VIOLATION %s at %s: %s"
+            held.append({
+                "molecule_id": mid,
+                "errors": [{"path": "/".join(str(x) for x in e.path) or "(root)",
+                            "message": e.message[:300]} for e in errs[:5]],
+                "n_errors": len(errs)})
+            if len(held) <= MAX_REPORT:
+                e = errs[0]
+                emit("   HELD %s at %s: %s"
                      % (mid, "/".join(str(x) for x in e.path) or "(root)",
-                        e.message[:200]))
-            stop("document %s does not satisfy %s -- nothing further is "
-                 "written" % (mid, os.path.basename(SCHEMA_FILE)))
+                        e.message[:160]))
+            continue
 
         batch.append(d)
         if len(batch) >= BATCH:
             coll.insert_many(batch, ordered=False); written += len(batch); batch = []
     if batch:
         coll.insert_many(batch, ordered=False); written += len(batch)
+
+    # Persist the holds; a short collection must say which records and why.
+    for h in held:
+        for e in h["errors"]:
+            cur.execute("""INSERT INTO pt_fda_schema_violation
+                           (molecule_id, finding_class, error_path,
+                            error_message, n_errors, run_id)
+                           VALUES (%s,%s,%s,%s,%s,%s)""",
+                        (h["molecule_id"], "schema_violation", e["path"],
+                         e["message"], h["n_errors"], run_id))
     emit("   documents written: %s   (every one validated against %s)"
          % (f"{written:,}", os.path.basename(SCHEMA_FILE)))
+    if held:
+        emit("   HELD as schema_violation: %s molecule(s) -- not written, not "
+             "discarded, kept in pt_fda_schema_violation" % f"{len(held):,}")
+        if len(held) > MAX_REPORT:
+            emit("   (%s shown above; all %s are in the table)"
+                 % (MAX_REPORT, f"{len(held):,}"))
+    else:
+        emit("   held as schema_violation: none")
 
     # ---- RULE 3: exhaustive verification --------------------------------
     emit()
     emit("=== RULE 3 -- every document, every field. Not sampled. ===")
     m = coll.count_documents({})
-    emit("   documents  mongo=%s  pg=%s  %s"
-         % (f"{m:,}", f"{n_mol:,}", "IDENTICAL" if m == n_mol else "DIFFERENT"))
-    if m != n_mol:
-        stop("document count %d against %d molecules" % (m, n_mol))
+    # Mongo carries the molecules less the held ones.
+    expected = n_mol - len(held)
+    emit("   documents  mongo=%s  pg=%s  held=%s  expected=%s  %s"
+         % (f"{m:,}", f"{n_mol:,}", f"{len(held):,}", f"{expected:,}",
+            "RECONCILED" if m == expected else "DIFFERENT"))
+    if m != expected:
+        stop("document count %d against %d molecules less %d held"
+             % (m, n_mol, len(held)))
+
+    # Child counts exclude held molecules too, so the match stays exact.
+    held_ids = tuple(h["molecule_id"] for h in held)
+
+    def pg_count(sql, params=None):
+        cur.execute(sql, params or ())
+        return int(cur.fetchone()[0] or 0)
 
     agg = list(coll.aggregate([{"$unwind": "$indications"}, {"$count": "n"}]))
     mi = agg[0]["n"] if agg else 0
-    emit("   indications  mongo=%s  pg=%s  %s"
-         % (f"{mi:,}", f"{n_ind:,}", "IDENTICAL" if mi == n_ind else "DIFFERENT"))
-    if mi != n_ind:
-        stop("indication count %d against %d rows" % (mi, n_ind))
+    if held_ids:
+        pi = pg_count("""SELECT count(*) FROM (
+                           SELECT DISTINCT molecule_id, raw_text
+                           FROM pt_fda_indication
+                           WHERE molecule_id <> ALL(%s)) x""", (list(held_ids),))
+    else:
+        pi = n_ind
+    emit("   indications  mongo=%s  pg(excl. held)=%s  %s"
+         % (f"{mi:,}", f"{pi:,}", "RECONCILED" if mi == pi else "DIFFERENT"))
+    if mi != pi:
+        stop("indication count %d against %d rows" % (mi, pi))
 
     agg = list(coll.aggregate([{"$unwind": "$set_ids"}, {"$count": "n"}]))
     ms = agg[0]["n"] if agg else 0
-    cur.execute("SELECT sum(n_labels) FROM pt_fda_molecule")
-    ps = int(cur.fetchone()[0] or 0)
-    emit("   set_ids      mongo=%s  pg=%s  %s"
-         % (f"{ms:,}", f"{ps:,}", "IDENTICAL" if ms == ps else "DIFFERENT"))
+    if held_ids:
+        ps = pg_count("""SELECT sum(n_labels) FROM pt_fda_molecule
+                         WHERE molecule_id <> ALL(%s)""", (list(held_ids),))
+    else:
+        ps = pg_count("SELECT sum(n_labels) FROM pt_fda_molecule")
+    emit("   set_ids      mongo=%s  pg(excl. held)=%s  %s"
+         % (f"{ms:,}", f"{ps:,}", "RECONCILED" if ms == ps else "DIFFERENT"))
     if ms != ps:
         stop("set_id count %d against %d" % (ms, ps))
 
@@ -745,8 +813,10 @@ def main():
         if checked % 200 == 0:
             emit("      %s documents, %.0fs, %s discrepancies"
                  % (f"{checked:,}", time.time()-t0, f"{bad:,}"))
+    # A held molecule is absent on purpose; anything else absent is not.
+    held_set = {h["molecule_id"] for h in held}
     for mid in parents:
-        if mid not in seen:
+        if mid not in seen and mid not in held_set:
             bad += 1
             if shown < MAX_REPORT:
                 shown += 1; emit("      %s in pg, not in mongo" % mid)
@@ -823,6 +893,18 @@ def main():
     con.close(); client.close()
     emit()
     emit("written to " + OUT)
+
+    # Delivered, and non-zero, so a short collection cannot read as complete.
+    if held:
+        emit()
+        emit("EXIT NON-ZERO: %s molecule(s) were held as schema_violation. "
+             "The collection is delivered and short by that many; the held "
+             "records and their reasons are in pt_fda_schema_violation."
+             % f"{len(held):,}")
+        raise ChatHealthyException(
+            "runtime_error",
+            "%d record(s) held as schema_violation; collection delivered "
+            "incomplete" % len(held))
 
 
 main()

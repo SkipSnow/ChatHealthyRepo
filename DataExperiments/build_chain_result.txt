@@ -1,0 +1,63 @@
+MEDICARE DIAGNOSTIC CHAIN -- reference implementation
+run at 2026-10-31 14:49:51
+governed by Medicare_DiagnosticChain_Design_v1.docx
+every assertion below STOPS the build; none degrades to a warning
+
+=== STEP 1 -- the molecule bridge (BR-016) ===
+  pairs resolved        : 1,910
+  distinct molecules    : 1,186
+  pairs unresolved      : 212
+  claim rows in scope   : 33,534,542 claims
+
+=== STEP 2 -- provider x molecule on the billing anchor (BR-010..BR-014) ===
+  BR-010 billing anchor is 1:1 : 137,173 rows, 137,173 NPIs
+  rows=520,032 providers=18,759 molecules=1,186 claims=33,534,542
+  BR-012 providers whose billing state differs from fill state: 1,697
+  provider coverage of the claim file: 18,759 of 18,759 (100.00%)
+
+=== STEP 3 -- molecule x indication, approved origin only (BR-001, BR-002) ===
+  BR-001 every indication originates in an approved FDA label
+  rung                         provenance               rows     mols      inds    corrob
+  N2                           adopted_vocabulary      5,205    1,012       682     2,067
+  label_prose_read_by_model    inference               4,178    1,143     2,479     1,603
+  N3                           adopted_vocabulary         28       27        11        14
+
+=== STEP 4 -- indication x ICD code (BR-007..BR-009, BR-019, BR-023) ===
+  BR-019 excluded 495 rows across 483 codes -- a relatedness crosswalk may assert the category, never the child
+  BR-023 model codes REJECTED as unresolvable: 1
+  BR-009 who_level equals character depth on every row
+  BR-003/BR-004 scale holds: inferred max=0.891 deterministic min=1.0
+  BR-008 internal key is dotless on every row
+  BR-007 every published code beyond level 3 carries its decimal
+  BR-023 catalog=12,014   model codes=1,618   fabricated=0  (0.0000)
+  BR-019 no surviving row asserts unsupported specificity
+
+  route                             rows     codes  unsupported
+  fda_label_coded_by_model         8,579     1,618            0
+  nih_vocabulary_crosswalk           163       156            0
+  medicare_coverage_policy            73        73            0
+  icd_description_match               14        14            0
+
+=== STEP 5 -- the delivered set (BR-014, BR-018, BR-024) ===
+  rows=15,492,190 providers=18,326 molecules=1,142 indications=2,711 codes=1,683
+  BR-014 naive sum over delivered rows : 877,827,413
+         true total at its grain       : 32,870,482
+         inflation if summed naively   : 26.7x
+  BR-003/BR-004 the scale survives to the delivered grain
+
+=== COVERAGE, claim-weighted ===
+  claims reaching at least one ICD code: 32,800,572 of 33,534,542 (97.81%)
+
+=== PROVENANCE at the delivered grain, weakest-on-path (BR-018) ===
+  inference                  5,137,985    79.13%
+  adopted_vocabulary         1,355,207    20.87%
+
+=== BR-019, the outstanding ruling, measured both ways ===
+  coverage as built (unsupported specificity MARKED)  : 97.81%
+  coverage if unsupported specificity were DROPPED    : 97.81%
+  cost of the stricter reading: 0.00 claim points
+  rows so marked: 0 across 0 codes
+
+  build completed in 683s
+
+written to C:\CHATHealthyLLC\DataExperiments\build_chain_result.txt

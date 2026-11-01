@@ -1,0 +1,71 @@
+EXPERIMENT 4 -- ingredient-SET matching with RxNorm salt folding
+run at 2026-10-30 05:31:21
+
+rx_ing: rows=51,258 distinct_names=48,831 distinct_ingredients=37,781
+rx lookup keys after cleaning: 47,143
+cms_set: pairs=3,159 multi_ingredient=756 fully_resolved_to_rxnorm=2,494
+fda_set: labels=35,035 distinct_ingredient_sets=2,142
+SET-EQUALITY matches: pairs=2,251 claims=1,410,213,781
+
+=== SET MATCHING AGAINST THE BASELINE ===
+
+What set matching recovers from the baseline RESIDUAL
+  recovered      pairs=56     claims=29,112,454    
+  still residual pairs=503    claims=41,196,883    
+
+COMBINED resolution -- baseline OR set match
+  OVERALL   pairs=84.08%   claims=97.22%
+  DEV        pairs=86.60%   claims=97.22%
+  HOLDOUT    pairs=79.54%   claims=81.27%
+
+PRECISION -- set matching is exact by construction; how many labels?
+  1 label=344   2-10=559   >10=1,348   max=392
+  (many labels here is EXPECTED and correct: the same ingredient set
+   is marketed by many manufacturers. What matters is that every one
+   of them has the SAME ingredient set, which equality guarantees.)
+
+KLOR-CON CHECK -- the containment bug
+  brand            generic                  parsed ingredient set          labels
+  Klor-Con         Potassium Chloride       potassium chloride                195
+  Klor-Con-Ef      Potassium Bicarbonate/Ci potassium bicarbonate + cit         0
+  Klor-Con 10      Potassium Chloride       potassium chloride                195
+  Klor-Con 8       Potassium Chloride       potassium chloride                195
+  Klor-Con M10     Potassium Chloride       potassium chloride                195
+  Klor-Con M15     Potassium Chloride       potassium chloride                195
+  Klor-Con M20     Potassium Chloride       potassium chloride                195
+  baseline matched these to 280 labels spanning 145 ingredients.
+
+STILL RESIDUAL -- top 30 by claims after set matching
+  Brnd_Name                      Gnrc_Name                         claims parsed                      
+  Amoxicillin-Clavulanate Potass Amoxicillin/Potassium Clav     5,804,015 amoxicillin + potassium clav
+  Shingrix                       Varicella-Zoster Ge/As01b/Pf   3,710,214 varicella + zoster ge + as01
+  Nitrofurantoin Mono-Macro      Nitrofurantoin Monohyd/M-Cry   2,999,261 nitrofurantoin monohyd + cry
+  Arexvy                         Rsvpref3 Antigen/As01e/Pf      2,698,120 rsvpref3 antigen + as01e    
+  Triamterene-Hydrochlorothiazid Triamterene/Hydrochlorothiaz   2,214,275 triamterene + hydrochlorothi
+  Fluticasone-Salmeterol         Fluticasone Propion/Salmeter   1,991,497 fluticasone propion + salmet
+  Abrysvo                        Rsv Vacc, Pref A And Pref B/   1,501,907 rsv vacc pref a + pref b    
+  Basaglar Kwikpen U-100         Insulin Glargine,hum.Rec.Anl   1,303,212 insulin glargine hum rec anl
+  Boostrix Tdap                  Diphth,pertuss(Acell),tet Va   1,297,505 diphth pertuss acell tet vac
+  Nano 2nd Gen Pen Needle        Pen Needle, Diabetic           1,228,077 needle diabetic             
+  Clotrimazole-Betamethasone     Clotrimazole/Betamethasone D   1,206,036 clotrimazole + betamethasone
+  Breztri Aerosphere             Budesonide/Glycopyr/Formoter   1,165,471 budesonide + glycopyr + form
+  Neomycin-Polymyxin-Dexameth    Neomycin/Polymyxin B/Dexamet     928,759 neomycin + polymyxin b + dex
+  Sod Sulf-Potass Sulf-Mag Sulf  Sodium, Potassium,mag Sulfat     841,837 sodium potassium mag sulfate
+  Gavilyte-G                     Peg3350/Sod Sulf,bicarb,cl/K     643,346 peg3350 + sod sulf bicarb cl
+  Omega-3 Acid Ethyl Esters      Omega-3 Acid Ethyl Esters        612,009 omega + 3 acid ethyl esters 
+  Toujeo Solostar                Insulin Glargine,hum.Rec.Anl     500,102 insulin glargine hum rec anl
+  Butalbital-Acetaminophen-Caffe Butalb/Acetaminophen/Caffein     499,540 butalb + acetaminophen + caf
+  Ultra-Fine Mini Pen Needle     Pen Needle, Diabetic             469,358 needle diabetic             
+  Alcohol Prep Pads              Alcohol Antiseptic Pads          424,118 alcohol antiseptic pads     
+  Ultra-Fine Short Pen Needle    Pen Needle, Diabetic             408,332 needle diabetic             
+  Gavilyte-C                     Peg3350/Sod Sulf,bicarb,cl/K     333,760 peg3350 + sod sulf bicarb cl
+  Toujeo Max Solostar            Insulin Glargine,hum.Rec.Anl     331,369 insulin glargine hum rec anl
+  Kerendia                       Finerenone                       329,040 finerenone                  
+  Peg 3350-Electrolyte           Sodium Chloride/Nahco3/Kcl/P     316,621 sodium chloride + nahco3 + k
+  Ultra-Fine Nano Pen Needle     Pen Needle, Diabetic             266,368 needle diabetic             
+  Autoshield Duo Pen Needle      Pen Needle,dual Safety,diabe     260,190 needle dual safety diabetc  
+  Twinrix                        Hepatitis A And B Vaccine/Pf     259,716 hepatitis a + b vaccine     
+  Ubrelvy                        Ubrogepant                       238,556 ubrogepant                  
+  Fiasp Flextouch                Insulin Aspart (Niacinamide)     230,995 insulin aspart niacinamide  
+
+written to C:\CHATHealthyLLC\DataExperiments\exp_04_result.txt

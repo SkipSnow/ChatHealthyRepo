@@ -1,0 +1,24 @@
+EXECUTION STEP 6 -- T3, T4, T5 for Delaware and Alabama
+run at 2026-10-31 15:28:45
+
+=== T3 molecule_indication ===
+  rung folded_ingredient        35,390 links   1,014 molecules
+  rung brand_exact               1,009 links     117 molecules
+  rung device_suffix               597 links      13 molecules
+  molecules with at least one FDA label: 1,144 (36,996 molecule-label links)
+  molecules with at least one trial    : 483 (52,435 molecule-trial links)
+  N1 trial MeSH      rows=20,738 molecules=473 indications=2,663
+  MeSH vocabulary for N2: 5,974 terms (>= 7 chars)
+  ICD vocabulary for N3: 97,426 descriptions
+  molecules with label prose: 1,144
+    scanned 250/1,144 molecules  9s
+    scanned 500/1,144 molecules  22s
+    scanned 750/1,144 molecules  37s
+    scanned 1,000/1,144 molecules  51s
+
+  T3 by rung:
+    rung  provenance            source      authority              rows  molecules  indications
+    N1    joined_coded_source   trial       investigational      20,738        473        2,663
+    N2    adopted_vocabulary    fda_label   approved              5,205      1,012          682
+    N3    adopted_vocabulary    fda_label   approved                 28         27           11
+    N5    unresolved            fda_label   approved                105        105            0

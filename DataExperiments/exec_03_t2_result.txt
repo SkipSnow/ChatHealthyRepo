@@ -1,0 +1,70 @@
+EXECUTION STEP 3 -- T2 provider_molecule, Delaware and Alabama
+run at 2026-10-31 12:03:53
+
+=== T2 SHAPE, BY STATE ===
+  state     T2 rows   providers   molecules          claims               cost
+  AL        433,044      14,829       1,155      28,498,781     $4,180,375,248
+  DE         80,733       3,575         870       4,371,701       $704,210,775
+  total T2 rows: 513,777
+
+=== THE COLLAPSE: several CMS names become one molecule ===
+  T2 rows built from 1 CMS pair=493,437   2-4 pairs=20,230   >4 pairs=110   max=9
+  widest collapses:
+    AL 1942423108  molecule=rx:203211        from 9 CMS names, 369 claims
+    AL 1487625661  molecule=rx:203211        from 9 CMS names, 328 claims
+    AL 1285681957  molecule=rx:203211        from 8 CMS names, 278 claims
+    AL 1477119659  molecule=rx:203211        from 8 CMS names, 202 claims
+    AL 1508074105  molecule=rx:203211        from 8 CMS names, 430 claims
+
+=== PER-PROVIDER COVERAGE -- no provider hidden in an average ===
+  state    providers    mean cov%        >=99%         <90%         <60%
+  AL          15,158       96.09%       10,926          931          437
+  DE           3,601       97.57%        2,826          198           54
+
+  worst-covered providers carrying real volume (>=1,000 claims):
+    state  npi                claims     unresolved     cov%
+    AL     1841253705        104,195         93,274    10.5%
+    DE     1265421028          8,608          6,663    22.6%
+    DE     1578505863         30,439         20,873    31.4%
+    AL     1871765552          2,959          1,953    34.0%
+    DE     1730137019          5,654          2,861    49.4%
+    AL     1255344347          1,362            686    49.6%
+    AL     1093700569          1,540            748    51.4%
+    AL     1992713408          2,209            979    55.7%
+    AL     1477654010          1,301            533    59.0%
+    AL     1720070659          1,966            651    66.9%
+
+=== TOP MOLECULES BY CLAIMS, EACH STATE SEPARATELY ===
+  DE:
+    molecule_id         providers        claims             cost a CMS name for it
+    rx:40144                  904       984,739      $16,275,633 Levothyroxine Sodium
+    rx:83366                1,276       513,676       $7,057,432 Atorvastatin Calcium
+    rx:104416               1,196       499,359       $3,985,012 Amlodipine Besylate
+    rx:25480                1,329       440,240       $7,772,196 Gabapentin
+    rx:235743                 839       378,516       $3,824,321 Metformin Hcl
+    rx:221124                 955       323,763       $5,418,972 Metoprolol Succinate
+    rx:323828                 866       253,066       $5,764,780 Rosuvastatin Calcium
+    rx:29046                1,035       222,546       $1,767,690 Lisinopril
+  AL:
+    molecule_id         providers        claims             cost a CMS name for it
+    rx:40144                3,983     5,320,140      $88,253,495 Levothyroxine Sodium
+    rx:25480                3,899     2,809,428      $37,552,873 Gabapentin
+    rx:104416               4,961     2,712,153      $18,298,410 Amlodipine Besylate
+    rx:8591                 3,804     2,581,334      $49,476,530 Potassium Chloride
+    rx:83366                5,063     2,131,202      $26,601,626 Atorvastatin Calcium
+    rx:235743               3,427     2,073,352      $18,587,686 Metformin Hcl
+    rx:161|rx:82063         2,264     1,523,840      $44,370,927 Oxycodone Hcl/Acetaminophe
+    rx:221124               3,883     1,431,996      $22,637,989 Metoprolol Succinate
+
+=== SEPARATION PROOFS ===
+  providers appearing in BOTH states (should be 0 if NPI is state-bound): 0
+  molecules prescribed in both states: 839 of 1,186
+  molecules kept distinct ONLY because identity is unfolded: 503
+  highest-volume among those:
+    rx:40144         Levothyroxine Sodium           6,304,879 claims
+    rx:104416        Amlodipine Besylate            3,211,512 claims
+    rx:83366         Atorvastatin Calcium           2,644,878 claims
+    rx:235743        Metformin Hcl                  2,451,868 claims
+    rx:221124        Metoprolol Succinate           1,755,759 claims
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_03_t2_result.txt

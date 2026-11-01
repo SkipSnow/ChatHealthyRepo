@@ -163,26 +163,15 @@ def test_the_grader_refuses_a_class_the_config_does_not_name():
         grade(block, "a_class_no_pipeline_declares")
 
 
-def test_schema_violation_is_fatal_in_every_environment():
-    """Operator ruling 2026-10-28. A record the store's validator refuses
-    means the code and the contract disagree, which is a defect rather than
-    bad data, so it aborts on the first occurrence."""
+def test_no_finding_class_is_graded_fatal_in_any_environment():
+    """Operator ruling 2026-11-01, superseding 2026-10-28. A record-level
+    problem is never a fatal error; a run dies from volume crossing
+    fatal_at_count. No ceiling VALUE is asserted -- that is a knob the
+    operator retunes."""
     for env, entry in _envs(_config()):
-        cls = entry["discrepancy_report"]["finding_types"]["schema_violation"]
-        assert cls["severity"] == "fatal", f"{env} grades it {cls['severity']}"
-
-
-@pytest.mark.parametrize("name", [
-    "drug_without_rxnorm_molecule",
-    "molecule_without_indication",
-    "indication_without_icd10",
-])
-def test_the_three_medicare_classes_escalate_at_five_thousand(name):
-    """Operator ruling 2026-10-28."""
-    for env, entry in _envs(_config()):
-        cls = entry["discrepancy_report"]["finding_types"][name]
-        assert cls["fatal_at_count"] == 5000, (
-            f"{env}/{name} escalates at {cls['fatal_at_count']}")
+        for name, cls in entry["discrepancy_report"]["finding_types"].items():
+            assert cls["severity"] != "fatal", (
+                f"{env}/{name} is graded fatal; use fatal_at_count instead.")
 
 
 def test_every_class_the_medicare_code_emits_is_declared():

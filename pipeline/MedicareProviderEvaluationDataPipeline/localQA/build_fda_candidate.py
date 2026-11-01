@@ -32,7 +32,10 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _log = ChatHealthyLoggingService()
 
+# The loaders live in code/ and the port lives here in localQA/, so the driver
+# shells out to two directories and every step says which one it means.
 HERE = r"C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\code"
+QA_HERE = r"C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\localQA"
 PY = r"C:\CHATHealthyLLC\.venv\Scripts\python.exe"
 PW_FILE = r"C:\Users\skips\postgres_superuser_password.txt"
 OUT = r"C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\localQA\build_fda_candidate_result.txt"
@@ -114,8 +117,14 @@ def main():
     # icd10_cm is here because the delivered codes must be WHO's dotted form
     # and must exist. The vocabulary supplies the dotted spelling and the join
     # to it is what removes a code the model invented (BR-007/BR-008/BR-023).
+    #
+    # ccsr and the two medicare_coverage sets are here for one reason: the ICD
+    # loader is shared and loads all four. This collection reads only icd10cm.
+    # Fetching roughly 100 MB it does not use is cheaper and safer than
+    # forking a committed loader so the FDA path can skip three of its tables.
     run_step("0", "fetch_all_sources.py", 43200,
-             "openfda_labels", "rxnorm", "rxnorm_rel", "icd10_cm")
+             "openfda_labels", "rxnorm", "rxnorm_rel", "icd10_cm",
+             "ccsr", "medicare_coverage_icd10", "medicare_coverage_hcpc")
 
     emit()
     emit("=== 1 empty the schema ===")

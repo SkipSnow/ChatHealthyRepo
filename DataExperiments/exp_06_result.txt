@@ -1,0 +1,59 @@
+EXPERIMENT 6 -- ClinicalTrials.gov as a molecule bridge
+run at 2026-10-30 07:11:00
+
+trials loaded: intervention rows=1,259,863 studies=547,650
+alias edges=224,688 distinct_named_interventions=118,626
+bridge edges=53,878 distinct source names=43,813 distinct ingredients=5,846
+names bridging to exactly one ingredient=40,097   ambiguous (rejected)=3,716
+
+=== DOES IT RECOVER THE RESIDUAL? ===
+unresolved before the bridge: 487 pairs / 34,331,217 claims
+RECOVERED BY THE BRIDGE:      76 pairs / 3,136,032 claims
+  that is 15.6% of the residual pairs and 9.1% of residual claims
+
+TOTAL WITH THE BRIDGE:  pairs=86.99%   claims=97.89%
+  (without it: pairs=84.58%   claims=97.68%)
+  DEV       pairs=89.56%   claims=97.89%
+  HOLDOUT   pairs=82.37%   claims=84.27%
+
+WHAT IT RECOVERED -- top 30 by claims
+  Brnd_Name                        Gnrc_Name                           claims bridged ingredient        
+  Abrysvo                          Rsv Vacc, Pref A And Pref B/Pf   1,501,907 RSV VACCINE               
+  Kerendia                         Finerenone                         329,040 FINERENONE                
+  Ubrelvy                          Ubrogepant                         238,556 UBROGEPANT                
+  Humulin N                        Insulin Nph Human Isophane         198,573 INSULIN                   
+  Austedo                          Deutetrabenazine                   121,191 DEUTETRABENAZINE          
+  Brukinsa                         Zanubrutinib                       110,650 ZANUBRUTINIB              
+  Spravato                         Esketamine Hcl                      80,669 ESKETAMINE                
+  Tagrisso                         Osimertinib Mesylate                79,546 OSIMERTINIB               
+  Nubeqa                           Darolutamide                        64,907 DAROLUTAMIDE              
+  Verzenio                         Abemaciclib                         53,775 ABEMACICLIB               
+  Neupro                           Rotigotine                          50,058 ROTIGOTINE                
+  Sps                              Sodium Polystyrene Sulfon/Sorb      41,371 SODIUM POLYSTYRENE SULFONA
+  Havrix                           Hepatitis A Virus Vaccine/Pf        40,322 HEPATITIS A               
+  Camzyos                          Mavacamten                          31,927 MAVACAMTEN                
+  Novolin N                        Insulin Nph Human Isophane          29,224 INSULIN                   
+  Hizentra                         Immun Glob G(Igg)/Pro/Iga 0-50      21,153 IMMUNE GLOBULIN           
+  Lenvima                          Lenvatinib Mesylate                 18,625 LENVATINIB                
+  Prolastin C                      Alpha-1-Proteinase Inhibitor        16,517 ALFA1 ANTITRYPSIN         
+  Ocaliva                          Obeticholic Acid                    10,535 OBETICHOLIC ACID          
+  Winrevair                        Sotatercept-Csrk                     9,116 SOTATERCEPT               
+  Dextrose In Water                Dextrose 5 % In Water                8,392 PLACEBO                   
+  Darzalex Faspro                  Daratumumab-Hyaluronidase-Fihj       6,205 DARATUMUMAB               
+  Cuvitru                          Immun Glob G(Igg)/Gly/Iga Ov50       5,261 IMMUNE GLOBULIN           
+  Evrysdi                          Risdiplam                            4,965 RISDIPLAM                 
+  Vaqta                            Hepatitis A Virus Vaccine/Pf         4,623 HEPATITIS A               
+  Glassia                          Alpha-1-Proteinase Inhibitor         4,342 ALFA1 ANTITRYPSIN         
+  Scemblix                         Asciminib Hydrochloride              3,987 ASCIMINIB                 
+  Takhzyro                         Lanadelumab-Flyo                     3,718 LANADELUMAB               
+  Welireg                          Belzutifan                           3,590 BELZUTIFAN                
+  Xadago                           Safinamide Mesylate                  3,036 SAFINAMIDE                
+
+SPOT CHECK -- the brands that motivated this
+  KERENDIA             trial rows=11     bridge hits=1 [('FINERENONE', '2562811')]
+  UBRELVY              trial rows=8      bridge hits=1 [('UBROGEPANT', '2268216')]
+  SHINGREX             trial rows=0      bridge hits=0 
+  SHINGRIX             trial rows=39     bridge hits=0 
+  BREZTRI AEROSPHERE   trial rows=2      bridge hits=0 
+
+written to C:\CHATHealthyLLC\DataExperiments\exp_06_result.txt

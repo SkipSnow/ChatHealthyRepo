@@ -1,0 +1,33 @@
+REBUILD FOR THE FDA CANDIDATE, FROM RAW SOURCE
+run at 2026-10-31 15:35:25
+deliverable: QA_fdaProductToDiagnosisResolution_v_1
+only the five tables it reads are built; chain_* is not on this path
+
+=== 0a fetch and verify every raw source ===
+   running fetch_all_sources.py ...
+   fetch_all_sources.py ok in 7s
+
+=== 0 DROP EVERYTHING ===
+   dropped 0 tables
+   schema empty -- nothing inherited
+
+=== 1 Part D (DE + AL complete) ===
+   running pg_load_01_schema_partd.py ...
+   pg_load_01_schema_partd.py ok in 10s
+   partd                               500,000 rows
+   running pg_load_03_partd_pairs.py ...
+   pg_load_03_partd_pairs.py ok in 68s
+   partd_pair                            3,159 rows
+   running exec_01_partd_de_al.py ...
+   exec_01_partd_de_al.py ok in 66s
+   partd                               554,317 rows
+   partd_pair_state                      3,117 rows
+
+=== 2 openFDA labels ===
+   running pg_load_02_fda.py ...
+   pg_load_02_fda.py ok in 224s
+   fda_label                           281,838 rows
+   fda_name                            335,496 rows
+
+=== 3 RxNorm + the salt-fold ingredient vocabulary ===
+   running pg_load_04_rxnorm.py ...

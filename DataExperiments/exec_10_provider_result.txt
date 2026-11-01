@@ -1,0 +1,70 @@
+EXECUTION STEP 10 -- Provider_v_5 -> relational, DE+AL providers
+run at 2026-10-30 11:11:40
+
+NPIs to fetch: 18,759
+created 5 provider tables
+  fetched 2,000/18,759 NPIs, matched 2,000  4s
+  fetched 4,000/18,759 NPIs, matched 4,000  6s
+  fetched 6,000/18,759 NPIs, matched 6,000  8s
+  fetched 8,000/18,759 NPIs, matched 8,000  10s
+  fetched 10,000/18,759 NPIs, matched 10,000  12s
+  fetched 12,000/18,759 NPIs, matched 12,000  14s
+  fetched 14,000/18,759 NPIs, matched 14,000  15s
+  fetched 16,000/18,759 NPIs, matched 16,000  17s
+  fetched 18,000/18,759 NPIs, matched 18,000  19s
+  fetched 18,759/18,759 NPIs, matched 18,759  19s
+indexed
+SpecialtyMetaData_v_5 fields excluded as embeddings: embedding, embedding_generated_at, embedding_model
+nucc_specialty=884 rows (embeddings excluded)
+
+=== PORT RESULT ===
+  provider                         18,759
+  provider_taxonomy                24,116
+  provider_practice_address        25,293
+  provider_business_address        18,759
+  provider_license                 23,020
+  nucc_specialty                      884
+
+  NPIs requested=18,759 matched in Provider_v_5=18,759 missing=0
+
+=== THE STATE SWAP -- CMS claim state vs the firm's practice state ===
+  claim    providers     no firm addr     agrees   DISAGREES
+  AL          15,158               56     14,943         159
+  DE           3,601                4      3,537          60
+
+  examples where they disagree:
+    1003127101  claim=DE  firm practice states=['PA']
+    1003255993  claim=AL  firm practice states=['NY']
+    1003493677  claim=DE  firm practice states=['CT']
+    1003519117  claim=DE  firm practice states=['NY']
+    1013303171  claim=AL  firm practice states=['FL']
+    1023697554  claim=AL  firm practice states=['GA']
+    1023713500  claim=AL  firm practice states=['PA']
+    1023755345  claim=DE  firm practice states=['PA']
+
+=== NUCC SPECIALTY NOW AVAILABLE (was absent from T2) ===
+  providers with a taxonomy=18,690 rows=24,116 distinct NUCC codes=311
+    363LF0000X   Family Nurse Practitioner                    2,864 providers
+    207Q00000X   Family Medicine Physician                    1,991 providers
+    207R00000X   Internal Medicine Physician                  1,962 providers
+    390200000X   Student in an Organized Health Care Educatio 1,507 providers
+    363L00000X   Nurse Practitioner                           1,201 providers
+    1223G0001X   General Practice Dentistry                   977 providers
+    363A00000X   Physician Assistant                          858 providers
+    207P00000X   Emergency Medicine Physician                 670 providers
+    122300000X   Dentist                                      622 providers
+    152W00000X   Optometrist                                  602 providers
+
+=== CLAIM-SPECIALTY TEXT vs NUCC -- why Prscrbr_Type is not the specialty ===
+  providers with both a claim specialty text and a NUCC code: 18,690
+  Prscrbr_Type (claim text)    primary NUCC label                       providers
+  Nurse Practitioner           Women's Health Nurse Practitioner        5,002
+  Family Practice              Student in an Organized Health Care Educ 1,790
+  Internal Medicine            Surgery Physician                        1,703
+  Dentist                      Public Health Dentistry                  1,637
+  Physician Assistant          Surgical Physician Assistant             1,090
+  Optometry                    Vision Therapy Optometrist               608
+  Emergency Medicine           Surgery Physician                        560
+  Student in an Organized Heal Urology Physician                        530
+
+written to C:\CHATHealthyLLC\DataExperiments\exec_10_provider_result.txt

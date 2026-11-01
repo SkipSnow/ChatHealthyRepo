@@ -1,0 +1,23 @@
+FIX THE CONFIDENCE GRAIN, THEN REPOPULATE ALL OF DE AND AL
+run at 2026-10-31 15:01:18
+
+chain_delivered before: 15,492,190 rows
+
+=== building the molecule-aware confidence source ===
+   rows (one per molecule+indication+code): 10,083
+   NOTE: max() collapses the case where ONE molecule's own response
+         repeated a pair. It never mixes molecules, because
+         molecule_id is in the key. The unique index proves it.
+
+=== rebuilding chain_delivered ===
+   rows after: 7,547,257
+
+=== THE LEAK IS GONE -- asserted, not hoped ===
+   (npi, molecule, indication, code) appearing more than once: 0
+   BR-004 inferred above 0.9 : 0   BR-003 deterministic not 1.0 : 0
+   inferred max=0.891   deterministic min=1.0
+
+=== rebuilding the pseudo-target from the corrected chain ===
+   pt_providermedicare_indication: 7,547,257 rows
+
+=== ALL OF DE AND AL IS STILL PRESENT -- nothing was narrowed ===
