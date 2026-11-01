@@ -156,8 +156,8 @@
                   "properties": {
                     "code": {
                       "type": "string",
-                      "pattern": "^[A-TV-Z][0-9][0-9A-Z]$",
-                      "description": "A three-character WHO ICD-10 category. Three characters carry no dot. Depth is WHO character depth and is NEVER billability (BR-009); the two correlate in the data and are not the same thing, and conflating them mislabelled 466 codes. Validated against the published ICD-10-CM set -- a code the model produced that does not exist is REMOVED, not reported (BR-023)."
+                      "pattern": "^[A-Z][0-9][0-9A-Z]$",
+                      "description": "A three-character WHO ICD-10 category: a letter, a digit, then a digit or letter, and no dot at this depth.\n\nEVERY LETTER A-Z IS VALID, INCLUDING U. WHO reserves the U block for provisional assignment of diseases of uncertain aetiology, and it then used it: U07.1 is COVID-19, U07.0 is vaping-related disorder, U09.9 is post-COVID-19 condition. All three are billable in ICD-10-CM. A pattern that excludes U excludes COVID-19, so the letter class must not be narrowed on the theory that U is only for research.\n\nDepth is WHO CHARACTER DEPTH and is never billability (BR-009). The two correlate in the data and are not the same thing; conflating them mislabelled 466 codes. Note that a category can be a bookkeeping label rather than a disease -- U07's own description is 'Emergency use of U07' -- so a three-character parent is not always clinically meaningful even when it is structurally correct.\n\nEvery code is validated against the published ICD-10-CM set. A code the model produced that does not exist there is REMOVED, not reported (BR-023)."
                     },
                     "trust": { "$ref": "#/$defs/trust" },
                     "_crosswalk_provenance": {
@@ -188,8 +188,8 @@
                   "properties": {
                     "code": {
                       "type": "string",
-                      "pattern": "^[A-TV-Z][0-9][0-9A-Z]\\.[0-9A-Z]{1,4}$",
-                      "description": "A WHO ICD-10 code of four characters or deeper, in CANONICAL DOTTED FORM (BR-007/BR-008). WHO publishes the dotted form and that is what ChatHealthy publishes; dotless is an internal join key only and never reaches a consumer. Depth is WHO character depth, never billability (BR-009). Validated against the published ICD-10-CM set -- a code the model produced that does not exist is REMOVED, not reported (BR-023)."
+                      "pattern": "^[A-Z][0-9][0-9A-Z]\\.[0-9A-Z]{1,4}$",
+                      "description": "A WHO ICD-10 code of four characters or deeper, in CANONICAL DOTTED FORM: the three-character category, a dot, then one to four further characters (BR-007/BR-008). WHO publishes the dotted form and that is what ChatHealthy publishes; dotless is an internal join key only and never reaches a consumer.\n\nEVERY LETTER A-Z IS VALID, INCLUDING U, for the reason given on the three-character code: U07.1 is COVID-19. Excluding U on the theory that the block is reserved for research would reject the single most consequential code added to ICD-10 this decade.\n\nDepth is WHO character depth, never billability (BR-009). Every code is validated against the published ICD-10-CM set; one the model produced that does not exist there is REMOVED, not reported (BR-023)."
                     },
                     "trust": { "$ref": "#/$defs/trust" },
                     "_crosswalk_provenance": {
