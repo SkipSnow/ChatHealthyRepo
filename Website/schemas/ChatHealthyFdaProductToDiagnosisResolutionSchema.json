@@ -1,361 +1,281 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyFdaProductToDiagnosisResolutionSchema.json",
-  "title": "ChatHealthy FDA Product To Diagnosis Resolution",
-  "description": "ChatHealthy's FDA drug collection at the MOLECULE grain (EPIC-010-F-007, LLD v83 III.4.1): one document per molecule, _id == molecule_id, assembling the molecule's SPL labels. Each label folds in exactly once; set_ids carries the contributing labels' set_ids, and a label whose set_id is already present is disregarded as already processed. OTC-only labels are excluded from the built output (retained in staging). The molecule master and the enrich path join to this record by molecule_id -- a point lookup on _id.",
+  "title": "fdaProductToDiagnosisResolution_v_1",
+  "description": "One document per FDA-resolved molecule. The molecule universe is the FDA's own: every openFDA drug label that carries a substance, resolved to a molecule through RxNorm. No Medicare source takes part in deciding which molecules appear. Candidate collection QA_fdaProductToDiagnosisResolution_v_1 in PipelinePublicHealthData conforms to this schema, and the Azure pipeline that supersedes it must emit documents that validate against it unchanged.",
+
+  "$comment": "READING ORDER. This schema is ordered the way a person reads a record: what the molecule IS (identity, labels, names), then how it is CLASSIFIED, then what it TREATS, then how it is USED, and last the build metadata that describes the run rather than the drug. Reusable definitions are collected in $defs at the FOOT of the document, so the shape comes first and the machinery afterwards. ABSENT, NEVER NULL (BR-022): every optional property is omitted when the source carries no value for it, because a null or an empty array asserts 'we looked and there is nothing', which is a stronger and different claim than 'the source does not say'. Validation therefore forbids null everywhere and forbids empty arrays wherever an array appears at all.",
+
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "_id",
-    "molecule_id",
-    "set_ids",
-    "molecule",
-    "indications",
-    "drug_class",
-    "trust",
-    "run_id",
-    "data_version",
-    "provenance"
-  ],
+  "required": ["_id", "molecule_id", "set_ids", "n_labels", "molecule",
+               "run_id", "data_version", "provenance"],
+
   "properties": {
+
     "_id": {
       "type": "string",
-      "description": "== molecule_id; the collection is keyed on the molecule."
+      "minLength": 1,
+      "description": "Equal to molecule_id. The molecule is the document key."
     },
+
     "molecule_id": {
       "type": "string",
-      "description": "Proprietary molecule surrogate (LLD v83 III.3 decision #2). Never shown to a user."
+      "minLength": 1,
+      "pattern": "^(rx:[0-9]+|lit:[^|]+)(\\|(rx:[0-9]+|lit:[^|]+))*$",
+      "description": "The UNFOLDED RxNorm identity set: pipe-delimited, sorted, each member either rx:<rxcui> for a resolved ingredient or lit:<token> for a substance name no vocabulary resolved. BR-016 folds salt to base for MATCHING only; identity keeps the precise set, so hydrocodone bitartrate and hydrocodone are distinct identities here."
     },
+
     "set_ids": {
       "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "The FDA SPL set_ids of the labels folded into this record -- the contributing record keys. A label folds in at most once. This array exists ONLY in this collection (operator ruling 2026-10-20)."
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Every openFDA label (SPL set id) that resolves to this molecule."
     },
+
+    "n_labels": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Count of set_ids. Carried rather than derived so the relational column and the document agree field for field."
+    },
+
     "molecule": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "clean_names",
-        "_molecule_sources"
-      ],
+      "required": ["clean_names"],
+      "description": "The molecule's names and identifiers, all read from the openFDA label's openfda block or from the RxNorm resolution. Nothing here comes from Medicare, so no value is subject to CMS's 30-character truncation of generic names.",
       "properties": {
         "clean_names": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Clean molecule name(s) unioned across the molecule's labels."
-        },
-        "rxcui": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "openfda.rxcui unioned across labels, when present."
-        },
-        "unii": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "openfda.unii unioned across labels, when present."
-        },
-        "substance_name": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "openfda.substance_name unioned across labels, when present."
-        },
-        "_molecule_sources": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "provided",
-              "openfda_rxcui",
-              "openfda_substance_name",
-              "substance_name",
-              "generic_name",
-              "active_ingredient",
-              "spl_product_data_elements",
-              "description",
-              "llm_extraction",
-              "absent"
-            ]
-          },
-          "description": "Provenance of the clean molecule name(s), unioned across the folded labels."
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "The tokenised substance names this build parsed out of the label, as parsed."
         },
         "label_brand_names": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The brand names on the molecule's labels, first-seen order, folded case-insensitively. The first rung of the RxNorm identity ladder resolves from these."
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
         },
         "label_generic_names": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "The generic names on the molecule's labels, first-seen order, folded case-insensitively. The second rung of the identity ladder resolves from these."
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "substance_name": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "The substance as the FDA states it, from openfda.substance_name."
+        },
+        "unii": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9A-Z]{10}$" },
+          "description": "FDA Unique Ingredient Identifier, from openfda.unii."
+        },
+        "rxcui": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9]+$" },
+          "description": "The rxcui members of molecule_id, this build's own resolution."
+        },
+        "_fda_rxcui": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[0-9]+$" },
+          "description": "The FDA's OWN RxNorm assignment from openfda.rxcui, carried beside this build's independent resolution so the two can be compared rather than conflated."
+        },
+        "_match_set": {
+          "type": "string", "minLength": 1,
+          "pattern": "^(rx:[0-9]+|lit:[^|]+)(\\|(rx:[0-9]+|lit:[^|]+))*$",
+          "description": "The FOLDED match key (BR-016). Where it differs from molecule_id, that difference is the formulation distinction a fold erases."
         }
       }
     },
-    "indications": {
+
+    "label_classes": {
       "type": "array",
-      "description": "On-label indications unioned across the molecule's labels, deduplicated by normalized indication text, ICD-10 codes unioned by code and split to level3/level4.",
+      "minItems": 1,
+      "description": "Per-label classification. One entry per set_id.",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "raw_text",
-          "icd10",
-          "_crosswalk_provenance"
-        ],
+        "required": ["set_id"],
+        "properties": {
+          "set_id": { "type": "string", "minLength": 1 },
+          "product_type": {
+            "type": "string", "minLength": 1,
+            "description": "openfda.product_type, e.g. HUMAN PRESCRIPTION DRUG."
+          },
+          "drug_class": {
+            "type": "array", "minItems": 1, "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "The label's pharmacologic classes, pooled from openfda.pharm_class_epc, _moa, _cs and _pe. All four are the drug's classification and none is privileged over the others."
+          }
+        }
+      }
+    },
+
+    "drug_class": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classes"],
+      "description": "The molecule-level rollup of its labels' pharmacologic classes.",
+      "properties": {
+        "classes": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+
+    "indications": {
+      "type": "array",
+      "minItems": 1,
+      "description": "What the label says the drug is for, crosswalked to ICD-10. One entry per distinct indication text.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["raw_text"],
         "properties": {
           "raw_text": {
-            "type": "string",
-            "description": "FDA indication wording (indications_and_usage, or package_label_principal_display_panel fallback)."
+            "type": "string", "minLength": 1,
+            "description": "The indication as the label expresses it, verbatim."
+          },
+          "source_texts": {
+            "type": "array", "minItems": 1, "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Every label phrasing that collapsed into this one indication. Kept so the collapse is auditable rather than lossy."
           },
           "icd10": {
             "type": "object",
             "additionalProperties": false,
+            "description": "The ICD-10 codes this indication reaches, in two arrays by WHO character depth. Every member of either array carries its OWN trust, because trust is a fact about one code and not about the indication: 'prevention of sunburn' reaching L55.9 is a stronger claim than the same text reaching Z29.8. A trust held above the code forces an aggregate that hands the weakest code the strongest code's number.\n\nNOTHING HERE IS REQUIRED. A molecule whose indication reached no ICD-10 code at all is still published: the drug, its labels, its names and its indication prose are all facts worth carrying, and discarding the molecule because one derivation failed would throw away everything else we know about it. icd10 may be absent, and either depth may be absent independently of the other -- a three-character category with no four-character code beneath it is an ordinary outcome, not a defect.",
             "properties": {
               "level3": {
                 "type": "array",
+                "description": "Three-character WHO categories. May be absent.",
                 "items": {
-                  "type": "string"
-                },
-                "description": "3-char ICD-10-CM codes (may be empty)."
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["code", "trust", "_crosswalk_provenance"],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "pattern": "^[A-TV-Z][0-9][0-9A-Z]$",
+                      "description": "A three-character WHO ICD-10 category. Three characters carry no dot. Depth is WHO character depth and is NEVER billability (BR-009); the two correlate in the data and are not the same thing, and conflating them mislabelled 466 codes. Validated against the published ICD-10-CM set -- a code the model produced that does not exist is REMOVED, not reported (BR-023)."
+                    },
+                    "trust": { "$ref": "#/$defs/trust" },
+                    "_crosswalk_provenance": {
+                      "type": "string",
+                      "enum": ["inference", "adopted_vocabulary", "joined_coded_source"],
+                      "description": "How THIS CODE was reached. Carried beside trust because the two are read together: trust alone cannot say whether 0.9 is a strong inference or a weak derivation. BR-018 -- provenance records reproducibility, not accuracy, and the weakest link on the path survives to the row."
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "$comment": "An inference can never be certain; only a deterministic derivation reaches exactly 1.0.",
+                      "if": {
+                        "properties": { "_crosswalk_provenance": { "const": "inference" } },
+                        "required": ["_crosswalk_provenance"]
+                      },
+                      "then": { "properties": { "trust": { "type": "number", "maximum": 0.9 } } }
+                    }
+                  ]
+                }
               },
               "level4": {
                 "type": "array",
+                "description": "Four-character and deeper WHO codes, dotted. May be absent.",
                 "items": {
-                  "type": "string"
-                },
-                "description": "4-char ICD-10-CM codes (may be empty). Level 5 not carried."
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["code", "trust", "_crosswalk_provenance"],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "pattern": "^[A-TV-Z][0-9][0-9A-Z]\\.[0-9A-Z]{1,4}$",
+                      "description": "A WHO ICD-10 code of four characters or deeper, in CANONICAL DOTTED FORM (BR-007/BR-008). WHO publishes the dotted form and that is what ChatHealthy publishes; dotless is an internal join key only and never reaches a consumer. Depth is WHO character depth, never billability (BR-009). Validated against the published ICD-10-CM set -- a code the model produced that does not exist is REMOVED, not reported (BR-023)."
+                    },
+                    "trust": { "$ref": "#/$defs/trust" },
+                    "_crosswalk_provenance": {
+                      "type": "string",
+                      "enum": ["inference", "adopted_vocabulary", "joined_coded_source"],
+                      "description": "How THIS CODE was reached. Carried beside trust because the two are read together: trust alone cannot say whether 0.9 is a strong inference or a weak derivation. BR-018 -- provenance records reproducibility, not accuracy, and the weakest link on the path survives to the row."
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "$comment": "An inference can never be certain; only a deterministic derivation reaches exactly 1.0.",
+                      "if": {
+                        "properties": { "_crosswalk_provenance": { "const": "inference" } },
+                        "required": ["_crosswalk_provenance"]
+                      },
+                      "then": { "properties": { "trust": { "type": "number", "maximum": 0.9 } } }
+                    }
+                  ]
+                }
               }
             }
-          },
-          "_crosswalk_provenance": {
-            "type": "string",
-            "enum": [
-              "adopted_vocabulary",
-              "joined_coded_source",
-              "inference"
-            ]
-          },
-          "trust": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "bsonType": [
-              "decimal",
-              "null"
-            ],
-            "description": "Exact decimal. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
-            "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The canonical indication's plain-language name. Present on an entry the judged pass produced."
-          },
-          "source_texts": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Every verbatim label wording this canonical indication absorbed. Each wording appears in exactly one entry's source_texts."
           }
         }
       }
     },
+
     "usage": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["summarized_usage"],
       "properties": {
-        "summarized_usage": {
-          "type": "string",
-          "description": "Summarized usage, unioned across the folded labels."
-        }
+        "summarized_usage": { "type": "string", "minLength": 1 }
       }
     },
-    "drug_class": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "classes"
-      ],
-      "properties": {
-        "classes": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "OTC",
-              "RX",
-              "UNDETERMINED"
-            ]
-          },
-          "description": "SET across the molecule's labels: a molecule can carry both OTC and Rx labels. UNDETERMINED never defaulted."
-        }
-      }
-    },
-    "trust": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Aggregate of the folded labels' resolution confidence (model confidence where resolution was inferred).",
-      "properties": {
-        "max": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "bsonType": [
-            "decimal",
-            "null"
-          ],
-          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
-          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
-        },
-        "min": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "bsonType": [
-            "decimal",
-            "null"
-          ],
-          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
-          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
-        },
-        "median": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "bsonType": [
-            "decimal",
-            "null"
-          ],
-          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
-          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
-        },
-        "avg": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "bsonType": [
-            "decimal",
-            "null"
-          ],
-          "description": "Exact decimal, as the measure it is computed over. Python computes it as decimal.Decimal and MongoDB stores it as Decimal128 (bsonType decimal); never a binary float. JSON has no decimal type, so this contract declares the field a string.",
-          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
-        }
-      }
-    },
+
     "run_id": {
-      "type": "string"
+      "type": "string", "minLength": 1,
+      "description": "The build that wrote this document. Provenance, not drug content: it differs between any two runs by construction and is excluded when comparing a candidate against a pipeline run."
     },
+
     "data_version": {
-      "type": "integer",
-      "minimum": 1
+      "type": "integer", "minimum": 1,
+      "description": "The schema generation this document was written against."
     },
+
     "provenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "source_run_id",
-        "source_collection",
-        "built_at"
-      ],
+      "required": ["source_run_id", "source_collection", "built_at",
+                   "source_snapshot", "crosswalk_artifact"],
+      "description": "Where this document came from. Like run_id, these describe the build rather than the drug.",
       "properties": {
-        "source_run_id": {
-          "type": "string"
-        },
-        "source_collection": {
-          "const": "StagingOpenFdaLabels_v_1"
-        },
+        "source_run_id":     { "type": "string", "minLength": 1 },
+        "source_collection": { "type": "string", "minLength": 1 },
         "built_at": {
-          "type": "string"
-        }
-      }
-    },
-    "rxcui_in": {
-      "type": "string",
-      "minLength": 1,
-      "description": "The RxNorm ingredient RXCUI this molecule resolves to (RXNCONSO TTY=IN). The identifier the provider and specialty collections join on. Absent when the identity ladder resolves nothing."
-    },
-    "unii": {
-      "type": "string",
-      "minLength": 1,
-      "description": "The FDA Unique Ingredient Identifier of that ingredient, read from its MTHSPL TTY=SU row's CODE. FDA assigns a UNII permanently and never reuses it, so it is the immutable identity."
-    },
-    "identity_path": {
-      "type": "string",
-      "enum": [
-        "brand",
-        "generic"
-      ],
-      "description": "Which rung of the identity ladder answered: the CMS or label brand name, or the generic name."
-    },
-    "identity_also": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "rxcui_in": {
-            "type": "string"
-          },
-          "unii": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$"
+        },
+        "source_snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["openfda_labels", "rxnorm"],
+          "description": "The PINNED source versions this document was built from. Without these the collection is not reproducible: openFDA and RxNorm both change, so two runs against 'current' are two different datasets.",
+          "properties": {
+            "openfda_labels": { "type": "string", "minLength": 1 },
+            "rxnorm":         { "type": "string", "minLength": 1 },
+            "icd10_cm":       { "type": "string", "minLength": 1 }
           }
         },
-        "required": [
-          "rxcui_in"
-        ]
-      },
-      "description": "The further ingredients a combination brand reaches beyond the first, so nothing resolved is dropped."
-    },
-    "label_classes": {
-      "type": "array",
-      "description": "One entry per contributing label: its own drug class and openFDA product type. drug_class on the molecule is the union across these, so the per-label entry is what says whether a given product needed a prescription.",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "set_id"
-        ],
-        "properties": {
-          "set_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "drug_class": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "product_type": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+        "crosswalk_artifact": {
+          "type": "string", "minLength": 1,
+          "description": "Identifier of the stored crosswalk this document's indications were read from. A model asked twice answers twice differently, so the inference is persisted data keyed to the exact label prose that produced it. The pipeline reads this artifact rather than re-inferring, which is what lets a signed-off candidate be reproduced exactly."
         }
       }
+    }
+  },
+
+  "$defs": {
+
+    "trust": {
+      "title": "trust",
+      "description": "WHAT TRUST MEANS. Trust is ChatHealthy's stated certainty that ONE ICD-10 code expresses ONE indication of ONE molecule. It is a property of that single assertion and of nothing larger: not of the molecule, not of the indication, not of the collection.\n\nTHE SCALE HAS TWO REGIONS AND A DELIBERATE GAP.\n  1.0 exactly -- the code was derived DETERMINISTICALLY. A coded source stated the relationship, or a rule over coded data produced it. Re-running the derivation on the same inputs yields the same code every time. 1.0 is reserved for this and is unreachable by any other route.\n  0.0 to 0.9 -- the code was INFERRED, by a model reading the label's own prose. 0.9 is the ceiling and is the strongest an inference may ever claim.\n  above 0.9 and below 1.0 -- EMPTY BY CONSTRUCTION. No value is ever written here. The gap exists so that a reader, a user or an auditor can never mistake a confident inference for a certainty: 0.97 would read as near-certain when it is still a guess, so the scale refuses to express it. The ceiling is applied arithmetically after the model answers, never by instructing the model to score differently, which would invalidate the benchmark the model was measured against.\n\nWHAT TRUST IS NOT. It is not accuracy, and it is not a probability that the code is clinically correct. It records how the assertion was PRODUCED and therefore how reproducible it is (BR-018). A deterministic 1.0 can still be wrong if the coded source it came from is wrong; what 1.0 promises is that we did not guess, and that the same inputs give the same answer.\n\nDISCLOSURE. The dataset is audited, and an audited dataset can still carry a defect. 1.0 asserts a deterministic derivation, not an infallible one.",
+      "oneOf": [
+        { "type": "number", "const": 1.0 },
+        { "type": "number", "minimum": 0.0, "maximum": 0.9 }
+      ]
     }
   }
 }
