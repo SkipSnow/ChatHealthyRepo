@@ -225,6 +225,25 @@
       }
     },
 
+    "clinical_trials": {
+      "type": "array",
+      "description": "The molecule's clinical trials, carried as ClinicalTrials.gov publishes them. Absent when the registry links none.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["trial_id"],
+        "properties": {
+          "trial_id": { "type": "string" },
+          "phase": {
+            "type": "array",
+            "description": "An array because the registry's field is one: a phase 1/2 trial carries both PHASE1 and PHASE2.",
+            "items": { "type": "string" }
+          },
+          "status": { "type": "string" }
+        }
+      }
+    },
+
     "run_id": {
       "type": "string", "minLength": 1,
       "description": "The build that wrote this document. Provenance, not drug content: it differs between any two runs by construction and is excluded when comparing a candidate against a pipeline run."
