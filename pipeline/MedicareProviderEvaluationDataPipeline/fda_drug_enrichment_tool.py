@@ -56,7 +56,7 @@ _MODEL_REGISTRY: dict[str, dict[str, str]] = {
 # catalog is appended as the cached static prefix at build time.
 # ─────────────────────────────────────────────────────────────────────────────
 _PROMPT_2_INSTRUCTIONS = (
-    "You are an expert clinical coder. You are given a batch of up to 50 records in the input "
+    "You are an expert clinical coder. You are given a batch of records in the input "
     "field named \"drugs\" (named so for model familiarity). Each element is ONE record: one "
     "SPL's FDA \"Indications and Usage\" text. \"drug\" here means one record -- one label -- not a "
     "marketed product. For each record, read its Indications and Usage text and produce the list "
@@ -74,8 +74,8 @@ _PROMPT_2_INSTRUCTIONS = (
 )
 
 _CATALOG_HEADER = (
-    "ICD-10-CM catalog - each line is  <icd10_code><TAB><short_description>  (no decimal point; "
-    "e.g. F32 or F329). All 12,014 level-3 and level-4 codes follow, one per line; cached prefix."
+    "ICD-10-CM catalog - each line is <icd10_code><TAB><short_description>; icd10_code has no "
+    "decimal point (e.g. F32 or F329). One per line:"
 )
 
 

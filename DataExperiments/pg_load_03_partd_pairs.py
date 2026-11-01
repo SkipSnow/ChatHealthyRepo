@@ -6,11 +6,9 @@ Part D source once and loads only the distinct pairs, each carrying the volume
 behind it -- full pair coverage and true claim weighting without 28M rows in
 Postgres.
 
-Also marks which pairs appear in the first 500,000 rows already loaded in
-`partd`. Those are the DEVELOPMENT set. Every pair that appears only later is
-the HOLDOUT: the long tail of rare drugs, which is where resolution actually
-fails, so an algorithm measured only on the development set would flatter
-itself.
+Also marks which pairs appear in `partd`, which the development/holdout split
+was drawn from when `partd` was a partial load. `partd` is now loaded whole, so
+that mark no longer separates a development set from a holdout.
 
 Source is Azure, cached under C:\\DataExperiments\\Sources.
 """

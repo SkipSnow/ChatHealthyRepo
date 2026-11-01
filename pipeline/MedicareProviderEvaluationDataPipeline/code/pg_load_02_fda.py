@@ -1,11 +1,11 @@
-"""Stage 2 -- load the first 500,000 NON-OTC openFDA label records.
+"""Stage 2 -- load every NON-OTC openFDA label record.
 
 Source is AZURE, not the internet: the archived source blobs in
 dev-pipeline-sources, which are the exact bytes the pipeline staged.
 
-No records are chosen. Blobs are streamed in sorted name order and every
-non-OTC record is taken in the order it is encountered until 500,000 are
-loaded or the blobs are exhausted. Each row carries the blob it came from,
+No records are chosen and none are capped. Blobs are streamed in sorted name
+order and every non-OTC record is taken in the order it is encountered until
+the blobs are exhausted. Each row carries the blob it came from,
 so if the stream wraps into another run's copy of the same corpus the
 repeated set_ids are visible in the data instead of being deduped away.
 
@@ -46,10 +46,6 @@ LOG = r"C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\code\p
 SOURCES = r"C:\DataExperiments\Sources"
 ACCOUNT = "stchpipelinedev"
 CONTAINER = "dev-pipeline-sources"
-# NO CAP. There was a LIMIT of 500,000 here. It did not bind on the last run
-# (281,838 labels), but a cap that silently stops a load cannot sit inside a
-# collection whose scope is the ENTIRE openFDA corpus: the day the corpus
-# grows past it, the collection quietly becomes partial and says nothing.
 
 NARRATIVE = ("description", "spl_product_data_elements", "active_ingredient",
              "indications_and_usage", "package_label_principal_display_panel",

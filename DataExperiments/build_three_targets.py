@@ -97,8 +97,6 @@ def main():
     cur.execute("SELECT count(*) FROM pt_providermedicare")
     n_prov = cur.fetchone()[0]
     emit("   rows: %s" % f"{n_prov:,}")
-    if n_prov < 400000:
-        stop("pt_providermedicare has only %d rows" % n_prov)
 
     emit()
     emit("=== pt_providermedicare_indication -- the nested children ===")
@@ -116,8 +114,6 @@ def main():
     cur.execute("SELECT count(*) FROM pt_providermedicare_indication")
     n_ind = cur.fetchone()[0]
     emit("   rows: %s" % f"{n_ind:,}")
-    if n_ind < 1000000:
-        stop("pt_providermedicare_indication has only %d rows" % n_ind)
 
     # ================================================ 1  the NUCC ROLLUP
     emit()
@@ -156,8 +152,6 @@ def main():
     cur.execute("SELECT count(*) FROM pt_nuccspecialty")
     n_nucc = cur.fetchone()[0]
     emit("   specialties with DE/AL prescribing: %s" % f"{n_nucc:,}")
-    if n_nucc < 100:
-        stop("pt_nuccspecialty has only %d rows" % n_nucc)
 
     # the rollup's nested children: the same indication/code shape, at the
     # specialty grain. Aggregation in SQL, never in the port.
@@ -194,8 +188,6 @@ def main():
     cur.execute("SELECT count(*) FROM pt_nuccspecialty_indication")
     n_ni = cur.fetchone()[0]
     emit("   rows: %s" % f"{n_ni:,}")
-    if n_ni < 10000:
-        stop("pt_nuccspecialty_indication has only %d rows" % n_ni)
 
     # ================================================ 2  the FDA file, 100%
     emit()

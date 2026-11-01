@@ -3,9 +3,8 @@
 Relational, flat, one table per source. Every table carries load_seq: a bigserial
 that IS the sequence of the load, nothing more.
 
-Part D is deliberately partial -- the first 500,000 data rows of the newest CMS
-release. The HTTP stream is abandoned once that many rows are read, so the
-multi-GB remainder is never downloaded.
+Part D is loaded whole. The HTTP stream is read to exhaustion; no row count
+stops it.
 """
 import csv
 import io
@@ -25,7 +24,6 @@ _log = ChatHealthyLoggingService()
 
 PW_FILE = r"C:\Users\skips\postgres_superuser_password.txt"
 DB = "medicare_join"
-PARTD_LIMIT = 500_000
 LOG = r"C:\CHATHealthyLLC\_oneshots\pg_load_progress.txt"
 
 
@@ -116,7 +114,7 @@ def load_partd(url):
     header = None
     pending = 0
 
-    note(f"streaming CSV, stopping after {PARTD_LIMIT:,} data rows")
+    note("streaming the whole CSV")
     with urllib.request.urlopen(url, timeout=3600) as resp:
         text = io.TextIOWrapper(resp, encoding="utf-8-sig", errors="replace",
                                 newline="")
@@ -142,9 +140,6 @@ def load_partd(url):
                 buf = io.StringIO()
                 writer = csv.writer(buf)
                 pending = 0
-            if rows >= PARTD_LIMIT:
-                note(f"reached {PARTD_LIMIT:,}; abandoning the rest of the stream")
-                break
     if pending:
         buf.seek(0)
         cur.copy_expert(

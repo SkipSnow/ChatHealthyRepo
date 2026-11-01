@@ -1,20 +1,27 @@
 """Deliver QA_fdaProductToDiagnosisResolution_v_1: download to finished job.
 
-SIX STEPS, FDA SOURCES ONLY.
+  0   download openFDA, RxNorm, the ICD-10 vocabulary and the trials corpus
+  1   empty the schema, keeping the crosswalk cache
+  2   load openFDA          -> fda_label, fda_name
+  3   load RxNorm           -> rxnconso, rxnrel
+  3b  load ClinicalTrials   -> ct_study, ct_intervention, ct_condition
+  4   resolve molecules     -> rx_ing, ct_bridge_t1, fda_mol, fda_brand_norm
+  4b  load ICD-10           -> icd10cm
+  5   crosswalk indications -> llm_crosswalk        (the one inferred stage)
+  6   deliver               -> PipelinePublicHealthData.QA_...
 
-  0  download openFDA labels and RxNorm
-  1  empty the schema
-  2  load openFDA          -> fda_label, fda_name
-  3  load RxNorm           -> rxnconso, rxnrel
-  4  resolve molecules     -> rx_ing, fda_mol, fda_brand_norm
-  5  crosswalk indications -> llm_crosswalk        (the one inferred stage)
-  6  deliver               -> PipelinePublicHealthData.QA_...
+The trials corpus is here for two reasons and no others: the collection
+declares a clinical_trials element, and the trials alias graph identifies
+molecules the FDA's own substance names do not reach. It is a resolution
+source and a published fact, not a source of indications -- a trial condition
+is what a trial INVESTIGATES, which is not what a label was APPROVED for, and
+no requirement asks us to publish the first as the second.
 
 WHAT IS NOT HERE, because the FDA collection does not read it: Medicare Part D,
-the clinical-trials corpus, the ICD-10 vocabulary tables, provider_molecule,
-and the CMS drug-name bridge. The collection covers every FDA product, so its
-molecules come from the FDA. Reaching them through Part D would have let the
-drugs Delaware and Alabama happened to bill decide what the FDA file contains.
+provider_molecule, and the CMS drug-name bridge. The collection covers every
+FDA product, so its molecules come from the FDA. Reaching them through Part D
+would have let the drugs Delaware and Alabama happened to bill decide what the
+FDA file contains.
 
 A step that fails stops the run and says so. Nothing is dropped behind your
 back -- the schema is left exactly as the failure found it.
@@ -124,7 +131,8 @@ def main():
     # forking a committed loader so the FDA path can skip three of its tables.
     run_step("0", "fetch_all_sources.py", 43200,
              "openfda_labels", "rxnorm", "rxnorm_rel", "icd10_cm",
-             "ccsr", "medicare_coverage_icd10", "medicare_coverage_hcpc")
+             "ccsr", "medicare_coverage_icd10", "medicare_coverage_hcpc",
+             "clinicaltrials")
 
     emit()
     emit("=== 1 empty the schema ===")
@@ -166,14 +174,26 @@ def main():
     expect(cur, "3", "rxnrel")
 
     emit()
+    emit("=== 3b the ClinicalTrials.gov corpus ===")
+    run_step("3b", "pg_load_05_clinicaltrials.py", 28800)
+    expect(cur, "3b", "ct_study")
+    expect(cur, "3b", "ct_intervention")
+    expect(cur, "3b", "ct_condition")
+
+    emit()
     emit("=== 4 resolve every label to its molecule ===")
     run_step("4", "fda_build_molecules.py", 28800)
     expect(cur, "4", "rx_ing")
+    expect(cur, "4", "ct_bridge_t1")
     expect(cur, "4", "fda_mol")
     expect(cur, "4", "fda_brand_norm")
     cur.execute("""SELECT count(DISTINCT ident_set) FROM fda_mol
                    WHERE ident_set <> ''""")
     emit("   distinct molecules (unfolded identity): %s" % f"{cur.fetchone()[0]:,}")
+    cur.execute("""SELECT route, count(DISTINCT ident_set) FROM fda_mol
+                   WHERE ident_set <> '' GROUP BY 1 ORDER BY 2 DESC""")
+    for r, n in cur.fetchall():
+        emit("      by route %-16s %s molecules" % (r, f"{n:,}"))
 
     emit()
     emit("=== 4b the ICD-10 vocabulary ===")

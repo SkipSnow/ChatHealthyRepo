@@ -438,6 +438,48 @@ def build_pseudo_target(cur, run_id):
     """)
     cur.execute("SELECT count(*) FROM pt_fda_usage")
     emit("   pt_fda_usage             %s molecules" % f"{cur.fetchone()[0]:,}")
+
+    # --- clinical trials -------------------------------------------------
+    # A trial reaches a molecule through the trials alias graph: the trial
+    # names an intervention, the graph carries that name to exactly one RxNorm
+    # ingredient, and that ingredient is an atom of the molecule's identity
+    # set. Unnesting the identity set is what lets a multi-ingredient molecule
+    # claim a trial of any of its ingredients; n_ing = 1 is what keeps an
+    # ambiguous alias from claiming anything.
+    #
+    # phases is stored pipe-joined as the registry gives it and is split back
+    # into the array the schema declares. An empty phases string is ABSENT,
+    # never an empty array -- the registry publishes no phase for about a
+    # quarter of trials and that is not the same as a trial having none.
+    cur.execute("""
+        DROP TABLE IF EXISTS pt_fda_trial CASCADE;
+        CREATE TABLE pt_fda_trial AS
+        WITH atom AS (
+          SELECT DISTINCT m.ident_set AS molecule_id, a AS rx
+          FROM fda_mol m,
+               unnest(string_to_array(m.ident_set, '|')) AS a
+          WHERE m.ident_set <> '' AND a LIKE 'rx:%'),
+        linked AS (
+          SELECT DISTINCT at.molecule_id, i.nct_id
+          FROM atom at
+          JOIN ct_bridge_t1 b ON b.n_ing = 1
+                             AND 'rx:' || b.ing_rxcui::text = at.rx
+          JOIN ct_intervention i ON upper(i.name) = b.src
+                                 OR upper(i.other_name) = b.src)
+        SELECT l.molecule_id,
+               l.nct_id                                   AS trial_id,
+               nullif(btrim(coalesce(s.phases, '')), '')   AS phases,
+               nullif(btrim(coalesce(s.overall_status, '')), '') AS status
+        FROM linked l
+        LEFT JOIN ct_study s ON s.nct_id = l.nct_id;
+        CREATE INDEX ptft_key ON pt_fda_trial (molecule_id);
+        ANALYZE pt_fda_trial;
+    """)
+    cur.execute("""SELECT count(*), count(DISTINCT molecule_id),
+                          count(DISTINCT trial_id) FROM pt_fda_trial""")
+    a, b_, c_ = cur.fetchone()
+    emit("   pt_fda_trial             %s links over %s molecules, %s trials"
+         % (f"{a:,}", f"{b_:,}", f"{c_:,}"))
     return n_mol, n_ind
 
 
@@ -515,6 +557,7 @@ def main():
     classes = rows("SELECT * FROM pt_fda_label_class")
     usage = rows("SELECT * FROM pt_fda_usage")
     src_texts = rows("SELECT * FROM pt_fda_source_text")
+    trials = rows("SELECT * FROM pt_fda_trial ORDER BY molecule_id, trial_id")
 
     # The code rows are grouped molecule -> indication -> [codes]. The port
     # does the GROUPING only; it computes nothing. Each code arrives with its
@@ -622,6 +665,16 @@ def main():
         us = usage.get(mid)
         if us and us[0]["summarized_usage"]:
             d["usage"] = {"summarized_usage": us[0]["summarized_usage"]}
+
+        ct = trials.get(mid)
+        if ct:
+            d["clinical_trials"] = [
+                doc_of({"trial_id": t["trial_id"],
+                        "phase": (t["phases"].split("|")
+                                  if t["phases"] else None),
+                        "status": t["status"]})
+                for t in ct]
+
         d["run_id"] = run_id
         d["data_version"] = DATA_VERSION
         d["provenance"] = {"source_run_id": run_id,
@@ -749,6 +802,26 @@ def main():
                 bad += 1
                 if shown < MAX_REPORT:
                     shown += 1; emit("      %s molecule.%s differs" % (mid, f))
+        # clinical_trials, compared as a SET of (trial_id, phase, status).
+        # Comparing the count alone would pass a document that carried the
+        # right number of wrong trials, and comparing trial_id alone would
+        # pass one that carried the right trials with another trial's status.
+        pg_ct = {(t["trial_id"],
+                  tuple(t["phases"].split("|")) if t["phases"] else None,
+                  t["status"]) for t in trials.get(mid, [])}
+        mo_ct = {(t.get("trial_id"),
+                  tuple(t["phase"]) if t.get("phase") else None,
+                  t.get("status")) for t in (doc.get("clinical_trials") or [])}
+        if pg_ct != mo_ct:
+            bad += 1
+            if shown < MAX_REPORT:
+                shown += 1
+                emit("      %s clinical_trials differ: pg=%d mongo=%d "
+                     "pg-only=%s mongo-only=%s"
+                     % (mid, len(pg_ct), len(mo_ct),
+                        sorted(t[0] for t in pg_ct - mo_ct)[:5],
+                        sorted(t[0] for t in mo_ct - pg_ct)[:5]))
+
         # RULE 3 at the CODE grain. Every code in the document is matched to
         # the SQL row that produced it and its trust is compared there, which
         # is the only place trust now exists. Comparing a per-indication
@@ -839,7 +912,9 @@ def main():
                  "molecule.substance_name", "molecule._fda_rxcui",
                  "label_classes.drug_class", "indications",
                  "indications.source_texts",
-                 "indications.icd10.level3", "indications.icd10.level4"):
+                 "indications.icd10.level3", "indications.icd10.level4",
+                 "clinical_trials", "clinical_trials.phase",
+                 "clinical_trials.status"):
         have = coll.count_documents({path: {"$exists": True, "$ne": None}})
         emit("     %-30s %8s of %s documents  (%.1f%%)"
              % (path, f"{have:,}", f"{m:,}", 100.0 * have / m if m else 0.0))
