@@ -128,15 +128,37 @@ def schema(con):
 
 
 def blob_names():
-    out = subprocess.run(
-        [AZ, "storage", "blob","list", "--account-name", ACCOUNT,
-         "--container-name", CONTAINER, "--auth-mode", "login",
-         "--prefix", "openfda_labels/", "--query", "[].name", "-o", "json"],
-        capture_output=True, text=True, timeout=600)
-    if out.returncode != 0:
-        raise ChatHealthyException("runtime_error", "blob list failed: " + out.stderr[:500])
-    names = sorted(json.loads(out.stdout))
-    note("openfda blobs found: %d" % len(names))
+    """The blobs of the ONE snapshot the fetch chose, read from its manifest.
+
+    This used to list openfda_labels/ against Azure and take every name it got
+    back. The archive keeps every fetch it has ever made under its own hash
+    directory, so that took three snapshots thirteen days apart: 42 blobs, and
+    fda_label held 281,838 rows over 93,956 distinct set_ids -- 93,933 of them
+    appearing exactly three times, one spl_id and one version each. Three
+    copies of the same label, and which copy won a downstream read depended on
+    load order.
+
+    The choice belongs to fetch_all_sources, which already makes it and logs
+    it. Reading the manifest means the rule lives in one place; repeating the
+    newest-snapshot logic here is what let the two drift apart in the first
+    place. No fallback: if the manifest is missing or does not name the
+    snapshot, the fetch did not run and this load has no business guessing.
+    """
+    man_path = os.path.join(SOURCES, "fetch_manifest.json")
+    if not os.path.isfile(man_path):
+        raise ChatHealthyException(
+            "config_error",
+            "no fetch manifest at %s -- run fetch_all_sources.py first" % man_path)
+    with open(man_path, encoding="utf-8") as fh:
+        man = json.load(fh)
+    names = sorted((man.get("blobs") or {}).get("openfda_labels") or [])
+    if not names:
+        raise ChatHealthyException(
+            "config_error",
+            "fetch manifest names no openfda_labels blobs; it was written by a "
+            "fetch that predates snapshot selection -- re-run fetch_all_sources.py")
+    note("openfda snapshot %s: %d blob(s)"
+         % ((man.get("snapshots") or {}).get("openfda_labels", "?"), len(names)))
     return names
 
 

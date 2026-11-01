@@ -167,8 +167,14 @@ def main():
     # hash changes, so a document stamped with the old hash can never be
     # mistaken for one built from the new data. The delivery refuses to write
     # a collection whose source versions it cannot name.
+    # snapshots: the snapshot directory chosen per prefix. Written so a LOADER
+    # reads the choice rather than repeating the rule -- pg_load_02_fda used to
+    # list openfda_labels/ for itself and load all three snapshots, which is
+    # how fda_label came to hold every label three times while this program's
+    # own log said one snapshot was taken.
     manifest = {"fetched_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                "account": ACCOUNT, "container": CONTAINER, "sources": {}}
+                "account": ACCOUNT, "container": CONTAINER, "sources": {},
+                "snapshots": {}, "blobs": {}}
     for prefix in sorted(prefixes):
         mine = [b for b in blobs if b["n"].startswith(prefix + "/")]
         if not mine:
@@ -200,6 +206,10 @@ def main():
                         max(x.get("m") or "" for x in snaps[s])[:19],
                         "TAKEN" if s == newest else "superseded, left in the archive"))
             mine = snaps[newest]
+            manifest["snapshots"][prefix] = newest
+        else:
+            manifest["snapshots"][prefix] = next(iter(snaps))
+        manifest["blobs"][prefix] = sorted(b["n"] for b in mine)
         fingerprint = hashlib.sha256(
             "\n".join("%s:%s" % (b["n"], b.get("s") or 0)
                       for b in sorted(mine, key=lambda x: x["n"]))

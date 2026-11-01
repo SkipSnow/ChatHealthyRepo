@@ -77,14 +77,35 @@ def connect():
 
 
 def blob_list(prefix):
-    out = subprocess.run(
-        [AZ, "storage", "blob", "list", "--account-name", ACCOUNT,
-         "--container-name", CONTAINER, "--auth-mode", "login",
-         "--prefix", prefix, "--query", "[].name", "-o", "json"],
-        capture_output=True, text=True, timeout=600)
-    if out.returncode != 0:
-        raise ChatHealthyException("runtime_error", "list failed: " + out.stderr[:400])
-    return sorted(json.loads(out.stdout))
+    """The blobs of the ONE snapshot the fetch chose, read from its manifest.
+
+    This used to list the prefix against Azure and take every name returned.
+    The archive holds every fetch under its own hash directory, so rxnorm
+    carried two snapshots -- 31 MB on 2026-10-21 and 133 MB on 2026-10-29 --
+    and both were loaded into rxnconso together. load_vocab builds the precise
+    name map and the has_form fold from those rows, so molecule resolution was
+    reading two merged vocabularies.
+
+    The choice belongs to fetch_all_sources. No fallback: a missing manifest
+    means the fetch did not run, and this load has no business guessing.
+    """
+    key = prefix.rstrip("/")
+    man_path = os.path.join(SOURCES, "fetch_manifest.json")
+    if not os.path.isfile(man_path):
+        raise ChatHealthyException(
+            "config_error",
+            "no fetch manifest at %s -- run fetch_all_sources.py first" % man_path)
+    with open(man_path, encoding="utf-8") as fh:
+        man = json.load(fh)
+    names = sorted((man.get("blobs") or {}).get(key) or [])
+    if not names:
+        raise ChatHealthyException(
+            "config_error",
+            "fetch manifest names no %r blobs; it was written by a fetch that "
+            "predates snapshot selection -- re-run fetch_all_sources.py" % key)
+    note("  %s snapshot %s: %d blob(s)"
+         % (key, (man.get("snapshots") or {}).get(key, "?"), len(names)))
+    return names
 
 
 def fetch(name):
