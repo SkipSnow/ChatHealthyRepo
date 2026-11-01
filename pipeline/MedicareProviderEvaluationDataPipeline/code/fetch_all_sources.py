@@ -95,7 +95,8 @@ def blob_list():
                         "--account-name", ACCOUNT,
                         "--container-name", CONTAINER,
                         "--auth-mode", "login",
-                        "--query", "[].{n:name,s:properties.contentLength}",
+                        "--query", "[].{n:name,s:properties.contentLength,"
+                                   "m:properties.lastModified}",
                         "-o", "json"],
                        capture_output=True, text=True, timeout=600)
     if r.returncode != 0:
@@ -173,6 +174,32 @@ def main():
         if not mine:
             die("no blob under prefix '%s/' -- the chain needs it and the "
                 "archive does not have it" % prefix)
+        # ONE SNAPSHOT. The archive keeps every fetch it has ever made, each
+        # under its own hash directory: openfda_labels carries three, thirteen
+        # days apart, and rxnorm two. Taking every blob under the prefix takes
+        # all of them, which loaded the openFDA corpus three times over -- the
+        # measured ratio was exactly 3.0, 281,838 rows over 93,956 distinct
+        # set_ids -- and mixed three vintages of the same label into one table,
+        # so which version of a revised label won depended on load order.
+        #
+        # The schema already settled this: provenance.source_snapshot exists
+        # because "openFDA and RxNorm both change, so two runs against
+        # 'current' are two different datasets". A snapshot is the unit, so the
+        # newest one is taken whole and the older ones are left in the archive
+        # untouched. Nothing is deleted from Azure.
+        snaps = {}
+        for b in mine:
+            parts = b["n"].split("/")
+            snaps.setdefault(parts[1] if len(parts) > 2 else "", []).append(b)
+        if len(snaps) > 1:
+            newest = max(snaps, key=lambda s: max(x.get("m") or "" for x in snaps[s]))
+            for s in sorted(snaps, key=lambda s: max(x.get("m") or "" for x in snaps[s])):
+                emit("   %-26s snapshot %-18s %2d blob(s)  %8.0f MB  %s  %s"
+                     % (prefix, s or "(flat)", len(snaps[s]),
+                        sum(int(x.get("s") or 0) for x in snaps[s]) / 1e6,
+                        max(x.get("m") or "" for x in snaps[s])[:19],
+                        "TAKEN" if s == newest else "superseded, left in the archive"))
+            mine = snaps[newest]
         fingerprint = hashlib.sha256(
             "\n".join("%s:%s" % (b["n"], b.get("s") or 0)
                       for b in sorted(mine, key=lambda x: x["n"]))
