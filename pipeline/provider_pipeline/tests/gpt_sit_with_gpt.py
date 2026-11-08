@@ -338,7 +338,7 @@ def call_gpt(messages: list) -> tuple:
     )
     result = agent.run_sync("\n\n".join(rendered),
                             deps=SitTranscript(messages=rendered))
-    usage = result.usage()
+    usage = result.usage
     return (result.output.text,
             usage.input_tokens or 0,
             usage.output_tokens or 0)
