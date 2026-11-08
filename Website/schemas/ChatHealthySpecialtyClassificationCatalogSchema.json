@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthySpecialtyClassificationCatalogSchema.json",
   "title": "ChatHealthy Specialty Classification Catalog (F-105)",
-  "description": "ChatHealthy proprietary NUCC taxonomy overlay. Serves both as the source of ChatHealthy-specific flags (can_prescribe, homeopathic) for every NUCC code AND as the FHIR CodeSystem SUPPLEMENT for regulator-only codes NUCC does not publish. Each entry carries a canonical URL (system-URL + code anchor) for FHIR-compliant concept identification. Entries with is_supplemented=true carry the NUCC-equivalent metadata inline. Grounded in HL7 FHIR R5 CodeSystem-supplement pattern (https://hl7.org/fhir/R5/codesystem.html#supplements). See NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.",
+  "description": "ChatHealthy proprietary NUCC taxonomy overlay. The single source of the ChatHealthy-specific flags carried for every NUCC code, and the home of the regulator-only codes NUCC itself does not publish. An entry with is_supplemented.value true carries the NUCC-equivalent metadata inline, because there is no NUCC row to look it up in. Each entry carries a canonical URL, the catalog URL with the code as its anchor. See NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,7 +18,7 @@
     "url": {
       "type": "string",
       "format": "uri",
-      "description": "The canonical URL of this supplement file. Serves as the FHIR CodeSystem `url` (system identifier). Per-entry URLs extend this by appending #<code> as the anchor."
+      "description": "The canonical URL of this catalog. Per-entry URLs extend it by appending #<code> as the anchor."
     },
     "classifications": {
       "type": "array",
@@ -31,6 +31,7 @@
           "url",
           "can_prescribe",
           "homeopathic",
+          "psychiatric_facility",
           "is_supplemented"
         ],
         "properties": {
@@ -42,7 +43,7 @@
           "url": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical per-entry URL = supplement URL + '#' + code. Enables FHIR-compliant concept anchoring."
+            "description": "Canonical per-entry URL = catalog URL + '#' + code."
           },
           "can_prescribe": {
             "type": "boolean"
@@ -59,7 +60,7 @@
             "properties": {
               "value": {
                 "type": "boolean",
-                "description": "True for supplement entries (code not in current NUCC); false for normal NUCC-backed entries."
+                "description": "True for entries whose code is not in current NUCC; false for normal NUCC-backed entries."
               },
               "note": {
                 "type": "string",
@@ -101,6 +102,10 @@
           },
           "definition": {
             "type": "string"
+          },
+          "psychiatric_facility": {
+            "type": "boolean",
+            "description": "True if this taxonomy belongs to the psychiatric facility bucket. Membership, not derivation: the bucket cross-cuts NUCC Grouping, spanning psychiatric, behavioural and substance-use facilities, so no Grouping test produces it. Intellectual and developmental disability facilities are deliberately excluded."
           }
         },
         "allOf": [

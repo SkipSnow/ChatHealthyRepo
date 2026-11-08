@@ -25,7 +25,7 @@ from pydantic_ai import Agent, ModelRetry
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
 from chathealthy_lib.capability_contract import CapabilityContract
-from chathealthy_lib import run_llm
+from chathealthy_lib.llm import model_name, raise_agent_run_failure
 
 from chathealthy_lib.authentication.intent_document import (
     Argument,
@@ -56,6 +56,20 @@ MAX_USER_UTTERANCE_WINDOW = 10  # EPIC-002-F-010-S-001-REQ-B-006
 # ────────────────────────────────────────────────────────────────────
 # Classifier structured output
 # ────────────────────────────────────────────────────────────────────
+
+
+class SessionUnderWay(BaseModel):
+    """What an utterance agent is given: the session it is answering inside.
+
+    The session travels as its JSON rather than as the User State object, so
+    the agent's input is a pydantic model declared where the agent is, which
+    is what Rule-065 statement 11 requires. No tool on either agent reads
+    ctx.deps; the prompt carries the facts.
+    """
+    guid: str = Field(description="The session's stable identifier.")
+    session: str = Field(
+        default="{}",
+        description="The User State as JSON, or {} when there is none.")
 
 
 class GeoFacts(BaseModel):
@@ -1096,6 +1110,7 @@ def recent_transcript(deps: AgentDeps, max_count: int = MAX_USER_UTTERANCE_WINDO
 
 classifier_agent = Agent(
     LLM_MODEL,
+    deps_type=SessionUnderWay,
     output_type=ClassifierOutput,
     system_prompt=CLASSIFIER_SYSTEM_PROMPT,
     # Pinned deterministic. The safety classification (safetyLockout vs a
@@ -1240,6 +1255,7 @@ class ManufactureOutput(BaseModel):
 
 manufacture_agent = Agent(
     REASONING_LLM_MODEL,
+    deps_type=SessionUnderWay,
     output_type=ManufactureOutput,
     system_prompt=MANUFACTURE_SYSTEM_PROMPT,
 )
@@ -1326,13 +1342,14 @@ async def _run_agent(deps, agent, prompt: str, *, call_site: str):
                if deps is not None and deps.user_object is not None else "{}")
     log.info("LLM call BEGIN guid=%s call_site=%s session=%s prompt=%s",
              guid, call_site, session, prompt)
-    result = await run_llm(
-        agent, prompt,
-        call_site=call_site,
-        provider="gemini",
-        server="shared_services",
-        component="UM",
-    )
+    try:
+        result = await agent.run(
+            prompt, deps=SessionUnderWay(guid=guid, session=session))
+    except Exception as exc:
+        raise_agent_run_failure(
+            exc, provider="gemini", call_site=call_site,
+            server="shared_services", component="UM",
+            model_name_str=model_name(agent))
     log.info("LLM call END guid=%s call_site=%s output=%s",
              guid, call_site, result.output.model_dump_json())
     return result

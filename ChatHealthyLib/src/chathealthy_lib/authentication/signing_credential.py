@@ -64,7 +64,7 @@ def _env() -> str:
     return env
 
 
-def _registry_row(identity: str, reader: str) -> dict:
+def _registry_row(identity: str) -> dict:
     """The credential registered to this identity.
 
     Not per environment. The registry's unique index is on subject_dn alone,
@@ -75,7 +75,7 @@ def _registry_row(identity: str, reader: str) -> dict:
     abended at startup for want of a row nothing could create.
     """
     utilities = ChatHealthyMongoUtilities()
-    client = utilities.getConnection(reader, CONFIG_CLUSTER)
+    client = utilities.getConnection("frontendUser", "ChatHealthyFrontEnd")
     row = client[CONFIG_DATABASE][REGISTRY].find_one({
         "identity": identity,
         "purpose": "token_signing",
@@ -93,7 +93,7 @@ def _registry_row(identity: str, reader: str) -> dict:
     return row
 
 
-def _vault_pem(secret_name: str, reader: str) -> str:
+def _vault_pem(secret_name: str) -> str:
     vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
     if not vault_uri:
         raise ChatHealthyException(
@@ -101,26 +101,26 @@ def _vault_pem(secret_name: str, reader: str) -> str:
             message="KEY_VAULT_URI not set, so no signing credential can be read",
             component=COMPONENT)
     utilities = ChatHealthyMongoUtilities()
-    token = utilities._azure_token(reader)          # noqa: SLF001
+    token = utilities._azure_token("frontendUser")  # noqa: SLF001
     return utilities._vault_secret(vault_uri, token, secret_name).strip()  # noqa: SLF001
 
 
-def signing_key(identity: str, reader: str) -> str:
+def signing_key(identity: str) -> str:
     """The private key PEM this server signs with."""
-    return _credential(identity, reader, PRIVATE)
+    return _credential(identity, PRIVATE)
 
 
-def verifying_cert(identity: str, reader: str) -> str:
+def verifying_cert(identity: str) -> str:
     """The certificate PEM a token signed by `identity` verifies against."""
-    return _credential(identity, reader, PUBLIC)
+    return _credential(identity, PUBLIC)
 
 
-def _credential(identity: str, reader: str, half: str) -> str:
+def _credential(identity: str, half: str) -> str:
     key = (_env(), identity, half)
     cached = _CACHE.get(key)
     if cached is not None:
         return cached
-    row = _registry_row(identity, reader)
+    row = _registry_row(identity)
     secret_name = row.get(half)
     if not secret_name:
         raise ChatHealthyException(
@@ -129,6 +129,6 @@ def _credential(identity: str, reader: str, half: str) -> str:
                      f"so the credential cannot be found"),
             component=COMPONENT,
             context={"identity": identity, "half": half})
-    pem = _vault_pem(secret_name, reader)
+    pem = _vault_pem(secret_name)
     _CACHE[key] = pem
     return pem

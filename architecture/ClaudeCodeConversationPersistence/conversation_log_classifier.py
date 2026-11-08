@@ -23,7 +23,7 @@ from pydantic_ai.models.gemini import GeminiModel
 from pydantic_ai.providers.google_gla import GoogleGLAProvider
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.llm import run_llm_sync
+from chathealthy_lib.llm import model_name, raise_agent_run_failure
 
 CLASSIFIER_MODEL_NAME = "gemini-2.5-flash-lite"
 CLASSIFIER_VERSION = 2
@@ -62,6 +62,11 @@ class UtteranceClass(str, Enum):
     apology = "apology"
     greeting = "greeting"
     unclassified = "unclassified"
+
+
+class UtteranceToClassify(BaseModel):
+    """What the classifier is given: the utterance to classify."""
+    content: str = Field(description="The utterance, verbatim.")
 
 
 class Classification(BaseModel):
@@ -134,6 +139,7 @@ def _classifier() -> Agent:
         agent = Agent(
             GeminiModel(CLASSIFIER_MODEL_NAME,
                         provider=GoogleGLAProvider(api_key=_api_key())),
+            deps_type=UtteranceToClassify,
             output_type=Classification,
             system_prompt=SYSTEM_PROMPT,
         )
@@ -144,7 +150,7 @@ def _classifier() -> Agent:
 def classify(content: str) -> Classification | None:
     """Classify one utterance. None when there is nothing to classify.
 
-    Raises whatever the LLM facade raises after its retries -- the caller
+    Raises ChatHealthyException when the agent run fails -- the caller
     decides whether an unclassified utterance is worth failing over. The
     archive's own rule is that it is not: a record without a classification is
     still the record, and a record lost is not.
@@ -152,11 +158,15 @@ def classify(content: str) -> Classification | None:
     text = (content or "").strip()
     if not text:
         return None
-    result = run_llm_sync(
-        _classifier(), text,
-        call_site="conversation_log_classifier.classify",
-        provider="google",
-        server="conversation-log-drain",
-        component="ConversationLogClassifier",
-    )
+    agent = _classifier()
+    try:
+        result = agent.run_sync(
+            text, deps=UtteranceToClassify(content=text))
+    except Exception as exc:
+        raise_agent_run_failure(
+            exc, provider="google",
+            call_site="conversation_log_classifier.classify",
+            server="conversation-log-drain",
+            component="ConversationLogClassifier",
+            model_name_str=model_name(agent))
     return result.output

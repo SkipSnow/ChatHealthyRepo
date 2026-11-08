@@ -6,7 +6,7 @@ data-fetch agent to fetch EVERY Medicare pipeline source, to disk, in full, and
 verifies the stored bytes.
 
 For each source a FetchRequest is handed to the agent's run() -- which runs the
-pydantic-ai Agent through the ChatHealthy LLM facade -- and the file it stores is
+pydantic-ai Agent, run directly -- and the file it stores is
 inspected: it must be the expected kind (zip / text) and must NOT be an HTML
 error/landing page (a 200 that returns a landing page would otherwise pass size
 and sha checks while being garbage). Nothing is gated or partial: production

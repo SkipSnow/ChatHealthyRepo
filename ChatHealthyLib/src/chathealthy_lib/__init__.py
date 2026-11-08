@@ -11,7 +11,6 @@ from .authentication import (
     TokenWidgetData,
 )
 from .exceptions import ChatHealthyException
-from .llm import run_llm, run_llm_sync
 from .logging_service import ChatHealthyLoggingService
 
 __all__ = [
@@ -20,6 +19,4 @@ __all__ = [
     "SessionToken",
     "SessionTokenVerification",
     "TokenWidgetData",
-    "run_llm",
-    "run_llm_sync",
 ]

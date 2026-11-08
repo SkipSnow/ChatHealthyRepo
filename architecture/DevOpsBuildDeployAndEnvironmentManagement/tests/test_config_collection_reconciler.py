@@ -141,7 +141,12 @@ def _cases():
 
 @pytest.fixture()
 def cluster():
-    return ChatHealthyMongoUtilities().getConnection(_identity("local"), CLUSTER)
+    # target_identity_devops_user binds DevOpsUser in every environment,
+    # so the identity is stated here rather than looked up: a test that
+    # reads its own identity from the record under test cannot catch the
+    # record changing.
+    return ChatHealthyMongoUtilities().getConnection(
+        "DevOpsUser", "ChatHealthyFrontEnd")
 
 
 @pytest.fixture()

@@ -43,6 +43,7 @@ async def _facility_kinds(facility_type: str) -> list[dict]:
              "can_prescribe": row.get("can_prescribe", False),
              "homeopathic": row.get("homeopathic", False),
              "grouping": row.get("Grouping", ""),
+             "psychiatric_facility": row.get("psychiatric_facility", False),
              "rank": row.get("rank", 0)}
             for row in resolved.get("specialties", [])]
 

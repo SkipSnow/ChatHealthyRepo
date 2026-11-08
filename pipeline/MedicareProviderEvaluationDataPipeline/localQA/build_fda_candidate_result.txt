@@ -1,0 +1,122 @@
+DELIVER THE FDA CANDIDATE -- download to finished job
+run at 2026-11-01 15:21:37
+target: PipelinePublicHealthData.QA_fdaProductToDiagnosisResolution_v_1
+
+=== 0 download the FDA sources ===
+   running fetch_all_sources.py openfda_labels rxnorm rxnorm_rel icd10_cm ccsr medicare_coverage_icd10 medicare_coverage_hcpc clinicaltrials
+   fetch_all_sources.py ok in 292s
+
+=== 1 empty the schema ===
+   dropped 0 tables
+   kept llm_crosswalk_cache: 14,979 rows over 2,314 molecules
+
+=== 2 openFDA labels ===
+   running pg_load_02_fda.py 
+   pg_load_02_fda.py ok in 74s
+   fda_label                          93,935 rows
+   fda_name                          110,846 rows
+
+=== 3 RxNorm ===
+   running pg_load_04_rxnorm.py 
+   pg_load_04_rxnorm.py ok in 160s
+   rxnconso                        1,213,242 rows
+   rxnrel                          7,499,361 rows
+
+=== 3b the ClinicalTrials.gov corpus ===
+   running pg_load_05_clinicaltrials.py 
+   pg_load_05_clinicaltrials.py ok in 155s
+   ct_study                          609,551 rows
+   ct_intervention                 1,259,863 rows
+   ct_condition                    1,097,950 rows
+
+=== 4 resolve every label to its molecule ===
+   running fda_build_molecules.py 
+   fda_build_molecules.py ok in 16s
+   rx_ing                             51,258 rows
+   ct_bridge_t1                       40,648 rows
+   fda_mol                            34,543 rows
+   fda_brand_norm                     35,311 rows
+   distinct molecules (unfolded identity): 2,386
+      by route substance        2,343 molecules
+      by route clinical_trial   57 molecules
+
+=== 4b the ICD-10 vocabulary ===
+   running exec_04_load_icd.py 
+   exec_04_load_icd.py ok in 14s
+   icd10cm                            98,186 rows
+
+=== 5 crosswalk the label indications to ICD-10 ===
+   molecules carrying indication prose: 2,353
+   running exec_09_n4_r5_inference.py 
+   exec_09_n4_r5_inference.py ok in 973s
+   llm_crosswalk                      14,872 rows
+   molecules crosswalked: 2,301
+
+=== 6 deliver to the pipeline server ===
+   running deliver_fda_collection.py 
+
+======================================================================
+STOPPED AT STEP 6
+deliver_fda_collection.py exited 1 after 42s
+1246",
+      "...10 total"
+    ],
+    "unii": [
+      "2679MF687A",
+      "81G40H8B0T",
+      "...11 total"
+    ],
+    "substance_name": [
+      ".ALPHA.-TOCOPHEROL ACETATE, DL-",
+      "ASCORBIC ACID",
+      "...11 total"
+    ],
+    "_fda_rxcui": [
+      "1364855"
+    ],
+    "_match_set": "lit:alpha|lit:tocopherol acetate dl|rx:10454|rx:11246|rx:11248|rx:11253|rx:1151|rx:4511|rx:684879|rx:7393|rx:9346|rx:9873"
+  },
+  "label_classes": [
+    {
+      "set_id": "0800f4ef-1d98-4c0f-a016-501791973f66",
+      "drug_class": [
+        "Vitamin A [EPC]",
+        "Vitamin C [EPC]",
+        "...11 total"
+      ],
+      "product_type": "HUMAN PRESCRIPTION DRUG"
+    },
+    {
+      "set_id": "0f11c8c7-c73e-4610-83ed-e697539ac180",
+      "drug_class": [
+        "Vitamin A [EPC]",
+        "Vitamin C [EPC]",
+        "...11 total"
+      ],
+      "product_type": "HUMAN PRESCRIPTION DRUG"
+    },
+    "...12 total"
+  ],
+  "drug_class": {
+    "classes": [
+      "Analogs/Derivatives [Chemical/Ingredient]",
+      "Ascorbic Acid [CS]",
+      "...11 total"
+    ]
+  },
+  "indications": [
+    {
+      "raw_text": "Dental caries prophyla
+2026-11-01 15:50:26 INFO root - 
+2026-11-01 15:50:26 INFO root - written to C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\localQA\deliver_fda_result.txt
+2026-11-01 15:50:26 INFO root - 
+2026-11-01 15:50:26 INFO root - EXIT NON-ZERO: 31 molecule(s) were held as schema_violation. The collection is delivered and short by that many; the held records and their reasons are in pt_fda_schema_violation.
+Traceback (most recent call last):
+  File "C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\localQA\deliver_fda_collection.py", line 985, in <module>
+    main()
+  File "C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\localQA\deliver_fda_collection.py", line 979, in main
+    raise ChatHealthyException(
+chathealthy_lib.exceptions.ChatHealthyException: 31 record(s) held as schema_violation; collection delivered incomplete
+
+======================================================================
+the schema is untouched from here; nothing was dropped

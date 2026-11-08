@@ -1,0 +1,33 @@
+THE FDA MOLECULE UNIVERSE -- every FDA label, no CMS input
+run at 2026-11-01 15:33:00
+
+=== rx_ing (BR-016 has_form fold) ===
+   rx_ing: 51,258 rows
+
+=== ct_bridge_t1 (the trials alias graph) ===
+   aliases reaching exactly one ingredient: 37,248
+   aliases reaching several, rejected:      3,400
+
+=== vocabulary ===
+
+=== fda_mol: one row per FDA label ===
+   labels carrying a substance: 34,455
+   fda_mol labels=34,455  distinct match sets=2,103  distinct identity sets=2,354
+
+=== the trials rung: labels the substance route could not place ===
+   labels in fda_mol with no RxNorm identity: 216
+   labels absent from fda_mol entirely:       59,480
+   labels the trials graph places unambiguously: 129
+   existing fda_mol rows given an identity: 41
+   labels added to fda_mol: 88
+   identified labels and molecules by route:
+      substance            34,414 labels   2,343 molecules
+      clinical_trial          129 labels      57 molecules
+   distinct molecules after the trials rung: 2,386
+   fda_brand_norm: 35,311 rows
+
+=== the inference this collection implies ===
+   molecules with indication prose: 2,096
+   labels behind them: 33,355
+
+written to C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\code\fda_build_molecules_result.txt

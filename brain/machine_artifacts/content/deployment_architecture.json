@@ -473,7 +473,7 @@
           "source_location": "Website/Data/specialty_classification_gpt41.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "a00974c893ba78dc8219d256ad060f7aad7720d4bc14df55e204ae7d4572b5ff",
+          "content_hash": "76331b5e575d7738f902a76d44fe3e88e599d03f66792de0316b837e55b3b34d",
           "package": "Data"
         },
         {
@@ -825,7 +825,7 @@
           "source_location": "Website/schemas/ChatHealthySpecialtyClassificationCatalogSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "54fd5cc2646997efcde206488575a4ecaabf1fec6089e72a8d22a797b82bcad3",
+          "content_hash": "4c868d95d9d09229614d235047a30ffd0d6398183eccc99fe51d2537ac50bd50",
           "package": "json_schemas"
         },
         {
@@ -1264,10 +1264,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "ChatHealthyLib/src/chathealthy_lib/permissions.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_governance_lib_capability_enforcement.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64117447746098c850659d9d6efea9346fbf78fc82c62ebea23712669a8eba11",
+          "content_hash": "b139c8acbd18d3984fc545cdd1e15b569cc528f71495211cc894ffec30132602",
           "package": "service_runtime"
         },
         {
@@ -2303,14 +2303,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FindCare/SpecialtyFilter/facility_psychiatric_taxonomy_codes.json",
-          "handler_type": "json",
-          "disposition": "referenced",
-          "content_hash": "9defed350e59140e582087d13dc4f931527ca858630c5ec983de058f6467b099",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -2471,10 +2463,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "ChatHealthyLib/src/chathealthy_lib/permissions.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_governance_lib_capability_enforcement.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64117447746098c850659d9d6efea9346fbf78fc82c62ebea23712669a8eba11",
+          "content_hash": "b139c8acbd18d3984fc545cdd1e15b569cc528f71495211cc894ffec30132602",
           "package": "service_runtime"
         },
         {
@@ -2934,10 +2926,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "ChatHealthyLib/src/chathealthy_lib/permissions.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_governance_lib_capability_enforcement.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64117447746098c850659d9d6efea9346fbf78fc82c62ebea23712669a8eba11",
+          "content_hash": "b139c8acbd18d3984fc545cdd1e15b569cc528f71495211cc894ffec30132602",
           "package": "service_runtime"
         },
         {

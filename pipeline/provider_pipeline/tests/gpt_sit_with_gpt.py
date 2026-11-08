@@ -17,6 +17,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pydantic import BaseModel, Field
+
 from dotenv import load_dotenv
 
 import sys as _sys, pathlib as _pl
@@ -309,16 +311,37 @@ def _build_initial_prompt(requirements: list) -> str:
     return "\n".join(parts)
 
 
+class SitTranscript(BaseModel):
+    """What the reviewer is given: the conversation so far."""
+    messages: list[str] = Field(
+        default_factory=list,
+        description="The conversation turns, in order.")
+
+
+class SitReply(BaseModel):
+    """The reviewer's answer."""
+    text: str = Field(description="The reply, verbatim.")
+
+
 def call_gpt(messages: list) -> tuple:
-    import openai
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.chat.completions.create(
-        model="gpt-5.3-chat-latest",
-        messages=messages,
+    from pydantic_ai import Agent
+    from pydantic_ai.models.openai import OpenAIChatModel
+    from pydantic_ai.providers.openai import OpenAIProvider
+    rendered = [str(m.get("content", m)) if isinstance(m, dict) else str(m)
+                for m in messages]
+    agent = Agent(
+        OpenAIChatModel("gpt-5.3-chat-latest",
+                        provider=OpenAIProvider(
+                            api_key=os.getenv("OPENAI_API_KEY"))),
+        deps_type=SitTranscript,
+        output_type=SitReply,
     )
-    return (response.choices[0].message.content,
-            response.usage.prompt_tokens,
-            response.usage.completion_tokens)
+    result = agent.run_sync("\n\n".join(rendered),
+                            deps=SitTranscript(messages=rendered))
+    usage = result.usage()
+    return (result.output.text,
+            usage.input_tokens or 0,
+            usage.output_tokens or 0)
 
 
 def generate_pdf(report: dict, output_path: str):

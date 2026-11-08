@@ -11,7 +11,7 @@
 # here refuses a forbidden module at import, so a late import inside a
 # function is caught the same as one at the top of a file -- which only holds
 # if nothing has been imported ahead of this call.
-from chathealthy_lib.permissions import initialize as _ch_permissions_init
+from chathealthy_lib.runtime_governance_lib_capability_enforcement import initialize as _ch_permissions_init
 _ch_permissions_init()
 
 import asyncio
@@ -349,8 +349,7 @@ def startup_security_verification():
     resolved, 70 (EX_SOFTWARE) when it resolves and will not parse.
     """
     try:
-        from chathealthy_lib.authentication.session_token import (
-            DEFAULT_READER, TOKEN_SIGNER)
+        from chathealthy_lib.authentication.session_token import TOKEN_SIGNER
         from chathealthy_lib.authentication.signing_credential import verifying_cert
         from cryptography.x509 import load_pem_x509_certificate
     except ImportError as _imp:
@@ -361,7 +360,7 @@ def startup_security_verification():
             exit_code=78,
             exception=_imp)
     try:
-        pem = verifying_cert(TOKEN_SIGNER, DEFAULT_READER)
+        pem = verifying_cert(TOKEN_SIGNER)
     except ChatHealthyException as _res:
         raise ChatHealthyException(
             mode="startup_abend_config",

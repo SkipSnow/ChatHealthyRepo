@@ -2482,3 +2482,69 @@
 16:13:59   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0000
 16:13:59 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0000 (137.2 MB)  kept_so_far=93935
 16:14:04   +7028 kept (total 100963), otc_excluded=181940, repeated_set_ids=7028
+09:55:53 created partd_pair
+09:55:55 medicare_partd blobs: 1 -> ['medicare_partd/45387cb165f8c7a6/medicare_partd']
+09:55:55   cached C:\DataExperiments\Sources\medicare_partd\45387cb165f8c7a6\medicare_partd (4058 MB)
+09:55:55 streaming medicare_partd/45387cb165f8c7a6/medicare_partd
+09:55:55   header (22 cols): Prscrbr_NPI,Prscrbr_Last_Org_Name,Prscrbr_First_Name,Prscrbr_City,Prscrbr_State_Abrvtn,Prscrbr_State_FIPS,Prscrbr_Type,Prscrbr_Type_Src,Brnd_Name,Gnrc_Name,Tot_Clms,Tot_30day_Fills,Tot_Day_Suply,Tot_Drug_Cst,Tot_Benes,GE65_Sprsn_Flag,GE65_Tot_Clms,GE65_Tot_30day_Fills,GE65_Tot_Drug_Cst,GE65_Tot_Day_Suply,GE65_Bene_Sprsn_Flag,GE65_Tot_Benes
+09:56:00   rows=2,000,000 pairs=2479  5s
+09:56:05   rows=4,000,000 pairs=2669  10s
+09:56:10   rows=6,000,000 pairs=2791  15s
+09:56:15   rows=8,000,000 pairs=2865  20s
+09:56:20   rows=10,000,000 pairs=2924  25s
+09:56:25   rows=12,000,000 pairs=2964  30s
+09:56:30   rows=14,000,000 pairs=3000  35s
+09:56:34   rows=16,000,000 pairs=3032  39s
+09:56:39   rows=18,000,000 pairs=3063  44s
+09:56:44   rows=20,000,000 pairs=3088  49s
+09:56:48   rows=22,000,000 pairs=3106  53s
+09:56:53   rows=24,000,000 pairs=3130  58s
+09:56:58   rows=26,000,000 pairs=3152  63s
+09:57:03   rows=28,000,000 pairs=3159  68s
+09:57:03 streamed rows=28,023,892 distinct pairs=3,159 in 68s
+09:57:03 development / holdout split:
+09:57:03   DEV (in first 500K rows)   pairs=2,030  rows=28,006,077   claims=1,479,304,631
+09:57:03   HOLDOUT (tail only)        pairs=1,129  rows=17,815       claims=324,176
+09:57:03 distinct brands=3,055 distinct generics=1,823
+09:57:03 total claims=1,479,628,807 total cost=$226,740,902,131
+09:57:03 STAGE 3 DONE
+10:13:52 cached C:\DataExperiments\Sources\clinicaltrials\ctg-studies.json.zip (2778 MB)
+10:13:54 archive members: 609,551
+10:13:54    35/NCT07705035.json
+10:13:54    35/NCT05953935.json
+10:13:54    35/NCT04919135.json
+10:13:54    35/NCT01011335.json
+10:13:54    35/NCT06533735.json
+10:13:54 first member 35/NCT07705035.json is 8,446 bytes
+10:13:54    top-level keys: ['protocolSection', 'derivedSection', 'hasResults']
+10:13:54    protocolSection keys: ['identificationModule', 'statusModule', 'sponsorCollaboratorsModule', 'oversightModule', 'descriptionModule', 'conditionsModule', 'designModule', 'armsInterventionsModule', 'outcomesModule', 'eligibilityModule', 'contactsLocationsModule']
+10:13:54    interventions sample: [{"type": "BIOLOGICAL", "name": "DBC-664", "description": "DBC-664 will be administered intravenously.", "armGroupLabels": ["Part 1 (Dose Escalation)", "Part 2 (Dose Expansion)"]}]
+10:13:54 created ct_intervention
+10:14:06    studies=50,000 intervention_rows=103,131  11s
+10:14:15    studies=100,000 intervention_rows=206,855  21s
+10:14:24    studies=150,000 intervention_rows=311,344  30s
+10:14:33    studies=200,000 intervention_rows=412,993  39s
+10:14:43    studies=250,000 intervention_rows=517,893  48s
+10:14:52    studies=300,000 intervention_rows=621,307  57s
+10:15:00    studies=350,000 intervention_rows=723,854  66s
+10:15:10    studies=400,000 intervention_rows=828,613  75s
+10:15:19    studies=450,000 intervention_rows=932,719  85s
+10:15:28    studies=500,000 intervention_rows=1,034,599  94s
+10:15:38    studies=550,000 intervention_rows=1,137,544  103s
+10:15:47    studies=600,000 intervention_rows=1,239,913  112s
+10:15:48 loaded studies=609,551 intervention_rows=1,259,863
+10:16:02 indexed
+10:16:20 intervention types:
+10:16:20    DRUG             rows=554,606   distinct_names=143,329
+10:16:20    OTHER            rows=191,298   distinct_names=108,474
+10:16:20    PROCEDURE        rows=129,218   distinct_names=56,831
+10:16:20    DEVICE           rows=112,883   distinct_names=76,832
+10:16:20    BEHAVIORAL       rows=104,944   distinct_names=70,605
+10:16:20    BIOLOGICAL       rows=76,317    distinct_names=25,616
+10:16:20    DIETARY_SUPPLEMENT rows=32,937    distinct_names=18,515
+10:16:20    DIAGNOSTIC_TEST  rows=29,208    distinct_names=21,088
+10:16:20    RADIATION        rows=19,003    distinct_names=5,621
+10:16:20    COMBINATION_PRODUCT rows=5,163     distinct_names=4,227
+10:16:20    GENETIC          rows=4,286     distinct_names=2,104
+10:16:21 rows carrying an alias (otherNames): 490,096
+10:16:21 STAGE 5 DONE

@@ -258,73 +258,74 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
 
 # ── Stage 2: classify (PydanticAI Agent, structured I/O) ──────────────────
 
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal
+
+class PhraseIn(BaseModel):
+    type_code: str = Field(
+        description="NPPES Other Provider Identifier Type Code "
+                    "(\"01\"=OTHER, \"05\"=MEDICAID, or empty).")
+    issuer_text: str = Field(
+        description="Verbatim upper-cased issuer text from NPPES.")
+    sample_identifiers: List[str] = Field(
+        description="Up to 3 real identifier samples for format hints.")
+
+class BatchClassificationInput(BaseModel):
+    state: str = Field(description="US state code the batch is scoped to.")
+    phrases: List[PhraseIn]
+
+class PhraseOut(BaseModel):
+    type_code: str
+    issuer_text: str
+    classification: Literal[
+        "INSURANCE", "LICENSE", "PROVIDER_ID", "FACILITY_ID", "UNKNOWN"
+    ] = Field(
+        description="Category. INSURANCE=payer enrollment ID. "
+                    "LICENSE=state or professional license number. "
+                    "PROVIDER_ID=provider-directory ID (NPI, TAX ID, "
+                    "CAQH, NCPDP, NABP, UPIN). FACILITY_ID=facility "
+                    "ID (CLIA, DME). UNKNOWN=cannot classify.")
+    payer_type: Optional[Literal["MEDICARE", "MEDICAID", "COMMERCIAL"]] = Field(
+        default=None,
+        description="Set only when classification=INSURANCE. MEDICARE "
+                    "covers original Medicare, Railroad Medicare, "
+                    "Medicare Administrative Contractors (Palmetto GBA), "
+                    "and PTAN. MEDICAID covers any state Medicaid. "
+                    "COMMERCIAL covers everything else, including "
+                    "TRICARE/CHAMPUS.")
+    canonical_payer_name: Optional[str] = Field(
+        default=None,
+        description="Set only when classification=INSURANCE. "
+                    "UPPER_SNAKE_CASE canonical payer name that "
+                    "collapses spelling variants. Examples: "
+                    "BLUE_CROSS_BLUE_SHIELD (BCBS, BC/BS, BLUE "
+                    "CROSS, BLUE SHIELD, BLUECROSSBLUESHIELD, "
+                    "BCBSVT, BCBS OF DE, VT BCBS, PRIVATE INSURANCE "
+                    "(BCBS)); MEDICARE; RAILROAD_MEDICARE; MEDICAID; "
+                    "AETNA; CIGNA; COVENTRY; MVP_HEALTH_CARE; "
+                    "UNITED_HEALTHCARE; AMERIHEALTH; ANTHEM; TRICARE; "
+                    "HARVARD_PILGRIM; HIGHMARK; CDPHP; TUFTS; "
+                    "OXFORD_HEALTH; MAGELLAN; VALUE_OPTIONS; FIDELIS; "
+                    "GEISINGER.")
+    license_type: Optional[Literal[
+        "MEDICAL", "NURSING", "PHARMACY", "SOCIAL_WORK",
+        "PHYSICAL_THERAPY", "BUSINESS", "OTHER"
+    ]] = Field(
+        default=None,
+        description="Set only when classification=LICENSE. Broad "
+                    "category of professional or business license.")
+    reasoning: str = Field(
+        description="One short sentence explaining the classification.")
+
+class BatchClassificationOutput(BaseModel):
+    state: str
+    classifications: List[PhraseOut] = Field(
+        description="One classification per input phrase, in input order.")
+
+
 def _build_pydantic_ai_schemas():
-    """Return (PhraseIn, BatchClassificationInput, BatchClassificationOutput).
-    Import cost is paid inside the classify worker only."""
-    from pydantic import BaseModel, Field
-    from typing import List, Optional, Literal
-
-    class PhraseIn(BaseModel):
-        type_code: str = Field(
-            description="NPPES Other Provider Identifier Type Code "
-                        "(\"01\"=OTHER, \"05\"=MEDICAID, or empty).")
-        issuer_text: str = Field(
-            description="Verbatim upper-cased issuer text from NPPES.")
-        sample_identifiers: List[str] = Field(
-            description="Up to 3 real identifier samples for format hints.")
-
-    class BatchClassificationInput(BaseModel):
-        state: str = Field(description="US state code the batch is scoped to.")
-        phrases: List[PhraseIn]
-
-    class PhraseOut(BaseModel):
-        type_code: str
-        issuer_text: str
-        classification: Literal[
-            "INSURANCE", "LICENSE", "PROVIDER_ID", "FACILITY_ID", "UNKNOWN"
-        ] = Field(
-            description="Category. INSURANCE=payer enrollment ID. "
-                        "LICENSE=state or professional license number. "
-                        "PROVIDER_ID=provider-directory ID (NPI, TAX ID, "
-                        "CAQH, NCPDP, NABP, UPIN). FACILITY_ID=facility "
-                        "ID (CLIA, DME). UNKNOWN=cannot classify.")
-        payer_type: Optional[Literal["MEDICARE", "MEDICAID", "COMMERCIAL"]] = Field(
-            default=None,
-            description="Set only when classification=INSURANCE. MEDICARE "
-                        "covers original Medicare, Railroad Medicare, "
-                        "Medicare Administrative Contractors (Palmetto GBA), "
-                        "and PTAN. MEDICAID covers any state Medicaid. "
-                        "COMMERCIAL covers everything else, including "
-                        "TRICARE/CHAMPUS.")
-        canonical_payer_name: Optional[str] = Field(
-            default=None,
-            description="Set only when classification=INSURANCE. "
-                        "UPPER_SNAKE_CASE canonical payer name that "
-                        "collapses spelling variants. Examples: "
-                        "BLUE_CROSS_BLUE_SHIELD (BCBS, BC/BS, BLUE "
-                        "CROSS, BLUE SHIELD, BLUECROSSBLUESHIELD, "
-                        "BCBSVT, BCBS OF DE, VT BCBS, PRIVATE INSURANCE "
-                        "(BCBS)); MEDICARE; RAILROAD_MEDICARE; MEDICAID; "
-                        "AETNA; CIGNA; COVENTRY; MVP_HEALTH_CARE; "
-                        "UNITED_HEALTHCARE; AMERIHEALTH; ANTHEM; TRICARE; "
-                        "HARVARD_PILGRIM; HIGHMARK; CDPHP; TUFTS; "
-                        "OXFORD_HEALTH; MAGELLAN; VALUE_OPTIONS; FIDELIS; "
-                        "GEISINGER.")
-        license_type: Optional[Literal[
-            "MEDICAL", "NURSING", "PHARMACY", "SOCIAL_WORK",
-            "PHYSICAL_THERAPY", "BUSINESS", "OTHER"
-        ]] = Field(
-            default=None,
-            description="Set only when classification=LICENSE. Broad "
-                        "category of professional or business license.")
-        reasoning: str = Field(
-            description="One short sentence explaining the classification.")
-
-    class BatchClassificationOutput(BaseModel):
-        state: str
-        classifications: List[PhraseOut] = Field(
-            description="One classification per input phrase, in input order.")
-
+    """The three schemas, kept as a function so existing callers keep
+    working."""
     return PhraseIn, BatchClassificationInput, BatchClassificationOutput
 
 
@@ -399,14 +400,15 @@ def _make_agent(output_cls):
     # ~1000-1500 phrases without truncation.
     return Agent(
         _LLM_MODEL_ID,
-        output_type=output_cls,
+        deps_type=BatchClassificationInput,
+        output_type=BatchClassificationOutput,
         system_prompt=_SYSTEM_PROMPT,
         retries=3,
         model_settings=ModelSettings(max_tokens=65000),
     )
 
 
-def _run_llm_call(
+def _classify_batch(
     agent,
     state: str,
     phrases: list[dict],
@@ -430,7 +432,7 @@ def _run_llm_call(
         ],
     )
     try:
-        result = agent.run_sync(batch_in.model_dump_json())
+        result = agent.run_sync(batch_in.model_dump_json(), deps=batch_in)
     except Exception:
         return {}
     got = result.output if hasattr(result, "output") else result.data
@@ -480,7 +482,7 @@ def _classify_iteratively(
         new_remaining: list[dict] = []
         for start in range(0, len(remaining), _CHUNK_SIZE):
             chunk = remaining[start:start + _CHUNK_SIZE]
-            by_key = _run_llm_call(agent, state, chunk, phrase_cls, input_cls)
+            by_key = _classify_batch(agent, state, chunk, phrase_cls, input_cls)
             if not by_key:
                 new_remaining.extend(chunk)
                 continue

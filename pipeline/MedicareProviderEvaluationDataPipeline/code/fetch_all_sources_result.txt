@@ -1,0 +1,42 @@
+FETCH RAW SOURCES
+run at 2026-11-01 15:21:37
+destination: C:\DataExperiments\Sources
+requested: openfda_labels, rxnorm, rxnorm_rel, icd10_cm, ccsr, medicare_coverage_icd10, medicare_coverage_hcpc, clinicaltrials
+
+=== Azure: stchpipelinedev/dev-pipeline-sources ===
+   64 blobs in the container
+   ccsr                         1 blob(s)         4 MB  ok  ccsr@a1dde1d63e314f96
+   icd10_cm                     1 blob(s)         2 MB  ok  icd10_cm@f4c5c2e7625c1ca9
+   medicare_coverage_hcpc     snapshot e311536cdeee7c68    1 blob(s)         6 MB  2026-10-09T18:49:50  superseded, left in the archive
+   medicare_coverage_hcpc     snapshot de69bfa6b9e73a10    1 blob(s)         6 MB  2026-10-15T03:06:43  superseded, left in the archive
+   medicare_coverage_hcpc     snapshot 7457b3fc4107dce0    1 blob(s)         5 MB  2026-10-29T19:40:17  TAKEN
+   medicare_coverage_hcpc       1 blob(s)         5 MB  ok  medicare_coverage_hcpc@96126a3364a2a119
+   medicare_coverage_icd10    snapshot d0b0d7f636bd93fd    1 blob(s)        60 MB  2026-10-29T01:19:19  superseded, left in the archive
+   medicare_coverage_icd10    snapshot 9ef411699fe02af9    1 blob(s)        57 MB  2026-10-29T19:40:18  TAKEN
+   medicare_coverage_icd10      1 blob(s)        57 MB  ok  medicare_coverage_icd10@c863eea99c6fce28
+   openfda_labels             snapshot dbf6938b27a735ce   14 blob(s)      1859 MB  2026-10-16T22:39:47  superseded, left in the archive
+   openfda_labels             snapshot f36f7e0ffbd382d5   14 blob(s)      1859 MB  2026-10-21T13:49:23  superseded, left in the archive
+   openfda_labels             snapshot 0fdb337f54ef821f   14 blob(s)      1859 MB  2026-10-29T19:41:18  TAKEN
+   openfda_labels              14 blob(s)      1859 MB  ok  openfda_labels@1a690087c48044b8
+   rxnorm                     snapshot 555730c3ff2a9817    1 blob(s)        31 MB  2026-10-21T04:52:51  superseded, left in the archive
+   rxnorm                     snapshot ae92f92de757ef30    1 blob(s)       133 MB  2026-10-29T01:19:24  TAKEN
+   rxnorm                       1 blob(s)       133 MB  ok  rxnorm@e26e24a0220ef482
+   rxnorm_rel                   1 blob(s)       533 MB  ok  rxnorm_rel@b300f2f5e2ccec1f
+
+   source versions recorded in C:\DataExperiments\Sources\fetch_manifest.json
+
+=== ClinicalTrials.gov (not in the Azure archive) ===
+   downloading https://clinicaltrials.gov/api/v2/studies/download?format=json.zip ...
+   downloaded 2778 MB in 81s
+   clinicaltrials                 2778 MB  zip, 609,551 entries
+
+=== EVERY REQUESTED SOURCE PRESENT ===
+   5.4 GB across 8 source sets in 5 minutes
+
+   recorded gap: the clinical-trials corpus is NOT archived in
+   Azure. It is fetched from the public source, so the rebuild
+   depends on ClinicalTrials.gov being reachable. Archiving it
+   would remove that dependency and is a write to a dev source
+   container, which is the operator's to authorise.
+
+written to C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\code\fetch_all_sources_result.txt

@@ -92,6 +92,7 @@ import sys
 import pytest
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+from pydantic import BaseModel, Field
 
 # The repository root, and the one environment file in it. There is
 # exactly one .env and it is here; the suite reads it once, at import,
@@ -575,6 +576,18 @@ def _new_session(page):
 ANSWER_MODEL = os.getenv("UAT_ANSWER_MODEL", "anthropic:claude-opus-5")
 MAX_REPLIES = 3
 
+class PersonBeingAsked(BaseModel):
+    """What the stand-in person knows: why they came, and what they were
+    just asked."""
+    goal: str = Field(description="The goal the person came with.")
+    question: str = Field(description="What the site just asked them.")
+
+
+class PersonsReply(BaseModel):
+    """What the person says back."""
+    reply: str = Field(description="One short sentence, plain words.")
+
+
 _ANSWER_AGENT = None
 
 
@@ -586,7 +599,8 @@ def _answer_agent():
         from pydantic_ai import Agent
         _ANSWER_AGENT = Agent(
             ANSWER_MODEL,
-            output_type=str,
+            deps_type=PersonBeingAsked,
+            output_type=PersonsReply,
             system_prompt=(
                 "You are a person using a healthcare search site. You are "
                 "shown the goal you came with and the question the site "
@@ -607,20 +621,25 @@ def _reply_to(question: str, goal: str) -> str:
     import sys
     import concurrent.futures
     sys.path.insert(0, os.path.join(REPO_ROOT, "ChatHealthyLib", "src"))
-    from chathealthy_lib.llm import run_llm_sync
+    from chathealthy_lib.llm import model_name, raise_agent_run_failure
 
     def _call():
-        return run_llm_sync(
-            _answer_agent(),
-            f"THE GOAL YOU CAME WITH: {goal}\n\n"
-            f"WHAT THE SITE JUST ASKED YOU:\n{question}\n\n"
-            "Reply as that person, in one short sentence.",
-            call_site="uat._answer_agent", provider="anthropic",
-            server="uat", component="find_care_windows_uat_test")
+        agent = _answer_agent()
+        try:
+            return agent.run_sync(
+                f"THE GOAL YOU CAME WITH: {goal}\n\n"
+                f"WHAT THE SITE JUST ASKED YOU:\n{question}\n\n"
+                "Reply as that person, in one short sentence.",
+                deps=PersonBeingAsked(goal=goal, question=question))
+        except Exception as exc:
+            raise_agent_run_failure(
+                exc, provider="anthropic", call_site="uat._answer_agent",
+                server="uat", component="find_care_windows_uat_test",
+                model_name_str=model_name(agent))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         result = pool.submit(_call).result(timeout=60)
-    return (result.output or "").strip()
+    return (result.output.reply or "").strip()
 
 
 def _said_to_the_person(page) -> str:

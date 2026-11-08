@@ -89,6 +89,8 @@ def execute(ctx) -> dict:
              "is_supplemented": is_supp,
              "can_prescribe": bool(f105_entry.get("can_prescribe", False)),
              "is_homeopathic": bool(f105_entry.get("is_homeopathic", False)),
+             "psychiatric_facility": bool(
+                 f105_entry.get("psychiatric_facility", False)),
              "is_disqualified": bool(f105_entry.get("is_disqualified", False)),
          }
          if is_supp:
@@ -138,6 +140,8 @@ def execute(ctx) -> dict:
             "is_supplemented": True,
             "can_prescribe": bool(entry.get("can_prescribe", False)),
             "is_homeopathic": bool(entry.get("is_homeopathic", False)),
+            "psychiatric_facility": bool(
+                entry.get("psychiatric_facility", False)),
             "is_disqualified": bool(entry.get("is_disqualified", False)),
             "_source_row_index": -1,  # sentinel: not from source CSV
         }))

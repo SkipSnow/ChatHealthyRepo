@@ -117,6 +117,36 @@ def apply_indexes(collection, index_specs: list[dict]) -> list[dict]:
     return results
 
 
+def _client_for(identity: str, cluster: str, host: str):
+    """The client for one catalog entry's declared identity and cluster.
+
+    Written out rather than passed through, so each pair is readable here.
+    The index catalog declares two identities against two clusters; a pair it
+    does not declare raises rather than being opened on a guess.
+    """
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: PLC0415
+    utilities = ChatHealthyMongoUtilities(manage_versions=False)
+    pair = (identity, cluster)
+    if pair == ("pipelineEditor", "ChatHealthyDataPipelines"):
+        return utilities.getConnection(
+            "pipelineEditor", "ChatHealthyDataPipelines", host=host)
+    if pair == ("pipelineEditor", "ChatHealthyFrontEnd"):
+        return utilities.getConnection(
+            "pipelineEditor", "ChatHealthyFrontEnd", host=host)
+    if pair == ("DevOpsUser", "ChatHealthyDataPipelines"):
+        return utilities.getConnection(
+            "DevOpsUser", "ChatHealthyDataPipelines", host=host)
+    if pair == ("DevOpsUser", "ChatHealthyFrontEnd"):
+        return utilities.getConnection(
+            "DevOpsUser", "ChatHealthyFrontEnd", host=host)
+    raise ChatHealthyException(
+        mode="config_error",
+        component="chathealthy_lib.mongo_indexes",
+        message=f"the index catalog names identity {identity!r} on cluster "
+                f"{cluster!r}, which this module does not open. Add the pair "
+                f"here so the call site states it.")
+
+
 def apply_index_catalog(entries: list[dict], *, resolve_collection,
                         host_for=None) -> list[dict]:
     """Apply a list of fully-qualified index-catalog entries.
@@ -133,15 +163,15 @@ def apply_index_catalog(entries: list[dict], *, resolve_collection,
                        the deploy path passes cluster_host.host_for).
 
     Connects per entry as that entry's identity, so each write is authorized by
-    that identity's certificate and nothing else.
+    that identity's certificate and nothing else. _client_for writes each
+    identity-and-cluster pair out as literals, so the pairs this module opens
+    are readable here rather than assembled from catalog data.
     """
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: PLC0415
     out: list[dict] = []
     for entry in entries:
         coll_name = resolve_collection(entry)
         host = host_for(entry["cluster"]) if host_for else ""
-        client = ChatHealthyMongoUtilities(manage_versions=False).getConnection(
-            entry["identity"], entry["cluster"], host=host)
+        client = _client_for(entry["identity"], entry["cluster"], host)
         results = apply_indexes(client[entry["db"]][coll_name], entry["indexes"])
         out.append({
             "catalog_id": entry.get("catalog_id"),

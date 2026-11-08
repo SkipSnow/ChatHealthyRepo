@@ -52,7 +52,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-from chathealthy_lib.mutex import give_back, take
+from chathealthy_lib.mutex import collection_for, give_back, take
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 def _mark(step: str) -> None:
@@ -109,11 +109,9 @@ _AUTHORIZATION_TYPE = "data_migration"
 # and given back by the library: admitting a job and performing one are
 # different concerns.
 _MUTEX = "data_migration_service"
-_MIGRATOR = "PipelineToFrontEndPublicDataMigrator"
 _SOURCE_CLUSTER = "ChatHealthyDataPipelines"
 _WAKE_POLL_SECONDS = 5
 _WAKE_DEADLINE_SECONDS = 900
-_FRONT_END = "ChatHealthyFrontEnd"
 # The service's answer to a human approval, referencing it by key. A distinct
 # type because it is a distinct fact: the approval says a person released the
 # work, the acknowledgement says a service took that release up.
@@ -542,7 +540,13 @@ def main() -> int:
     refusal: ChatHealthyException | None = None
     try:
         _mark("taking the mutex: asking whether another job holds it")
-        take(_MIGRATOR, _FRONT_END, _MUTEX,
+        # The identity is a literal here because this is the only place that
+        # can state it: the mutex library serves more than one identity and
+        # cannot name ours for us.
+        _mutex_collection = collection_for(
+            ChatHealthyMongoUtilities().getConnection(
+                "PipelineToFrontEndPublicDataMigrator", "ChatHealthyFrontEnd"))
+        take(_mutex_collection, _MUTEX,
              holder="data_migration", about=collection)
         _mark("taken: this job holds the mutex")
     except ChatHealthyException as exc:
@@ -566,7 +570,7 @@ def main() -> int:
     try:
         return _migrate(body, collection)
     finally:
-        give_back(_MIGRATOR, _FRONT_END, _MUTEX)
+        give_back(_mutex_collection, _MUTEX)
         _log.LogPipeline("INFO", "data_migration gave the mutex back collection=%s",
                   collection)
 

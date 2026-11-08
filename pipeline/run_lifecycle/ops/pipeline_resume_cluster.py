@@ -116,7 +116,7 @@ class AtlasCluster:
                 return f"{exc.code} {raw[:130]}"
 
 
-def _answers(cluster_name: str, identity: str) -> bool:
+def _answers(cluster_name: str) -> bool:
     """True when the cluster answers a ping.
 
     Whether a database is up is not a question about a status label. Atlas
@@ -125,7 +125,8 @@ def _answers(cluster_name: str, identity: str) -> bool:
     wait against a database that was working. So this asks the database.
     """
     try:
-        client = ChatHealthyMongoUtilities().getConnection(identity, cluster_name)
+        client = ChatHealthyMongoUtilities().getConnection(
+            "pipelineEditor", "ChatHealthyDataPipelines")
         client["admin"].command("ping")
         return True
     except Exception as exc:  # noqa: BLE001
@@ -145,7 +146,7 @@ def _raise_not_usable(cluster_name: str, pings: int, writes: int,
         cluster_name=cluster_name)
 
 
-def _wait_until_usable(cluster_name: str, identity: str) -> None:
+def _wait_until_usable(cluster_name: str) -> None:
     """Return when the cluster takes a write. Raise after ten minutes.
 
     An outer ping loop and an inner write loop. The ping is the cheap
@@ -172,7 +173,7 @@ def _wait_until_usable(cluster_name: str, identity: str) -> None:
 
     while time.monotonic() - began < _DEADLINE_SECONDS:
         pings += 1
-        if not _answers(cluster_name, identity):
+        if not _answers(cluster_name):
             if due():
                 log.LogPipeline("INFO", "still pinging %s after %.0fs, %d ping(s)",
                          cluster_name, time.monotonic() - began, pings)
@@ -183,12 +184,13 @@ def _wait_until_usable(cluster_name: str, identity: str) -> None:
             writes += 1
             try:
                 collection = (ChatHealthyMongoUtilities()
-                              .getConnection(identity, cluster_name)
+                              .getConnection("pipelineEditor",
+                                             "ChatHealthyDataPipelines")
                               [_READINESS_DB][_READINESS_COLLECTION])
                 collection.replace_one(
                     {"_id": _READINESS_ID},
                     {"_id": _READINESS_ID, "cluster_name": cluster_name,
-                     "written_by": identity, "attempt": writes,
+                     "written_by": "pipelineEditor", "attempt": writes,
                      "written_at": datetime.now(timezone.utc)},
                     upsert=True)
                 log.LogPipeline("INFO", "%s took a write after %.0fs, %d ping(s), %d write "
@@ -211,8 +213,6 @@ def _resume(parser):
     parser.add_argument("--cluster",
                         default=os.environ.get("PIPELINE_CLUSTER",
                                                "ChatHealthyDataPipelines"))
-    parser.add_argument("--identity", default="pipelineEditor",
-                        help="the identity the ping connects as")
     parser.add_argument("--interval", type=int, default=60,
                         help="seconds between attempts (default 60)")
     args = parser.parse_args()
@@ -247,7 +247,7 @@ def _resume(parser):
             log.LogPipeline("INFO", "%s is un-paused after %d attempt(s); Atlas says %s. "
                      "Pinging every %ds.",
                      args.cluster, attempt, state, _PING_SECONDS)
-            _wait_until_usable(args.cluster, args.identity)
+            _wait_until_usable(args.cluster)
             return 0
 
         reason = cluster.resume()

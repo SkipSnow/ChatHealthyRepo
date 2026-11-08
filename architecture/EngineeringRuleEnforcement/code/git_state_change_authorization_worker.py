@@ -706,8 +706,41 @@ class GitStateChangeAuthorization:
         "--contains", "--merged", "--no-merged", "--show-toplevel",
     })
 
+    # Flags that make `git reset` do more than move entries out of the index:
+    # --hard discards working-tree changes, the others move HEAD or rewrite
+    # what the next commit is based on.
+    RESET_BEYOND_THE_INDEX = frozenset({
+        "--hard", "--soft", "--merge", "--keep", "--mixed",
+    })
+
+    def unstages_only(self, segment: str, subcommand: str) -> bool:
+        """`git reset <path>` takes a file out of the index and nothing else.
+
+        Staging and unstaging are one act in two directions. `add` is passed
+        through because the commit-msg gate holds the decision that matters,
+        and the same reasoning covers the reverse: an unstaged file cannot
+        reach a commit, so unstaging can only REDUCE what a commit carries
+        and can introduce nothing. Gating one direction and not the other left
+        a file that could be staged and not unstaged.
+
+        Narrow on purpose. A reset carrying --hard, --soft, --merge, --keep or
+        --mixed, or naming no path, is not this: it discards working-tree
+        changes or moves the branch pointer, which is a repository state
+        change and stays gated.
+        """
+        if subcommand != "reset":
+            return False
+        words = segment.split()
+        if any(w in self.RESET_BEYOND_THE_INDEX for w in words):
+            return False
+        after = words[words.index("reset") + 1:] if "reset" in words else []
+        paths = [w for w in after if not w.startswith("-") and w != "HEAD"]
+        return bool(paths)
+
     def is_read_only_form(self, segment: str, subcommand: str) -> bool:
         """Some subcommands read or write depending on their flags."""
+        if self.unstages_only(segment, subcommand):
+            return True
         if subcommand not in ("tag", "branch", "remote", "notes", "stash",
                               "submodule", "config", "worktree", "reflog"):
             return False

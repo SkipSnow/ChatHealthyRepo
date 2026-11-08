@@ -1,0 +1,50 @@
+EXECUTION STEP 9 -- N4 + R5 via the benchmarked tool
+run at 2026-11-01 15:33:33
+model=gpt-5.6-luna  catalog=icd10_categories_top3levels.xlsx
+authority: EPIC-010-F-007-S-008 benchmark; Pass 3 = 97.7% after retest-on-drop
+
+molecules with indication prose to crosswalk: 2,353
+inference records prepared: 2,353
+
+=== the durable crosswalk ===
+  molecules to deliver          2,353
+  already inferred (reused)     2,182
+  going to the model this run   171
+catalog codes loaded: 12,014
+
+  pass 1: fired=171 returned=171  967s
+
+=== RETEST-ON-DROP (test plan section 5, mandatory) ===
+  fired=171 returned=171 dropped=0 (0.0%)
+  total elapsed 967s
+
+  delivered from the durable crosswalk: 14,872 rows over 2,301 molecules
+
+=== WHAT THE INFERENCE PRODUCED ===
+  records persisted=171 indications=322 codes=698
+  molecules=2,301 indications=4,094 distinct codes=2,188  L3=7,534 L4=7,234 indications with NO code=104
+
+=== HALLUCINATION CHECK -- codes outside the catalog ===
+  distinct codes returned=2,188   outside the catalog=2
+  offenders: B579, M139
+
+=== COVERAGE, against the benchmark's 97.7% ===
+  molecules reaching at least one ICD code: 2,260 of 171 (1321.6%)
+
+=== SAMPLE OUTPUT ===
+  lit:1 2|lit:do Prevention of folate/cofactor defi D52       L3 0.45  Folate deficiency anemia
+  lit:1 2|lit:do Prevention of folate/cofactor defi D529      L4 0.45  Folate deficiency anemia, unspecif
+  lit:1 2|lit:do Vitamin B12 deficiency             D51       L3 0.92  Vitamin B12 deficiency anemia
+  lit:1 2|lit:do Vitamin B12 deficiency             D519      L4 0.92  Vitamin B12 deficiency anemia, uns
+  lit:111 oxyqui Localization of infectious or infl B99       L3 0.42  Other and unspecified infectious d
+  lit:111 oxyqui Localization of infectious or infl B999      L4 0.42  Unspecified infectious disease
+  lit:123|lit:so Diagnostic evaluation of thyroid f E07       L3 0.32  Other disorders of thyroid
+  lit:123|lit:so Diagnostic evaluation of thyroid f E079      L4 0.32  Disorder of thyroid, unspecified
+  lit:123|rx:142 Suspected dementia with Lewy bodie F02       L3 0.58  Dementia in other diseases classif
+  lit:123|rx:142 Suspected dementia with Lewy bodie F028      L4 0.58  Dementia in other diseases classd 
+  lit:123|rx:142 Suspected Parkinsonian syndrome    G20       L3 0.84  Parkinson's disease
+  lit:123|rx:142 Suspected Parkinsonian syndrome    G20C      L4 0.84  Parkinsonism, unspecified
+  lit:125|rx:915 Renal disease requiring glomerular N28       L3 0.56  Oth disorders of kidney and ureter
+  lit:125|rx:915 Renal disease requiring glomerular N289      L4 0.56  Disorder of kidney and ureter, uns
+
+written to C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\code\exec_09_inference_result.txt

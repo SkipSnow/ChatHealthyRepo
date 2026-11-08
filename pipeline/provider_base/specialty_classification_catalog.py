@@ -5,6 +5,8 @@ Maps every NUCC taxonomy code to booleans:
   - is_homeopathic    (true if the role is homeopathic)
   - is_npi_registered (optional; defaults False)
   - is_disqualified   (optional; defaults False. Curated per BUG-005.)
+  - psychiatric_facility (true if the taxonomy is in the psychiatric
+                      facility bucket)
 
 The catalog JSON is a public document published to the ChatHealthy website
 under Data/. The URL is passed to this process as the env var
@@ -104,6 +106,8 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
                 is_supplemented = False
             out[code] = {
                 "can_prescribe": bool(row.get("can_prescribe", False)),
+                "psychiatric_facility": bool(
+                    row.get("psychiatric_facility", False)),
                 "is_homeopathic": bool(homeopathic),
                 "is_supplemented": is_supplemented,
                 "grouping": row.get("grouping"),

@@ -22,7 +22,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from chathealthy_lib.llm import run_llm
+from chathealthy_lib.llm import model_name, raise_agent_run_failure
 from chathealthy_lib.runtime_data_collections import specialty_meta_coll
 
 # Resolve project root from this file's location:
@@ -70,8 +70,9 @@ UNLICENSED_GROUPS = {"Other Service Providers", "Student, Health Care"}
 # Psychiatric — the way the care-giver filter offers Prescribers and
 # Homeopathic. Each is a MEMBERSHIP set, never a derivation and never a
 # regex (the specialty/RAG path forbids regex): a facility taxonomy is in a
-# bucket because its Grouping is in the bucket's Grouping set, or because its
-# code is in the curated psychiatric list. Equality and set membership only.
+# bucket because its Grouping is in the bucket's Grouping set, or because the
+# NUCC classification catalog flags it psychiatric_facility. Equality and set
+# membership only.
 AMBULATORY_GROUPING = "Ambulatory Health Care Facilities"
 INPATIENT_GROUPINGS = frozenset({
     "Hospitals",
@@ -80,38 +81,18 @@ INPATIENT_GROUPINGS = frozenset({
     "Residential Treatment Facilities",
     "Respite Care Facility",
 })
-# The curated psychiatric set lives in data next to this module so the
-# curation can be tuned without a code change (see the file's own _note).
-FACILITY_PSYCHIATRIC_CODES_PATH = (
-    Path(__file__).resolve().parent / "facility_psychiatric_taxonomy_codes.json")
-
-
-def _facility_psychiatric_codes() -> frozenset[str]:
-    """The curated psychiatric/behavioral/substance-use facility codes.
-
-    Membership, not derivation: psychiatric cross-cuts NUCC Grouping, so it
-    is a hand-curated code list rather than a Grouping test. Read from the
-    config file next to this module; a psychiatric bucket that could not be
-    read is an empty bucket, not a fallback to some other rule.
-    """
-    with FACILITY_PSYCHIATRIC_CODES_PATH.open(encoding="utf-8") as f:
-        d = json.load(f)
-    return frozenset(str(c) for c in d.get("codes", []))
-
-
 def facility_groups(offered: list[dict]) -> dict:
     """The facility macro-toggle code-sets the panel ticks as one gesture.
 
     `offered` rows carry `code` and `grouping` (the SpecialtyMetaData
     Grouping the funnel already projected). Each set is computed by
     membership only: ambulatory and inpatient by Grouping equality/set
-    membership, psychiatric by the curated code list intersected with what
-    was offered. default_selected_codes is the whole offered set — a fresh
+    membership, psychiatric by the taxonomy's psychiatric_facility flag.
+    default_selected_codes is the whole offered set — a fresh
     facility panel searches every offered type until the person narrows it
     with a toggle, mirroring how the facility search already runs on every
     offered code.
     """
-    psych = _facility_psychiatric_codes()
     all_codes = [r["code"] for r in offered if r.get("code")]
     return {
         "all_codes": all_codes,
@@ -121,9 +102,28 @@ def facility_groups(offered: list[dict]) -> dict:
         "inpatient_codes": [r["code"] for r in offered
                             if r.get("code")
                             and r.get("grouping") in INPATIENT_GROUPINGS],
-        "psychiatric_codes": [c for c in all_codes if c in psych],
+        "psychiatric_codes": [r["code"] for r in offered
+                              if r.get("code")
+                              and r.get("psychiatric_facility")],
         "default_selected_codes": all_codes,
     }
+
+
+class ComplaintText(BaseModel):
+    """Stage 1's input: what the person asked for, and the complaint the
+    previous turn resolved, against which the model judges material change."""
+    request: str = Field(description="The person's request, verbatim.")
+    prior_complaint: str = Field(
+        default="",
+        description="The complaint the previous turn settled on, or empty.")
+
+
+class CandidateCodes(BaseModel):
+    """Stage 4's input: the candidate set the model may draw codes from."""
+    search_term: str = Field(description="The NUCC-aligned search text.")
+    candidates: list[str] = Field(
+        default_factory=list,
+        description="The candidate NUCC codes and their labels, as offered.")
 
 
 class NormalizedRequest(BaseModel):
@@ -224,11 +224,8 @@ class SpecialtyFilter:
         self._normalize_model = normalize_model
         self._filter_model = filter_model
         # Two agents, because the two stages are two different asks with two
-        # different prompts and two different output shapes. What they stop
-        # keeping is a client, a credential, a retry policy and a vendor
-        # quirk -- all of that is the facade's.
-        # One agent pair per partition, because the two stages differ
-        # only in their prompt text.
+        # different prompts and two different output shapes. One agent pair
+        # per partition, because the two stages differ only in prompt text.
         self._normalize_agents: dict = {}
         self._filter_agents: dict = {}
         # Lazily loaded so the class can be instantiated even if prompts.json
@@ -257,6 +254,7 @@ class SpecialtyFilter:
                 system += self._CACHE_DECISION_INSTRUCTION
             agent = Agent(
                 f"openai:{self._normalize_model}",
+                deps_type=ComplaintText,
                 output_type=NormalizedRequest,
                 system_prompt=system,
             )
@@ -278,6 +276,7 @@ class SpecialtyFilter:
             _, filter_prompt = self._prompt_pair(section)
             self._filter_agents[section] = Agent(
                 f"openai:{self._filter_model}",
+                deps_type=CandidateCodes,
                 output_type=KeptCodes,
                 system_prompt=filter_prompt,
             )
@@ -359,10 +358,17 @@ request is MATERIALLY the same kind of problem:
         message = raw_query
         if ask_cache and prior_complaint.strip():
             message = f"PRIOR COMPLAINT: {prior_complaint.strip()}\n\n{raw_query}"
-        result = await run_llm(
-            self._ensure_normalize_agent(section, ask_cache), message,
-            call_site="SpecialtyFilter.normalize_query",
-            provider="openai", server="find_care", component="SpecialtyFilter")
+        agent = self._ensure_normalize_agent(section, ask_cache)
+        try:
+            result = await agent.run(
+                message,
+                deps=ComplaintText(request=raw_query,
+                                   prior_complaint=prior_complaint.strip()))
+        except Exception as exc:
+            raise_agent_run_failure(
+                exc, provider="openai", call_site="SpecialtyFilter.normalize_query",
+                server="find_care", component="SpecialtyFilter",
+                model_name_str=model_name(agent))
         out = result.output
         out.search_term = out.search_term.strip()
         out.complaint = out.complaint.strip()
@@ -434,10 +440,19 @@ request is MATERIALLY the same kind of problem:
             f"Normalized request (from upstream LLM): {normalized!r}\n\n"
             f"Candidate NUCC entries (highest cosine first):\n{cand_block}\n"
         )
-        result = await run_llm(
-            self._ensure_filter_agent(section), user_msg,
-            call_site="SpecialtyFilter.filter_candidates",
-            provider="openai", server="find_care", component="SpecialtyFilter")
+        agent = self._ensure_filter_agent(section)
+        try:
+            result = await agent.run(
+                user_msg,
+                deps=CandidateCodes(
+                    search_term=normalized,
+                    candidates=[c["Code"] for c in candidates]))
+        except Exception as exc:
+            raise_agent_run_failure(
+                exc, provider="openai",
+                call_site="SpecialtyFilter.filter_candidates",
+                server="find_care", component="SpecialtyFilter",
+                model_name_str=model_name(agent))
         # The model chooses among registry facts and cannot invent one: its
         # answer is intersected with the candidate set the catalogue
         # actually returned. That intersection is what makes the semantic

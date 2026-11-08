@@ -10,8 +10,8 @@ which learned utterances become trusted deterministic triggers.
 For now the utterances are not categorized: the report is just the
 utterance and its count, ordered by frequency (most-locked-out first).
 
-Run locally:  python architecture/SafetyLockoutReport/lockout_utterances_report.py --identity claudeCodeAgent --out <path>
-As a runbook: run_as_runbook() reads the collection under the runbook's identity.
+Run locally:  python architecture/SafetyLockoutReport/lockout_utterances_report.py --out <path>
+As a runbook: run_as_runbook() reads the collection as frontendUser.
 
 The report LOGIC (build_workbook) is separate from the connection so it can
 be tested against records without a live cluster.
@@ -53,16 +53,21 @@ def build_workbook(records: list[dict[str, Any]]):
     return wb
 
 
-def read_utterances(identity: str, cluster: str = _CLUSTER) -> list[dict[str, Any]]:
-    """Every lockout-utterance record, read under the given identity."""
+def read_utterances() -> list[dict[str, Any]]:
+    """Every lockout-utterance record, read as frontendUser.
+
+    frontendUser is the identity granted on Users; the same literal appears
+    at every other call site that reads that database.
+    """
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-    coll = ChatHealthyMongoUtilities().getConnection(identity, cluster)[_DB][_COLLECTION]
+    coll = ChatHealthyMongoUtilities().getConnection(
+        "frontendUser", "ChatHealthyFrontEnd")[_DB][_COLLECTION]
     return list(coll.find({}, {"_id": 0, "record_number": 1, "utterance": 1, "count": 1}))
 
 
-def write_report(identity: str, out_path: Path) -> Path:
-    records = read_utterances(identity)
+def write_report(out_path: Path) -> Path:
+    records = read_utterances()
     wb = build_workbook(records)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(str(out_path))
@@ -72,28 +77,18 @@ def write_report(identity: str, out_path: Path) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Monthly lockout-utterances operational report.")
-    ap.add_argument("--identity", required=True,
-                    help="The identity that reads Users.UserLockOutUtterances.")
     ap.add_argument("--out", default="lockout_utterances_report.xlsx",
                     help="Where to write the .xlsx.")
     args = ap.parse_args(argv)
-    write_report(args.identity, Path(args.out))
+    write_report(Path(args.out))
     return 0
 
 
 def run_as_runbook() -> int:
-    """Automation-account entry point: read under the runbook's own identity
-    and write the report beside the runbook for the delivery step to pick up.
+    """Automation-account entry point: write the report beside the runbook
+    for the delivery step to pick up.
     """
-    import os
-    identity = os.environ.get("REPORT_IDENTITY", "")
-    if not identity:
-        raise ChatHealthyException(
-            mode="config_error",
-            component="lockout_utterances_report",
-            message="REPORT_IDENTITY not set; the runbook needs the identity that reads Users.",
-        )
-    write_report(identity, Path("lockout_utterances_report.xlsx"))
+    write_report(Path("lockout_utterances_report.xlsx"))
     return 0
 
 

@@ -1,0 +1,49 @@
+STAGE 5 -- the ClinicalTrials.gov corpus
+run at 2026-11-01 15:30:24
+archive C:\DataExperiments\Sources\clinicaltrials\ctg-studies.json.zip (2778 MB)
+created ct_study, ct_intervention, ct_condition
+   studies=50,000 interventions=103,131 conditions=89,508  12s
+   studies=100,000 interventions=206,855 conditions=179,729  22s
+   studies=150,000 interventions=311,344 conditions=270,136  32s
+   studies=200,000 interventions=412,993 conditions=359,942  43s
+   studies=250,000 interventions=517,893 conditions=449,400  53s
+   studies=300,000 interventions=621,307 conditions=539,579  63s
+   studies=350,000 interventions=723,854 conditions=629,356  73s
+   studies=400,000 interventions=828,613 conditions=719,791  83s
+   studies=450,000 interventions=932,719 conditions=810,011  92s
+   studies=500,000 interventions=1,034,599 conditions=900,038  103s
+   studies=550,000 interventions=1,137,544 conditions=989,944  114s
+   studies=600,000 interventions=1,239,913 conditions=1,080,970  124s
+
+loaded in 3 minutes
+   ct_study                609,551 rows
+   ct_intervention       1,259,863 rows
+   ct_condition          1,097,950 rows
+   distinct trials         609,551
+   overall_status as the registry publishes it:
+      COMPLETED                    333,500
+      UNKNOWN                      97,603
+      RECRUITING                   65,221
+      TERMINATED                   34,631
+      NOT_YET_RECRUITING           30,276
+      ACTIVE_NOT_RECRUITING        22,246
+      WITHDRAWN                    16,941
+      ENROLLING_BY_INVITATION      5,301
+      SUSPENDED                    1,770
+      WITHHELD                     987
+      NO_LONGER_AVAILABLE          543
+      AVAILABLE                    249
+      APPROVED_FOR_MARKETING       245
+      TEMPORARILY_NOT_AVAILABLE    38
+   phases as the registry publishes it:
+      NA                           240,160
+      (absent)                     144,556
+      PHASE2                       65,993
+      PHASE1                       48,969
+      PHASE3                       42,492
+      PHASE4                       36,031
+      PHASE1|PHASE2                17,176
+      PHASE2|PHASE3                7,643
+      EARLY_PHASE1                 6,531
+
+written to C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\code\pg_load_05_result.txt

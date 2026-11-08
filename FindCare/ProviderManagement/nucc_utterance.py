@@ -12,9 +12,10 @@
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from ProviderManagement.utterance_mining import mine
+from ProviderManagement.utterance_mining import (
+    history_lines, mine, model_name_for, prompt_record)
 
 MINING_RECORD_ID = "nucc_utterance_mining_system_prompt"
 
@@ -28,10 +29,40 @@ class MinedNuccParameters(BaseModel):
     complaint: str = ""
 
 
+class NuccUtteranceInput(BaseModel):
+    """What this page's miner is given: the latest utterance and the dialogue
+    before it. Declared here because the Agent below names it."""
+    utterance: str = Field(description="The latest utterance, verbatim.")
+    prior_dialogue: str = Field(
+        default="",
+        description="The conversation before this utterance, or empty.")
+
+
+_AGENT = None
+
+
+def _agent():
+    """This page's mining agent, built on first use."""
+    global _AGENT
+    if _AGENT is None:
+        from pydantic_ai import Agent
+        record = prompt_record(MINING_RECORD_ID, COMPONENT)
+        _AGENT = Agent(
+            f"openai:{model_name_for(record, COMPONENT)}",
+            deps_type=NuccUtteranceInput,
+            output_type=MinedNuccParameters,
+            system_prompt=record.get("system_prompt", ""),
+        )
+    return _AGENT
+
+
 async def mine_nucc_parameters(
         utterance: str,
         history: Optional[list] = None) -> MinedNuccParameters:
     return await mine(
-        MINING_RECORD_ID, MinedNuccParameters, utterance, history,
+        _agent(),
+        NuccUtteranceInput(utterance=utterance,
+                           prior_dialogue=history_lines(history)),
+        utterance, history,
         component=COMPONENT,
         call_site="NuccUtterance.mine_nucc_parameters")

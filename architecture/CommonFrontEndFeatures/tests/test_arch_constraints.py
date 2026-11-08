@@ -74,10 +74,9 @@ class TestArchConstraintVectorIndex:
 
     def test_create_collection_and_insert(self, lab_collection):
         """Create lab collection and insert 3 test records with embeddings."""
-        from openai import OpenAI
+        from chathealthy_lib.llm import embed
 
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        if not api_key:
+        if not os.environ.get("OPENAI_API_KEY", ""):
             pytest.skip("OPENAI_API_KEY not set")
 
         # 3 simple test documents
@@ -87,15 +86,12 @@ class TestArchConstraintVectorIndex:
             {"name": "Test Provider C", "specialty": "Pediatrics"},
         ]
 
-        # Vectorize with cheapest model
-        client = OpenAI(api_key=api_key)
+        # The canonical embedding model, per EPIC-008-F-011-S-004-REQ-B-001.
         for doc in docs:
-            text = f"{doc['name']} {doc['specialty']}"
-            resp = client.embeddings.create(
-                model="text-embedding-3-small",
-                input=text,
-            )
-            doc["embedding"] = resp.data[0].embedding
+            doc["embedding"] = embed(
+                f"{doc['name']} {doc['specialty']}",
+                call_site="test_arch_constraints.test_create_collection_and_insert",
+                provider="openai", server="test", component="ArchConstraintsTest")
 
         lab_collection.insert_many(docs)
         count = lab_collection.count_documents({})
@@ -259,7 +255,7 @@ def _line_number_for_offset(text, offset):
 # test stops being another place the name is written. What the test
 # guards is the two things that make one declaration hold: that no
 # production file names an embedding model as a literal, and that every
-# target whose declared files reach the facade's embed() carries the
+# target whose declared files reach embed() carries the
 # CH_EMBEDDING_MODEL binding.
 
 def _record():
@@ -322,7 +318,7 @@ def _targets_declaring(source_location):
 
 
 def _reaches_embed(target):
-    """True when a file this target declares calls the facade's embed()."""
+    """True when a file this target declares calls embed()."""
     for entry in target.get("files") or []:
         rel = entry.get("source_location") or ""
         if not rel.endswith(".py"):

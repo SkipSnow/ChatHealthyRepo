@@ -183,7 +183,7 @@ def sweep_orphans(directory: Path, max_age_seconds: int = ORPHAN_AGE_SECONDS) ->
 # Written by the Kafka-era consumer, carried by no reader, dropped on the port.
 DROPPED_FIELDS = ("_version", "_framework", "_build")
 
-def build_record(raw: bytes, time_ns: int, prior_collection, oai_client=None):
+def build_record(raw: bytes, time_ns: int, prior_collection, redactor=None):
     """Parse the payload and build the archive record.
 
     `timestamp` is when the utterance was made, taken from the spool filename
@@ -194,7 +194,7 @@ def build_record(raw: bytes, time_ns: int, prior_collection, oai_client=None):
     profanity, which is how it went unredacted before.
     """
     payload = record._parse_hook_payload(raw)
-    doc, credentials_error = record.build(payload, prior_collection, oai_client)
+    doc, credentials_error = record.build(payload, prior_collection, redactor)
     if doc is None:
         return None, credentials_error
     for field in DROPPED_FIELDS:
@@ -239,7 +239,7 @@ def _classify_into_content(doc: dict, content: str) -> None:
               f"{type(exc).__name__}: {exc}", exc)
 
 
-def drain_once(directory: Path, collection, oai_client=None) -> tuple[int, int]:
+def drain_once(directory: Path, collection, redactor=None) -> tuple[int, int]:
     """Ship every ready file. Returns (shipped, failed).
 
     One file at a time, deleting only after the insert is acknowledged. Batching
@@ -266,7 +266,7 @@ def drain_once(directory: Path, collection, oai_client=None) -> tuple[int, int]:
             last_error = f"{type(exc).__name__}: {exc}"
             continue
         try:
-            doc, _ = build_record(raw, parsed[1], collection, oai_client)
+            doc, _ = build_record(raw, parsed[1], collection, redactor)
             if doc is None:
                 path.unlink()          # nothing to archive; not an error
                 continue
@@ -401,23 +401,23 @@ def _drain():
 
     _log(f"starting identity={IDENTITY} cluster={CLUSTER} "
          f"target={MONGO_DB}.{MONGO_COLLECTION} poll={POLL_SECONDS}s")
-    mongo_client = ChatHealthyMongoUtilities().getConnection(IDENTITY, CLUSTER)
+    mongo_client = ChatHealthyMongoUtilities().getConnection(
+        "DevOpsUser", "ChatHealthyFrontEnd")
     collection = mongo_client[MONGO_DB][MONGO_COLLECTION]
     _debug("connected")
 
     # Built once, not per record. Absent a key the drain still runs and still
     # redacts credentials -- profanity is the only thing lost, and losing the
     # utterance would be worse.
-    oai_client = None
+    redactor = None
     try:
-        from openai import OpenAI
         api_key = os.environ.get("OPENAI_API_KEY", "").strip()
         if api_key:
-            oai_client = OpenAI(api_key=api_key)
+            redactor = record.redaction_agent(api_key)
         else:
             _fail("OPENAI_API_KEY absent: profanity will NOT be redacted")
     except Exception as exc:
-        _fail(f"openai client unavailable: {exc}; profanity NOT redacted", exc)
+        _fail(f"redaction agent unavailable: {exc}; profanity NOT redacted", exc)
     directory = spool_dir()
     # Seeded to today: a restart is not midnight, and must not trigger a sweep.
     last_sweep_day = datetime.now().date()
@@ -429,7 +429,7 @@ def _drain():
             # would otherwise go unredacted for this entire batch.
             if record.refresh_secrets_if_changed():
                 _debug("secret list reloaded (.env changed)")
-            shipped, failed = drain_once(directory, collection, oai_client)
+            shipped, failed = drain_once(directory, collection, redactor)
             orphans = sweep_orphans(directory)
             pending = len(ready_files(directory))
             # A pass with nothing to do says nothing. Logging every 5s put

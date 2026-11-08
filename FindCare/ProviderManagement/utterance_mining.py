@@ -12,10 +12,10 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.llm import run_llm
+from chathealthy_lib.llm import model_name, raise_agent_run_failure
 
 # Resolve project root from this file's location:
 #   FindCare/ProviderManagement/utterance_mining.py
@@ -40,7 +40,7 @@ def prompt_record(record_id: str, component: str) -> dict:
         message=f"prompts.json: no record with _record_id={record_id!r}")
 
 
-def _model_name(record: dict, component: str) -> str:
+def model_name_for(record: dict, component: str) -> str:
     models = record.get("models") or []
     if not models or not models[0].get("name"):
         raise ChatHealthyException(
@@ -54,23 +54,7 @@ def _model_name(record: dict, component: str) -> str:
 _AGENTS: dict[str, object] = {}
 
 
-def _mining_agent(record_id: str, output_type: type[BaseModel],
-                  component: str):
-    """One agent per prompt record, built on first use. What it stops
-    keeping is a client, a credential, a retry policy and a vendor quirk —
-    all of that is the facade's."""
-    if record_id not in _AGENTS:
-        from pydantic_ai import Agent
-        record = prompt_record(record_id, component)
-        _AGENTS[record_id] = Agent(
-            f"openai:{_model_name(record, component)}",
-            output_type=output_type,
-            system_prompt=record.get("system_prompt", ""),
-        )
-    return _AGENTS[record_id]
-
-
-def _history_lines(history: Optional[list]) -> str:
+def history_lines(history: Optional[list]) -> str:
     lines = []
     for entry in history or []:
         if isinstance(entry, dict):
@@ -87,26 +71,51 @@ def _history_lines(history: Optional[list]) -> str:
 
 
 def user_message(utterance: str, history: Optional[list]) -> str:
-    prior = _history_lines(history)
+    prior = history_lines(history)
     if prior:
         return (f"Conversation before this utterance:\n{prior}\n\n"
                 f"Latest utterance:\n{utterance}")
     return f"Latest utterance:\n{utterance}"
 
 
-async def mine(record_id: str, output_type: type[BaseModel], utterance: str,
+async def mine(agent, deps, utterance: str,
          history: Optional[list], *, component: str, call_site: str):
-    """A page's own extraction. Raises on any LLM failure — an unmined
-    utterance is not a search with no parameters."""
-    result = await run_llm(
-        _mining_agent(record_id, output_type, component),
-        user_message(utterance, history),
-        call_site=call_site,
-        provider="openai", server="find_care", component=component)
+    """Run a page's own extraction. Raises on any LLM failure — an unmined
+    utterance is not a search with no parameters.
+
+    The page builds the agent and its deps, because an Agent names its input
+    and output models and those are declared where the page declares them.
+    """
+    try:
+        result = await agent.run(user_message(utterance, history), deps=deps)
+    except Exception as exc:
+        raise_agent_run_failure(
+            exc, provider="openai", call_site=call_site,
+            server="find_care", component=component,
+            model_name_str=model_name(agent))
     return result.output
 
 
 REFINEMENT_PROMPT_RECORD = "page_refinement_request_system_prompt"
+
+
+class PageState(BaseModel):
+    """What the asking agent is given: the page, what it still requires,
+    what is merely allowed, what is already in force, and the dialogue."""
+    page: str = Field(description="The page asking.")
+    missing: list[str] = Field(
+        default_factory=list,
+        description="Attributes the page requires that are not in force.")
+    optional: list[str] = Field(
+        default_factory=list,
+        description="Attributes the page allows but does not require.")
+    in_force: dict[str, str] = Field(
+        default_factory=dict,
+        description="Attributes already settled, by name.")
+    utterance: str = Field(description="The latest utterance, verbatim.")
+    prior_dialogue: str = Field(
+        default="",
+        description="The conversation before this utterance, or empty.")
 
 
 class RefinementRequest(BaseModel):
@@ -184,7 +193,8 @@ def _refinement_agent(component: str):
         from pydantic_ai import Agent
         record = prompt_record(REFINEMENT_PROMPT_RECORD, component)
         _AGENTS[key] = Agent(
-            f"openai:{_model_name(record, component)}",
+            f"openai:{model_name_for(record, component)}",
+            deps_type=PageState,
             output_type=RefinementRequest,
             system_prompt=chr(10).join([
                 record.get("system_prompt", ""),
@@ -207,10 +217,18 @@ async def ask_for_missing(page: str, missing: list[str], optional: list[str],
     required in the declaration is enough to have it asked for. Nothing
     here knows what any of them mean.
     """
-    result = await run_llm(
-        _refinement_agent(component),
-        f"{_state_of_the_page(page, missing, optional, in_force)}\n\n"
-        f"{user_message(utterance, history)}",
-        call_site=call_site,
-        provider="openai", server="find_care", component=component)
+    agent = _refinement_agent(component)
+    try:
+        result = await agent.run(
+            f"{_state_of_the_page(page, missing, optional, in_force)}\n\n"
+            f"{user_message(utterance, history)}",
+            deps=PageState(page=page, missing=missing, optional=optional,
+                           in_force={k: str(v) for k, v in in_force.items()},
+                           utterance=utterance,
+                           prior_dialogue=history_lines(history)))
+    except Exception as exc:
+        raise_agent_run_failure(
+            exc, provider="openai", call_site=call_site,
+            server="find_care", component=component,
+            model_name_str=model_name(agent))
     return result.output.question

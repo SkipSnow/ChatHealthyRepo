@@ -72,7 +72,7 @@ PERMISSIONS_COLLECTION = "DBVersions"
 # a component cannot be denied the connection utility, the exception type, or
 # the logger, because the refusal itself needs all three.
 _BOOTSTRAP_ALLOW = frozenset({
-    "chathealthy_lib.permissions",
+    "chathealthy_lib.runtime_governance_lib_capability_enforcement",
     "chathealthy_lib.exceptions",
     "chathealthy_lib.mongo_utilities",
     "chathealthy_lib.logging_service",
@@ -107,7 +107,7 @@ class _ExclusionFinder(MetaPathFinder):
                 return None
             raise ChatHealthyException(
                 mode="lib_permission_not_yet_known",
-                component="chathealthy_lib.permissions",
+                component="chathealthy_lib.runtime_governance_lib_capability_enforcement",
                 message=f"{fullname} was imported before the permission list "
                         f"was read. Library initialisation must complete "
                         f"before any other capability is loaded.")
@@ -115,7 +115,7 @@ class _ExclusionFinder(MetaPathFinder):
         if fullname in self._excluded or leaf in self._excluded:
             raise ChatHealthyException(
                 mode="lib_capability_forbidden",
-                component="chathealthy_lib.permissions",
+                component="chathealthy_lib.runtime_governance_lib_capability_enforcement",
                 message=f"{fullname} is not a capability "
                         f"{_state['component']!r} may use. The exclusion list "
                         f"is held in {PERMISSIONS_DB}.{PERMISSIONS_COLLECTION} "
@@ -133,7 +133,7 @@ def component_name() -> str:
     if not name:
         raise ChatHealthyException(
             mode="component_not_named",
-            component="chathealthy_lib.permissions",
+            component="chathealthy_lib.runtime_governance_lib_capability_enforcement",
             message=f"{COMPONENT_ENV_VAR} is not set. The deploy stamps it "
                     f"from deployment_architecture.json; a process that "
                     f"cannot say which component it is cannot be told which "
@@ -157,7 +157,7 @@ def getLibPermissions() -> list[str]:
     if not identity:
         raise ChatHealthyException(
             mode="identity_not_named",
-            component="chathealthy_lib.permissions",
+            component="chathealthy_lib.runtime_governance_lib_capability_enforcement",
             message=f"{IDENTITY_ENV_VAR} is not set. The deploy stamps it from "
                     f"deployment_architecture.json; the policy is read as the "
                     f"identity the process authenticates as, and a process "
@@ -165,7 +165,7 @@ def getLibPermissions() -> list[str]:
     from .mongo_utilities import ChatHealthyMongoUtilities  # noqa: PLC0415
     try:
         client = ChatHealthyMongoUtilities().getConnection(
-            identity, "ChatHealthyFrontEnd")
+            "frontendUser", "ChatHealthyFrontEnd")
         row = client[PERMISSIONS_DB][PERMISSIONS_COLLECTION].find_one(
             {"lib_permissions.component": name},
             {"lib_permissions.$": 1})
@@ -174,7 +174,7 @@ def getLibPermissions() -> list[str]:
     except Exception as exc:  # noqa: BLE001 - converted at this boundary
         raise ChatHealthyException(
             mode="lib_permissions_unreadable",
-            component="chathealthy_lib.permissions",
+            component="chathealthy_lib.runtime_governance_lib_capability_enforcement",
             message=f"the capability list for {name!r} could not be read from "
                     f"{PERMISSIONS_DB}.{PERMISSIONS_COLLECTION}: {exc}",
             exception=exc) from exc
@@ -182,7 +182,7 @@ def getLibPermissions() -> list[str]:
     if not entries:
         raise ChatHealthyException(
             mode="lib_permissions_absent",
-            component="chathealthy_lib.permissions",
+            component="chathealthy_lib.runtime_governance_lib_capability_enforcement",
             message=f"{PERMISSIONS_DB}.{PERMISSIONS_COLLECTION} carries no "
                     f"lib_permissions entry for component {name!r}. A component "
                     f"the policy does not name is not a component that may "

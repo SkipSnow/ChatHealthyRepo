@@ -24,7 +24,7 @@
 # here refuses a forbidden module at import, so a late import inside a
 # function is caught the same as one at the top of a file -- which only holds
 # if nothing has been imported ahead of this call.
-from chathealthy_lib.permissions import initialize as _ch_permissions_init
+from chathealthy_lib.runtime_governance_lib_capability_enforcement import initialize as _ch_permissions_init
 _ch_permissions_init()
 
 import base64

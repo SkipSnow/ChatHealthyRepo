@@ -119,7 +119,7 @@ class CapabilityContract:
 
 def _declaration() -> dict:
     utilities = ChatHealthyMongoUtilities()
-    client = utilities.getConnection(CONFIG_IDENTITY, CONFIG_CLUSTER)
+    client = utilities.getConnection("frontendUser", "ChatHealthyFrontEnd")
     record = client[CONFIG_DATABASE][CONFIG_COLLECTION].find_one(
         {"tools": {"$exists": True}})
     if not record:

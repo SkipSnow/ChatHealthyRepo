@@ -31,15 +31,23 @@ import datetime
 from pymongo.errors import DuplicateKeyError
 
 from .exceptions import ChatHealthyException
-from .mongo_utilities import ChatHealthyMongoUtilities
 
 MUTEX_DATABASE = "pipelineAdmin"
 MUTEX_COLLECTION = "DataMigrationServiceMutex"
 
 
-def _collection(identity: str, cluster: str):
-    return ChatHealthyMongoUtilities().getConnection(
-        identity, cluster)[MUTEX_DATABASE][MUTEX_COLLECTION]
+def collection_for(client):
+    """The mutex collection on a client the CALLER authenticated.
+
+    The caller opens the connection, because the caller is the only party that
+    can name its own identity as a literal. Two identities take this mutex --
+    PipelineToFrontEndPublicDataMigrator in the migration and pipelineEditor in
+    the regression test -- so a literal inlined here would be one of them
+    pretending to be both. Passing the handle on is how a library serves
+    several identities without any of them becoming a variable at a
+    getConnection call site.
+    """
+    return client[MUTEX_DATABASE][MUTEX_COLLECTION]
 
 
 def _raise_held(mutex_name: str, holder: str, about: str,
@@ -68,14 +76,16 @@ def _raise_contended(mutex_name: str, holder: str, about: str,
         about=about)
 
 
-def take(identity: str, cluster: str, mutex_name: str,
+def take(collection, mutex_name: str,
             holder: str, about: str = "") -> None:
     """Take the mutex, or raise.
 
     There is one record or none. The record's id is the mutex's name, so there is
     nothing to hand back and forth and nothing to look up.
+
+    `collection` comes from collection_for(client) on a client the caller
+    authenticated under its own identity literal.
     """
-    collection = _collection(identity, cluster)
 
     # Any holder at all, not one of this mutex. The collection holds one
     # record or none, and a record means something is running.
@@ -114,6 +124,6 @@ def take(identity: str, cluster: str, mutex_name: str,
         _raise_contended(mutex_name, holder, about, found)
 
 
-def give_back(identity: str, cluster: str, mutex_name: str) -> None:
+def give_back(collection, mutex_name: str) -> None:
     """Give the mutex back, so the next holder can take it."""
-    _collection(identity, cluster).delete_one({"_id": mutex_name})
+    collection.delete_one({"_id": mutex_name})

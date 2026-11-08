@@ -17,7 +17,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.llm import run_llm
+from chathealthy_lib.llm import model_name, raise_agent_run_failure
 
 # Resolve project root from this file's location:
 #   FindCare/ProviderManagement/facility_utterance.py
@@ -28,6 +28,15 @@ PROMPTS_JSON_PATH = PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "
 MINING_RECORD_ID = "facility_utterance_mining_system_prompt"
 
 COMPONENT = "FacilityUtterance"
+
+
+class FacilityUtteranceInput(BaseModel):
+    """What the miner is given: the latest utterance and the dialogue before
+    it, which is what lets a partial utterance be read in context."""
+    utterance: str = Field(description="The latest utterance, verbatim.")
+    prior_dialogue: str = Field(
+        default="",
+        description="The conversation before this utterance, or empty.")
 
 
 class MinedGeography(BaseModel):
@@ -74,15 +83,15 @@ _AGENT = None
 
 
 def _mining_agent():
-    """One agent, built on first use. What it stops keeping is a client, a
-    credential, a retry policy and a vendor quirk — all of that is the
-    facade's."""
+    """One agent, built on first use. The model, the credential and the
+    vendor quirks are pydantic-ai's; the failure conversion is shared."""
     global _AGENT
     if _AGENT is None:
         from pydantic_ai import Agent
         record = _prompt_record(MINING_RECORD_ID)
         _AGENT = Agent(
             f"openai:{_model_name(record)}",
+            deps_type=FacilityUtteranceInput,
             output_type=MinedFacilityParameters,
             system_prompt=record.get("system_prompt", ""),
         )
@@ -118,8 +127,17 @@ async def mine_facility_parameters(
         history: Optional[list] = None) -> MinedFacilityParameters:
     """The page's own extraction. Raises on any LLM failure — an unmined
     utterance is not a search with no parameters."""
-    result = await run_llm(
-        _mining_agent(), _user_message(utterance, history),
-        call_site="FacilityUtterance.mine_facility_parameters",
-        provider="openai", server="find_care", component=COMPONENT)
+    agent = _mining_agent()
+    try:
+        result = await agent.run(
+            _user_message(utterance, history),
+            deps=FacilityUtteranceInput(
+                utterance=utterance,
+                prior_dialogue=_history_lines(history)))
+    except Exception as exc:
+        raise_agent_run_failure(
+            exc, provider="openai",
+            call_site="FacilityUtterance.mine_facility_parameters",
+            server="find_care", component=COMPONENT,
+            model_name_str=model_name(agent))
     return result.output

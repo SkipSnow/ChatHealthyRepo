@@ -1,18 +1,30 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""LLM facade — wraps pydantic-ai Agent.run / Agent.run_sync with the
-ChatHealthy retry policy and converts transient HTTP failures into
-ChatHealthyException(mode='llm_unavailable').
+"""What a model call needs that is not the call itself.
+
+A caller reaches its model through a pydantic_ai.Agent directly. This module
+holds the surrounding facts, so each call site does not restate them:
+
+  raise_agent_run_failure   converts a failed Agent.run into
+                            ChatHealthyException with a mode naming the kind
+                            of failure, the vendor, and the call site
+  raise_unavailable         the same for an exhausted attempt ladder
+  model_name                the model a built Agent resolved to
+  embed / embedding_model_name
+                            the firm's one embedding declaration
+
+Nothing here wraps Agent.run or Agent.run_sync. Rule-065 statement 11
+forbids a facade over pydantic-ai, so the agent is run by its owner and only
+the failure conversion is shared.
 
 Realizes EPIC-008-F-002-S-009-REQ-B-007. See
 ChatHealthyLib/architectureAndDesign/
 EPIC-003-F-003-Manage-Errors-design-v3.docx §5 for the contract.
 
 Test-only failure injection: when the environment variable
-CHATHEALTHY_INJECT_LLM_FAILURE is truthy (non-empty, non-zero), every
-attempt raises httpx.RemoteProtocolError so the three-rung ladder can be
-exercised end-to-end without a real upstream outage. Tear down by
-clearing the variable.
+CHATHEALTHY_INJECT_LLM_FAILURE is truthy (non-empty, non-zero), injected_failure
+reports it so a call site can exercise its failure path without a real
+upstream outage. Tear down by clearing the variable.
 """
 from __future__ import annotations
 
@@ -150,99 +162,6 @@ def raise_unavailable(provider: str, call_site: str, server: str,
     ) from last_exc
 
 
-async def run_llm(agent: Any, prompt: str, *, call_site: str,
-                  provider: str, server: str, component: str,
-                  **agent_kwargs) -> Any:
-    """Async facade for pydantic-ai Agent.run with retry on transient
-    httpx errors. Raises ChatHealthyException(mode='llm_unavailable')
-    when all attempts fail.
-
-    server is the network identity of the process making this LLM call
-    (e.g. 'shared_services', 'find_care', 'evaluate_care'). component
-    is the logical owner of the call inside that process (e.g. 'UM',
-    'SpecialtyFilter'). Both are recorded on every log line and on the
-    raised ChatHealthyException as first-class attributes so the
-    catching side can identify where the exception originated.
-
-    A failure pydantic-ai raises out of the run is converted here too --
-    see _AGENT_RUN_MODES. From agent.run forward the failure is ours, and
-    no vendor exception type leaves this module.
-
-    Any kwargs beyond call_site/provider/server/component are
-    forwarded to agent.run.
-    """
-    model_name_str = model_name(agent)
-    last_exc: Exception | None = None
-    for attempt in range(1, MAX_ATTEMPTS + 1):
-        # Holds the exchange even when the run raises, which is the only
-        # way to see what the model actually said on a failed run. Scoped
-        # to one call: within a single block only the FIRST run's messages
-        # are captured, so a shared block across attempts would report the
-        # first attempt for all of them.
-        from pydantic_ai import capture_run_messages
-        with capture_run_messages() as messages:
-            try:
-                if injected_failure(call_site):
-                    raise ChatHealthyException(
-                        mode="remote_protocol",
-                        component="llm",
-                        message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
-                return await agent.run(prompt, **agent_kwargs)
-            except TRANSIENT as exc:
-                last_exc = exc
-                if attempt < MAX_ATTEMPTS:
-                    delay = jittered(BACKOFF_SECONDS[attempt - 1])
-                    await asyncio.sleep(delay)
-                    continue
-            except _agent_run_error() as exc:
-                # Not retried here. pydantic-ai has already spent whatever
-                # budget it was given, and a content filter or a usage cap
-                # does not become true on a second ask.
-                raise_agent_run_failure(
-                    exc, provider=provider, call_site=call_site,
-                    server=server, component=component,
-                    model_name_str=model_name_str, messages=list(messages))
-    assert last_exc is not None
-    raise_unavailable(provider, call_site, server, component,
-                       model_name_str, last_exc)
-
-
-def run_llm_sync(agent: Any, prompt: str, *, call_site: str,
-                 provider: str, server: str, component: str,
-                 **agent_kwargs) -> Any:
-    """Sync facade for pydantic-ai Agent.run_sync. Mirrors run_llm; uses
-    time.sleep instead of asyncio.sleep. Required by FindCare's
-    SpecialtyFilter (filter.py normalize + filter_candidates). See
-    run_llm for the meaning of the server and component kwargs.
-    """
-    model_name_str = model_name(agent)
-    last_exc: Exception | None = None
-    for attempt in range(1, MAX_ATTEMPTS + 1):
-        from pydantic_ai import capture_run_messages
-        with capture_run_messages() as messages:
-            try:
-                if injected_failure(call_site):
-                    raise ChatHealthyException(
-                        mode="remote_protocol",
-                        component="llm",
-                        message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
-                return agent.run_sync(prompt, **agent_kwargs)
-            except TRANSIENT as exc:
-                last_exc = exc
-                if attempt < MAX_ATTEMPTS:
-                    delay = jittered(BACKOFF_SECONDS[attempt - 1])
-                    time.sleep(delay)
-                    continue
-            except _agent_run_error() as exc:
-                raise_agent_run_failure(
-                    exc, provider=provider, call_site=call_site,
-                    server=server, component=component,
-                    model_name_str=model_name_str, messages=list(messages))
-    assert last_exc is not None
-    raise_unavailable(provider, call_site, server, component,
-                       model_name_str, last_exc)
-
-
 EMBEDDING_MODEL_ENV = "CH_EMBEDDING_MODEL"
 
 
@@ -268,12 +187,13 @@ def embedding_model_name() -> str:
 
 def embed(text: str, *, call_site: str, provider: str, server: str,
           component: str) -> list:
-    """Embeddings facade, on the same ladder as run_llm and run_llm_sync.
+    """One embedding, with the firm's retry ladder around it.
 
-    run_llm and run_llm_sync wrap pydantic-ai's Agent, which is an agent
-    abstraction and has no embeddings surface, so an embedding call has
-    nothing to route through without this. Same MAX_ATTEMPTS, same
-    TRANSIENT tuple, same jittered backoff, same raise_unavailable.
+    pydantic_ai.Agent is an agent abstraction and has no embeddings surface,
+    so an embedding call has nothing to reach a model through. This is not a
+    facade over an agent — there is no agent to wrap. It carries the same
+    MAX_ATTEMPTS, the same TRANSIENT tuple, the same jittered backoff and the
+    same raise_unavailable as a model call's failure path.
 
     Takes no model argument. The model is the firm's one declaration,
     read from the environment binding the target carries.
@@ -287,10 +207,9 @@ def embed(text: str, *, call_site: str, provider: str, server: str,
                     mode="remote_protocol",
                     component="llm",
                     message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
-            from openai import OpenAI
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-            response = client.embeddings.create(model=model_name_str, input=text)
-            return response.data[0].embedding
+            from pydantic_ai import Embedder
+            return Embedder(f"openai:{model_name_str}").embed_query_sync(
+                text).embeddings[0]
         except TRANSIENT as exc:
             last_exc = exc
             if attempt < MAX_ATTEMPTS:

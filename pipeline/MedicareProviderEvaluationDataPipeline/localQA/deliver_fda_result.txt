@@ -1,0 +1,238 @@
+DELIVER QA_fdaProductToDiagnosisResolution_v_1
+run at 2026-11-01 15:49:46
+target database: PipelinePublicHealthData  (EXISTS -- no database is created)
+shape mirrored from: fdaProductToDiagnosisResolution_v_1
+run_id: 38220fa9-ccce-460c-ba18-7f76b8e2724d
+
+=== prerequisites ===
+   fda_label                      93,935 rows
+   fda_name                      110,846 rows
+   fda_mol                        34,543 rows
+   icd10cm                        98,186 rows
+   llm_crosswalk                  14,872 rows
+
+=== building the pseudo-target (all aggregation in SQL) ===
+   pt_fda_molecule           2,386 molecules
+   pt_fda_label_class        34,543 label rows
+   pt_fda_indication         14,766 CODE rows over 6,252 indications, 2,260 molecules
+   codes removed as not in the ICD-10 vocabulary (BR-023): 2
+   pt_fda_source_text        6,356 indications
+   pt_fda_usage             2,301 molecules
+   pt_fda_trial             196,640 links over 1,376 molecules, 68,207 trials
+
+=== the pipeline cluster ===
+   {'state': 'IDLE', 'tier': 'M40', 'paused': False}
+
+=== migrating to PipelinePublicHealthData.QA_fdaProductToDiagnosisResolution_v_1 ===
+   children loaded: classes=2,386 indication-molecules=2,260 source_texts=2,301 usage=2,301
+   pinned source versions: icd10_cm=icd10_cm@f4c5c2e7625c1ca9, openfda_labels=openfda_labels@1a690087c48044b8, rxnorm=rxnorm@e26e24a0220ef482
+   crosswalk artifact: llm_crosswalk_cache@2427-prose-keys
+   validating every document against C:\CHATHealthyLLC\Website\schemas\ChatHealthyFdaProductToDiagnosisResolutionSchema.json
+   HELD rx:10759 at molecule: 'clean_names' is a required property
+   HELD rx:1362699 at molecule: 'clean_names' is a required property
+   HELD rx:1426872 at molecule: 'clean_names' is a required property
+   HELD rx:1553672 at molecule: 'clean_names' is a required property
+   HELD rx:1597258 at molecule: 'clean_names' is a required property
+   HELD rx:1922437 at molecule: 'clean_names' is a required property
+   HELD rx:1992 at molecule: 'clean_names' is a required property
+   HELD rx:214558 at molecule: 'clean_names' is a required property
+   HELD rx:2479136 at molecule: 'clean_names' is a required property
+   HELD rx:259280 at molecule: 'clean_names' is a required property
+   HELD rx:262323 at molecule: 'clean_names' is a required property
+   HELD rx:2626727 at molecule: 'clean_names' is a required property
+   HELD rx:2641675 at molecule: 'clean_names' is a required property
+   HELD rx:278739 at molecule: 'clean_names' is a required property
+   HELD rx:314504 at molecule: 'clean_names' is a required property
+   HELD rx:337523 at molecule: 'clean_names' is a required property
+   HELD rx:3639 at molecule: 'clean_names' is a required property
+   HELD rx:38782 at molecule: 'clean_names' is a required property
+   HELD rx:42375 at molecule: 'clean_names' is a required property
+   HELD rx:4262 at molecule: 'clean_names' is a required property
+   HELD rx:475230 at molecule: 'clean_names' is a required property
+   HELD rx:4986 at molecule: 'clean_names' is a required property
+   HELD rx:591622 at molecule: 'clean_names' is a required property
+   HELD rx:6718 at molecule: 'clean_names' is a required property
+   HELD rx:68147 at molecule: 'clean_names' is a required property
+   documents written: 2,355   (every one validated against ChatHealthyFdaProductToDiagnosisResolutionSchema.json)
+   HELD as schema_violation: 31 molecule(s) -- not written, not discarded, kept in pt_fda_schema_violation
+   (25 shown above; all 31 are in the table)
+
+=== RULE 3 -- every document, every field. Not sampled. ===
+   documents  mongo=2,355  pg=2,386  held=31  expected=2,355  RECONCILED
+   indications  mongo=6,143  pg(excl. held)=6,143  RECONCILED
+   set_ids      mongo=34,483  pg(excl. held)=34,483  RECONCILED
+      200 documents, 1s, 0 discrepancies
+      400 documents, 1s, 0 discrepancies
+      600 documents, 2s, 0 discrepancies
+      800 documents, 2s, 0 discrepancies
+      1,000 documents, 2s, 0 discrepancies
+      1,200 documents, 2s, 0 discrepancies
+      1,400 documents, 2s, 0 discrepancies
+      1,600 documents, 2s, 0 discrepancies
+      1,800 documents, 2s, 0 discrepancies
+      2,000 documents, 2s, 0 discrepancies
+      2,200 documents, 3s, 0 discrepancies
+   2,355 documents compared field by field
+   RESULT: IDENTICAL. Exhaustive, not sampled.
+
+======================================================================
+THE CANDIDATE: PipelinePublicHealthData.QA_fdaProductToDiagnosisResolution_v_1
+======================================================================
+   documents          2,355   (target has 2,499 nationally)
+   indications        6,143
+   label references   34,483
+
+   FIELD COVERAGE, counted on the delivered documents:
+     drug_class.classes                1,125 of 2,355 documents  (47.8%)
+     molecule.unii                     2,354 of 2,355 documents  (100.0%)
+     molecule.substance_name           2,355 of 2,355 documents  (100.0%)
+     molecule._fda_rxcui               2,081 of 2,355 documents  (88.4%)
+     label_classes.drug_class          1,112 of 2,355 documents  (47.2%)
+     indications                       2,230 of 2,355 documents  (94.7%)
+     indications.source_texts          2,230 of 2,355 documents  (94.7%)
+     indications.icd10.level3          2,230 of 2,355 documents  (94.7%)
+     indications.icd10.level4          1,876 of 2,355 documents  (79.7%)
+     clinical_trials                   1,345 of 2,355 documents  (57.1%)
+     clinical_trials.phase               401 of 2,355 documents  (17.0%)
+     clinical_trials.status            1,345 of 2,355 documents  (57.1%)
+   Where a label carries none of a field, the key is ABSENT on that
+   document -- not null and not an empty list, which would claim we
+   looked and found nothing.
+
+   A molecule that reached NO ICD-10 code is still published, with
+   its labels, names, classes and indication prose intact. One
+   failed derivation is no reason to discard everything else.
+     molecules with indications but no ICD-10 at all: 0
+
+   TRUST sits on each code, never above it. Distribution:
+     exactly 1.0 (deterministic)    none
+     0.9 (inference ceiling)        none
+     below 0.9 (inferred)           present
+   Nothing is written above 0.9 and below 1.0 -- that band is empty
+   by construction, so a confident inference cannot read as certain.
+
+   DELIBERATE DIFFERENCE: molecule_id. The target uses mol_<hash>;
+   this chain's identity is the RxNorm concept set (rx:83366,
+   rx:161|rx:5489). The candidate carries its own identity so the
+   two derivations stay visibly different.
+
+=== TWO SAMPLE DOCUMENTS ===
+
+{
+  "_id": "lit:1 2|lit:docosahexanoyl|lit:glycero|lit:icosapentoyl|lit:magnesium l|lit:phosphoserine calcium|rx:10459|rx:1311396|rx:1314412|rx:1490797|rx:1512|rx:1547558|rx:1549106|rx:1549114|rx:1599827|rx:21373|rx:221079|rx:4511|rx:56466|rx:6313|rx:7222|rx:89959",
+  "molecule_id": "lit:1 2|lit:docosahexanoyl|lit:glycero|lit:icosapentoyl|lit:magnesium l|lit:phosphoserine calcium|rx:10459|rx:1311396|rx:1314412|rx:1490797|rx:1512|rx:1547558|rx:1549106|rx:1549114|rx:1599827|rx:21373|rx:221079|rx:4511|rx:56466|rx:6313|rx:7222|rx:89959",
+  "set_ids": [
+    "f520b130-61b3-443e-aaf6-91e094e7a334"
+  ],
+  "n_labels": 1,
+  "molecule": {
+    "clean_names": [
+      "1 2 + betaine + citric acid monohydrate + cobamamide + cocarboxylase + docosahexanoyl + ferrous cysteine glycinate + flavin adenine dinucleotide + folic acid + glycero + icosapentoyl + leucovorin + levomefolate magnesium + magnesium ascorbate + magnesium l + nadh + phosphatidyl serine + phosphoserine calcium + pyridoxal phosphate anhydrous + sodium citrate + threonate + zinc ascorbate"
+    ],
+    "label_brand_names": [
+      "PaxLyte"
+    ],
+    "label_generic_names": [
+      "1,2-DOCOSAHEXANOYL-SN-GLYCERO-3-PHOSPHOSERINE CALCIUM",
+      "1,2-ICOSAPENTOYL-SN-GLYCERO-3-PHOSPHOSERINE CALCIUM",
+      "...18 total"
+    ],
+    "rxcui": [
+      "10459",
+      "1311396",
+      "...16 total"
+    ],
+    "unii": [
+      "0N1G678593",
+      "1Q73Q2JULR",
+      "...18 total"
+    ],
+    "substance_name": [
+      "1,2-DOCOSAHEXANOYL-SN-GLYCERO-3-PHOSPHOSERINE CALCIUM",
+      "1,2-ICOSAPENTOYL-SN-GLYCERO-3-PHOSPHOSERINE CALCIUM",
+      "...18 total"
+    ],
+    "_match_set": "lit:1 2|lit:docosahexanoyl|lit:glycero|lit:icosapentoyl|lit:magnesium l|lit:phosphoserine calcium|rx:10454|rx:1311396|rx:1314412|rx:1490797|rx:1512|rx:1547558|rx:1549114|rx:1592257|rx:21183|rx:21373|rx:4511|rx:56466|rx:6313|rx:7222|rx:89959|rx:9002"
+  },
+  "label_classes": [
+    {
+      "set_id": "f520b130-61b3-443e-aaf6-91e094e7a334",
+      "drug_class": [
+ 
+
+{
+  "_id": "lit:alpha|lit:tocopherol acetate dl|rx:10456|rx:11246|rx:11248|rx:11253|rx:1151|rx:4511|rx:684879|rx:7393|rx:9346|rx:9873",
+  "molecule_id": "lit:alpha|lit:tocopherol acetate dl|rx:10456|rx:11246|rx:11248|rx:11253|rx:1151|rx:4511|rx:684879|rx:7393|rx:9346|rx:9873",
+  "set_ids": [
+    "0800f4ef-1d98-4c0f-a016-501791973f66",
+    "0f11c8c7-c73e-4610-83ed-e697539ac180",
+    "...12 total"
+  ],
+  "n_labels": 12,
+  "molecule": {
+    "clean_names": [
+      "alpha + ascorbic acid + cyanocobalamin + folic acid + niacin + pyridoxine + riboflavin + sodium fluoride + thiamine mononitrate + tocopherol acetate dl + vitamin a + vitamin d"
+    ],
+    "label_brand_names": [
+      "Multivitamin with Fluoride"
+    ],
+    "label_generic_names": [
+      ".ALPHA.-TOCOPHEROL ACETATE, DL-",
+      "ASCORBIC ACID",
+      "...11 total"
+    ],
+    "rxcui": [
+      "10456",
+      "11246",
+      "...10 total"
+    ],
+    "unii": [
+      "2679MF687A",
+      "81G40H8B0T",
+      "...11 total"
+    ],
+    "substance_name": [
+      ".ALPHA.-TOCOPHEROL ACETATE, DL-",
+      "ASCORBIC ACID",
+      "...11 total"
+    ],
+    "_fda_rxcui": [
+      "1364855"
+    ],
+    "_match_set": "lit:alpha|lit:tocopherol acetate dl|rx:10454|rx:11246|rx:11248|rx:11253|rx:1151|rx:4511|rx:684879|rx:7393|rx:9346|rx:9873"
+  },
+  "label_classes": [
+    {
+      "set_id": "0800f4ef-1d98-4c0f-a016-501791973f66",
+      "drug_class": [
+        "Vitamin A [EPC]",
+        "Vitamin C [EPC]",
+        "...11 total"
+      ],
+      "product_type": "HUMAN PRESCRIPTION DRUG"
+    },
+    {
+      "set_id": "0f11c8c7-c73e-4610-83ed-e697539ac180",
+      "drug_class": [
+        "Vitamin A [EPC]",
+        "Vitamin C [EPC]",
+        "...11 total"
+      ],
+      "product_type": "HUMAN PRESCRIPTION DRUG"
+    },
+    "...12 total"
+  ],
+  "drug_class": {
+    "classes": [
+      "Analogs/Derivatives [Chemical/Ingredient]",
+      "Ascorbic Acid [CS]",
+      "...11 total"
+    ]
+  },
+  "indications": [
+    {
+      "raw_text": "Dental caries prophyla
+
+written to C:\CHATHealthyLLC\pipeline\MedicareProviderEvaluationDataPipeline\localQA\deliver_fda_result.txt
+
+EXIT NON-ZERO: 31 molecule(s) were held as schema_violation. The collection is delivered and short by that many; the held records and their reasons are in pt_fda_schema_violation.

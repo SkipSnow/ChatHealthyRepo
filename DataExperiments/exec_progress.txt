@@ -263,3 +263,30 @@
 15:37:56   partd_pair_state DE=1,283 pairs
 15:37:56 
 15:37:56 EXEC STEP 1 DONE -- partd is now DE+AL complete and verified
+09:57:04 purging partd: 500,000 rows (the national 500K development slice)
+09:57:04 partd recreated, empty
+09:57:04 streaming medicare_partd filtered to DE/AL
+09:57:08   scanned=2,451,321 kept=50,000  4s
+09:57:13   scanned=5,011,769 kept=100,000  9s
+09:57:17   scanned=7,575,688 kept=150,000  13s
+09:57:22   scanned=10,143,759 kept=200,000  18s
+09:57:26   scanned=12,617,309 kept=250,000  22s
+09:57:30   scanned=15,023,463 kept=300,000  26s
+09:57:35   scanned=17,632,947 kept=350,000  31s
+09:57:39   scanned=20,032,466 kept=400,000  35s
+09:57:43   scanned=22,672,608 kept=450,000  39s
+09:57:48   scanned=25,171,255 kept=500,000  44s
+09:57:52   scanned=27,793,731 kept=550,000  48s
+09:57:53 streamed 28,023,892 rows, kept 554,317
+09:57:59 indexed
+09:58:05 
+09:58:05 === VERIFICATION against the streamed counts ===
+09:58:09   AL rows=467,696 (expect 467,696) providers=15,158 (expect 15,158) pairs=1,834 claims=29,065,240 cost=$4,397,971,083  OK
+09:58:09   DE rows=86,621 (expect 86,621) providers=3,601 (expect 3,601) pairs=1,283 claims=4,469,302 cost=$734,247,072  OK
+09:58:09   combined rows=554,317 providers=18,759 (expect 554,317 / 18,759)
+09:58:09   distinct pairs across both states=1,910 (expect 1,910)
+09:58:09   partd_pair retained (national universe)=3,159 rows
+09:58:09   partd_pair_state AL=1,834 pairs
+09:58:09   partd_pair_state DE=1,283 pairs
+09:58:09 
+09:58:09 EXEC STEP 1 DONE -- partd is now DE+AL complete and verified

@@ -201,6 +201,15 @@ file or search result that decided it -- a reason that could have been written
 without looking at the code is not a reason."""
 
 
+class AuditSubject(BaseModel):
+    """What the auditor is given: the file under audit and the requirements
+    still outstanding this round."""
+    file_path: str = Field(description="Repo-relative path of the audited file.")
+    requirements: list[str] = Field(
+        default_factory=list,
+        description="The req_ids still to be settled.")
+
+
 class RequirementVerdict(BaseModel):
     req_id: str = Field(description="the exact req_id this verdict answers")
     enforced: bool = Field(description="does the code enforce this requirement")
@@ -601,6 +610,7 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
             agent = Agent(
                 OpenAIChatModel(_MODEL_NAME,
                                 provider=OpenAIProvider(api_key=self._api_key())),
+                deps_type=AuditSubject,
                 output_type=Audit,
                 system_prompt=_SYSTEM_PROMPT,
             )
@@ -717,7 +727,7 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         audit by path as well as by content -- some requirements are about
         what OTHER files do, and it has to go and look.
         """
-        from chathealthy_lib.llm import run_llm_sync
+        from chathealthy_lib.llm import model_name, raise_agent_run_failure
         blank = "\n\n"
         others = ""
         if any(r[0] in _ESTATE_REQUIREMENTS for r in requirements):
@@ -766,13 +776,20 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                 ", ".join(r[0].rsplit("-", 2)[-2] + "-" + r[0].rsplit("-", 1)[-1]
                           for r in outstanding))
             began = time.monotonic()
-            result = run_llm_sync(
-                self._auditor(), prompt,
-                call_site="scan_data_migration_compliance_worker.audit",
-                provider="openai",
-                server="pre-commit",
-                component="ScanDataMigrationComplianceWorker",
-            )
+            agent = self._auditor()
+            try:
+                result = agent.run_sync(
+                    prompt,
+                    deps=AuditSubject(
+                        file_path=_MIGRATION_FILE,
+                        requirements=[req_id for req_id, _n, _t in outstanding]))
+            except Exception as exc:
+                raise_agent_run_failure(
+                    exc, provider="openai",
+                    call_site="scan_data_migration_compliance_worker.audit",
+                    server="pre-commit",
+                    component="ScanDataMigrationComplianceWorker",
+                    model_name_str=model_name(agent))
             wanted = {req_id for req_id, _n, _t in outstanding}
             for verdict in result.output.verdicts:
                 if (verdict.req_id in wanted and verdict.determined

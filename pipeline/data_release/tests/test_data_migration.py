@@ -69,8 +69,6 @@ _WORKER = (_REPO / "architecture" / "EngineeringRuleEnforcement" / "code"
            / "scan_data_migration_compliance_worker.py")
 _ENFORCEMENT = "Rule-065-ENF-009"
 
-_PIPELINE_CLUSTER = "ChatHealthyDataPipelines"
-_FRONT_END_CLUSTER = "ChatHealthyFrontEnd"
 _PIPELINE_DB = "PipelinePublicHealthData"
 _FRONT_END_DB = "PublicHealthData"
 
@@ -399,10 +397,10 @@ def reservation():
     """
     job_id = f"migration-test-{uuid.uuid4().hex[:8]}"
     _log.info("[reservation] taking %s on %s for %d minutes",
-              job_id, _PIPELINE_CLUSTER, _RESERVATION_MINUTES)
+              job_id, "ChatHealthyDataPipelines", _RESERVATION_MINUTES)
     lifecycle = _lifecycle()
     lifecycle.reserve(
-        cluster_name=_PIPELINE_CLUSTER,
+        cluster_name="ChatHealthyDataPipelines",
         job_id=job_id,
         requester="test_data_migration",
         expected_duration_minutes=_RESERVATION_MINUTES,
@@ -459,7 +457,7 @@ def _approval_record(collection: str) -> dict | None:
     # pipelineEditor, not frontendUser: the approval lives in pipelineAdmin
     # and the front-end identity has no rights there, by design.
     return ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", _FRONT_END_CLUSTER
+        "pipelineEditor", "ChatHealthyFrontEnd"
     )["pipelineAdmin"]["Authorizations"].find_one(
         {"collection": collection, "type": "data_migration"},
         sort=[("released_at", -1)])
@@ -471,7 +469,7 @@ _SERVICE_WAIT_SECONDS = 1800
 def _source_db():
     """The pipeline cluster's published data, as the pipeline identity."""
     return ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", _PIPELINE_CLUSTER)[_PIPELINE_DB]
+        "pipelineEditor", "ChatHealthyDataPipelines")[_PIPELINE_DB]
 
 
 def _destination_db():
@@ -482,13 +480,13 @@ def _destination_db():
     could not previously count what arrived.
     """
     return ChatHealthyMongoUtilities().getConnection(
-        "frontendUser", _FRONT_END_CLUSTER)[_FRONT_END_DB]
+        "frontendUser", "ChatHealthyFrontEnd")[_FRONT_END_DB]
 
 
 def _mutex():
     from chathealthy_lib.mutex import MUTEX_COLLECTION, MUTEX_DATABASE
     return ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", _FRONT_END_CLUSTER
+        "pipelineEditor", "ChatHealthyFrontEnd"
     )[MUTEX_DATABASE][MUTEX_COLLECTION]
 
 
@@ -629,7 +627,7 @@ def _the_runbook_said(collection: str, since) -> list[str]:
     whether an invocation should have been refused.
     """
     log = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", _FRONT_END_CLUSTER)["pipelineAdmin"]["Log"]
+        "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["Log"]
     began = time.monotonic()
     while time.monotonic() - began < _SERVICE_WAIT_SECONDS:
         said = [str(record.get("message", ""))
@@ -793,22 +791,29 @@ def test_a_second_holder_cannot_take_the_reservation():
     held for the length of two calls and given back in a finally.
     """
     from chathealthy_lib.exceptions import ChatHealthyException
-    from chathealthy_lib.mutex import give_back, take
+    from chathealthy_lib.mutex import collection_for, give_back, take
+
+    # This test takes the mutex as pipelineEditor, where the migration takes it
+    # as PipelineToFrontEndPublicDataMigrator. Two identities, so the caller
+    # opens the connection and the library is handed the collection.
+    mutex_collection = collection_for(
+        ChatHealthyMongoUtilities().getConnection(
+            "pipelineEditor", "ChatHealthyFrontEnd"))
 
     kind = f"pytest_mutex_{uuid.uuid4().hex[:8]}"
-    take("pipelineEditor", _FRONT_END_CLUSTER, kind,
+    take(mutex_collection, kind,
             holder="first", about="the first holder")
     try:
         with pytest.raises(ChatHealthyException) as refused:
-            take("pipelineEditor", _FRONT_END_CLUSTER, kind,
+            take(mutex_collection, kind,
                     holder="second", about="the second holder")
         assert refused.value.mode == "mutex_held", refused.value.mode
         assert "first" in str(refused.value), str(refused.value)
     finally:
-        give_back("pipelineEditor", _FRONT_END_CLUSTER, kind)
+        give_back(mutex_collection, kind)
 
     # Released, so the next holder takes it. A mutex that never comes back
     # refuses every job after the first and looks identical to one that works.
-    take("pipelineEditor", _FRONT_END_CLUSTER, kind,
+    take(mutex_collection, kind,
             holder="third", about="after the release")
-    give_back("pipelineEditor", _FRONT_END_CLUSTER, kind)
+    give_back(mutex_collection, kind)

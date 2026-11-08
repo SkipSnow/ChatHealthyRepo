@@ -21,6 +21,11 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 
+class UtteranceToLocate(BaseModel):
+    """What the extractor is given: the utterance a location is read from."""
+    utterance: str = Field(description="The utterance, verbatim.")
+
+
 class LocationOutput(BaseModel):
     """Structured location pulled from the utterance."""
     state: Optional[str] = Field(
@@ -96,6 +101,7 @@ def _get_agent() -> Agent:
             message="GEMINI_API_KEY not set; required for geo_extractor.")
         _agent = Agent(
             _MODEL_ID,
+            deps_type=UtteranceToLocate,
             output_type=LocationOutput,
             system_prompt=_SYSTEM_PROMPT,
             model_settings={"temperature": 0.1},
@@ -113,4 +119,5 @@ def extract_location(utterance: str) -> LocationOutput:
     text = (utterance or "").strip()
     if not text:
         return LocationOutput()
-    return _get_agent().run_sync(text).output
+    return _get_agent().run_sync(
+        text, deps=UtteranceToLocate(utterance=text)).output

@@ -1,0 +1,860 @@
+01:30:51 created fda_label, fda_name, fda_otc_excluded
+01:30:53 openfda blobs found: 42
+01:30:53   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0000
+01:30:53 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0000 (136.7 MB)  kept_so_far=0
+01:30:58   +7023 kept (total 7023), otc_excluded=12977, repeated_set_ids=0
+01:30:58   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0001
+01:30:58 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0001 (150.6 MB)  kept_so_far=7023
+01:31:04   +7385 kept (total 14408), otc_excluded=25592, repeated_set_ids=0
+01:31:04   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0002
+01:31:04 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=14408
+01:31:09   +7180 kept (total 21588), otc_excluded=38412, repeated_set_ids=0
+01:31:09   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0003
+01:31:09 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0003 (143.6 MB)  kept_so_far=21588
+01:31:15   +7181 kept (total 28769), otc_excluded=51231, repeated_set_ids=0
+01:31:15   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0004
+01:31:15 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=28769
+01:31:20   +6894 kept (total 35663), otc_excluded=64337, repeated_set_ids=0
+01:31:20   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0005
+01:31:20 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0005 (142.9 MB)  kept_so_far=35663
+01:31:25   +7065 kept (total 42728), otc_excluded=77272, repeated_set_ids=0
+01:31:25   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0006
+01:31:25 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0006 (147.8 MB)  kept_so_far=42728
+01:31:30   +7461 kept (total 50189), otc_excluded=89811, repeated_set_ids=0
+01:31:30   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0007
+01:31:30 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=50189
+01:31:36   +7223 kept (total 57412), otc_excluded=102588, repeated_set_ids=0
+01:31:36   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0008
+01:31:36 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0008 (132.1 MB)  kept_so_far=57412
+01:31:41   +6909 kept (total 64321), otc_excluded=115679, repeated_set_ids=0
+01:31:41   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0009
+01:31:41 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0009 (137.4 MB)  kept_so_far=64321
+01:31:46   +6836 kept (total 71157), otc_excluded=128843, repeated_set_ids=0
+01:31:46   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0010
+01:31:46 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0010 (149.8 MB)  kept_so_far=71157
+01:31:51   +7558 kept (total 78715), otc_excluded=141285, repeated_set_ids=0
+01:31:51   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0011
+01:31:51 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=78715
+01:31:57   +7098 kept (total 85813), otc_excluded=154187, repeated_set_ids=0
+01:31:57   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0012
+01:31:57 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=85813
+01:32:02   +7027 kept (total 92840), otc_excluded=167160, repeated_set_ids=0
+01:32:02   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0013
+01:32:02 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0013 (24.3 MB)  kept_so_far=92840
+01:32:03   +1095 kept (total 93935), otc_excluded=168968, repeated_set_ids=0
+01:32:03   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0000
+01:32:03 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0000 (137.2 MB)  kept_so_far=93935
+01:32:08   +7028 kept (total 100963), otc_excluded=181940, repeated_set_ids=7028
+01:32:08   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0001
+01:32:08 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0001 (149.5 MB)  kept_so_far=100963
+01:32:13   +7347 kept (total 108310), otc_excluded=194593, repeated_set_ids=14373
+01:32:13   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0002
+01:32:13 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0002 (143.6 MB)  kept_so_far=108310
+01:32:19   +7203 kept (total 115513), otc_excluded=207390, repeated_set_ids=21574
+01:32:19   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0003
+01:32:19 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0003 (143.9 MB)  kept_so_far=115513
+01:32:24   +7201 kept (total 122714), otc_excluded=220189, repeated_set_ids=28774
+01:32:24   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0004
+01:32:24 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=122714
+01:32:29   +6900 kept (total 129614), otc_excluded=233289, repeated_set_ids=35671
+01:32:29   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0005
+01:32:29 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0005 (142.7 MB)  kept_so_far=129614
+01:32:35   +7056 kept (total 136670), otc_excluded=246233, repeated_set_ids=42726
+01:32:35   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0006
+01:32:35 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0006 (147.9 MB)  kept_so_far=136670
+01:32:40   +7466 kept (total 144136), otc_excluded=258767, repeated_set_ids=50188
+01:32:40   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0007
+01:32:40 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0007 (144.1 MB)  kept_so_far=144136
+01:32:46   +7239 kept (total 151375), otc_excluded=271528, repeated_set_ids=57425
+01:32:46   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0008
+01:32:46 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0008 (132.3 MB)  kept_so_far=151375
+01:32:51   +6927 kept (total 158302), otc_excluded=284601, repeated_set_ids=64351
+01:32:51   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0009
+01:32:51 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0009 (137.0 MB)  kept_so_far=158302
+01:32:56   +6796 kept (total 165098), otc_excluded=297805, repeated_set_ids=71146
+01:32:56   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0010
+01:32:56 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0010 (149.9 MB)  kept_so_far=165098
+01:33:02   +7577 kept (total 172675), otc_excluded=310228, repeated_set_ids=78720
+01:33:02   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0011
+01:33:02 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=172675
+01:33:08   +7093 kept (total 179768), otc_excluded=323135, repeated_set_ids=85812
+01:33:08   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0012
+01:33:08 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=179768
+01:33:13   +7037 kept (total 186805), otc_excluded=336098, repeated_set_ids=92849
+01:33:13   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0013
+01:33:13 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0013 (24.1 MB)  kept_so_far=186805
+01:33:14   +1084 kept (total 187889), otc_excluded=337911, repeated_set_ids=93933
+01:33:14   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0000
+01:33:14 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0000 (136.8 MB)  kept_so_far=187889
+01:33:19   +7028 kept (total 194917), otc_excluded=350883, repeated_set_ids=100961
+01:33:19   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0001
+01:33:19 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0001 (150.4 MB)  kept_so_far=194917
+01:33:25   +7368 kept (total 202285), otc_excluded=363515, repeated_set_ids=108329
+01:33:25   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0002
+01:33:25 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=202285
+01:33:30   +7182 kept (total 209467), otc_excluded=376333, repeated_set_ids=115511
+01:33:30   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0003
+01:33:30 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0003 (143.5 MB)  kept_so_far=209467
+01:33:36   +7185 kept (total 216652), otc_excluded=389148, repeated_set_ids=122696
+01:33:36   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0004
+01:33:36 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0004 (131.3 MB)  kept_so_far=216652
+01:33:41   +6893 kept (total 223545), otc_excluded=402255, repeated_set_ids=129589
+01:33:41   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0005
+01:33:41 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0005 (143.5 MB)  kept_so_far=223545
+01:33:47   +7078 kept (total 230623), otc_excluded=415177, repeated_set_ids=136667
+01:33:47   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0006
+01:33:47 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0006 (147.9 MB)  kept_so_far=230623
+01:33:52   +7472 kept (total 238095), otc_excluded=427705, repeated_set_ids=144139
+01:33:52   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0007
+01:33:52 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=238095
+01:33:58   +7226 kept (total 245321), otc_excluded=440479, repeated_set_ids=151365
+01:33:58   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0008
+01:33:58 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0008 (132.2 MB)  kept_so_far=245321
+01:34:04   +6921 kept (total 252242), otc_excluded=453558, repeated_set_ids=158286
+01:34:04   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0009
+01:34:04 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0009 (136.4 MB)  kept_so_far=252242
+01:34:09   +6777 kept (total 259019), otc_excluded=466781, repeated_set_ids=165063
+01:34:09   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0010
+01:34:09 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0010 (150.2 MB)  kept_so_far=259019
+01:34:15   +7598 kept (total 266617), otc_excluded=479183, repeated_set_ids=172661
+01:34:15   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0011
+01:34:15 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0011 (140.9 MB)  kept_so_far=266617
+01:34:21   +7109 kept (total 273726), otc_excluded=492074, repeated_set_ids=179770
+01:34:21   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0012
+01:34:21 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=273726
+01:34:26   +7027 kept (total 280753), otc_excluded=505047, repeated_set_ids=186797
+01:34:26   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0013
+01:34:26 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0013 (24.1 MB)  kept_so_far=280753
+01:34:27   +1085 kept (total 281838), otc_excluded=506862, repeated_set_ids=187882
+01:34:27 indexing the join surface
+01:34:36 RESULT fda_label rows=281838 distinct_set_id=93956 (repeats=187882)
+01:34:36        fda_name rows=335496   otc_excluded=506862   corpus_records_seen=788700
+01:34:36   brand      rows=107073   distinct_norm=5068
+01:34:36   generic    rows=106578   distinct_norm=3304
+01:34:36   substance  rows=121845   distinct_norm=2324
+01:34:36 OTC exclusion reasons:
+01:34:36   drug_facts_panel:purpose                   349274
+01:34:36   product_type                               143079
+01:34:36   drug_facts_prose:do_not_use                6839
+01:34:36   drug_facts_panel:keep_out_of_reach_of_children 3771
+01:34:36   drug_facts_prose:keep_out_of_reach_of_children 2861
+01:34:36   drug_facts_prose:for_external_use_only     381
+01:34:36   drug_facts_panel:when_using                303
+01:34:36   drug_facts_prose:drug_facts                135
+01:34:36   drug_facts_prose:when_using_this_product   90
+01:34:36   drug_facts_panel:do_not_use                57
+01:34:36   drug_facts_panel:stop_use                  39
+01:34:36   drug_facts_panel:ask_doctor                21
+01:34:36   drug_facts_prose:stop_use_and_ask_a_doctor 12
+01:34:37 of the loaded rows, states an indication: 281829
+01:34:37 STAGE 2 DONE
+01:34:38 created rxnconso
+01:34:39   cached C:\DataExperiments\Sources\rxnorm\555730c3ff2a9817\rxnorm (31 MB)
+01:34:39 loading rxnorm/555730c3ff2a9817/rxnorm -> rxnconso
+01:34:42   rxnorm/555730c3ff2a9817/rxnorm: 247,028 rows
+01:34:42   cached C:\DataExperiments\Sources\rxnorm\ae92f92de757ef30\rxnorm (133 MB)
+01:34:42 loading rxnorm/ae92f92de757ef30/rxnorm -> rxnconso
+01:34:48     500,000 rows
+01:34:54     1,000,000 rows
+01:34:57   rxnorm/ae92f92de757ef30/rxnorm: 1,213,242 rows
+01:34:57 rxnconso total rows=1,460,270
+01:34:57 created rxnrel
+01:34:58   cached C:\DataExperiments\Sources\rxnorm_rel\caeb0528839722b3\rxnorm_rel (533 MB)
+01:34:58 loading rxnorm_rel/caeb0528839722b3/rxnorm_rel -> rxnrel
+01:35:03     500,000 rows
+01:35:08     1,000,000 rows
+01:35:14     1,500,000 rows
+01:35:20     2,000,000 rows
+01:35:26     2,500,000 rows
+01:35:32     3,000,000 rows
+01:35:38     3,500,000 rows
+01:35:44     4,000,000 rows
+01:35:49     4,500,000 rows
+01:35:55     5,000,000 rows
+01:36:01     5,500,000 rows
+01:36:07     6,000,000 rows
+01:36:13     6,500,000 rows
+01:36:18     7,000,000 rows
+01:36:24   rxnorm_rel/caeb0528839722b3/rxnorm_rel: 7,499,361 rows
+01:36:24 rxnrel total rows=7,499,361
+01:36:24 indexing
+01:37:25 --- which archived RXNCONSO copy is complete ---
+01:37:35   rxnorm/ae92f92de757ef30/rxnorm                   rows=1,213,242    distinct_rxcui=415,293
+01:37:35   rxnorm/555730c3ff2a9817/rxnorm                   rows=247,028      distinct_rxcui=82,689
+01:37:35 --- term types present (English, unsuppressed) ---
+01:37:35   DP       218,253
+01:37:35   SY       111,927
+01:37:35   IN       76,589
+01:37:35   BD       65,021
+01:37:35   CD       56,825
+01:37:35   PT       49,488
+01:37:35   PSN      48,835
+01:37:35   FN       47,280
+01:37:35   SU       35,680
+01:37:35   BN       34,837
+01:37:35   SCD      29,691
+01:37:35   SCDC     24,591
+01:37:35   TMSY     23,847
+01:37:35   AB       21,577
+01:37:35   CDC      19,294
+01:37:35 --- relationships that matter for brand -> ingredient ---
+01:37:36   has_ingredient             356,684
+01:37:36   ingredient_of              356,684
+01:37:36   has_tradename              119,208
+01:37:36   tradename_of               119,208
+01:37:36   consists_of                117,461
+01:37:36   constitutes                117,461
+01:37:36   has_form                   18,326
+01:37:36   form_of                    18,326
+01:37:36   has_precise_ingredient     12,406
+01:37:36   precise_ingredient_of      12,406
+01:37:36 STAGE 4 DONE
+09:46:08 created fda_label, fda_name, fda_otc_excluded
+09:46:10 openfda blobs found: 42
+09:46:10   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0000
+09:46:10 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0000 (136.7 MB)  kept_so_far=0
+09:46:15   +7023 kept (total 7023), otc_excluded=12977, repeated_set_ids=0
+09:46:15   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0001
+09:46:15 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0001 (150.6 MB)  kept_so_far=7023
+09:46:21   +7385 kept (total 14408), otc_excluded=25592, repeated_set_ids=0
+09:46:21   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0002
+09:46:21 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=14408
+09:46:26   +7180 kept (total 21588), otc_excluded=38412, repeated_set_ids=0
+09:46:26   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0003
+09:46:26 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0003 (143.6 MB)  kept_so_far=21588
+09:46:32   +7181 kept (total 28769), otc_excluded=51231, repeated_set_ids=0
+09:46:32   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0004
+09:46:32 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=28769
+09:46:37   +6894 kept (total 35663), otc_excluded=64337, repeated_set_ids=0
+09:46:37   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0005
+09:46:37 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0005 (142.9 MB)  kept_so_far=35663
+09:46:43   +7065 kept (total 42728), otc_excluded=77272, repeated_set_ids=0
+09:46:53 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0006 (147.8 MB)  kept_so_far=42728
+09:46:59   +7461 kept (total 50189), otc_excluded=89811, repeated_set_ids=0
+09:47:11 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=50189
+09:47:17   +7223 kept (total 57412), otc_excluded=102588, repeated_set_ids=0
+09:47:29 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0008 (132.1 MB)  kept_so_far=57412
+09:47:33   +6909 kept (total 64321), otc_excluded=115679, repeated_set_ids=0
+09:47:45 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0009 (137.4 MB)  kept_so_far=64321
+09:47:50   +6836 kept (total 71157), otc_excluded=128843, repeated_set_ids=0
+09:48:00 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0010 (149.8 MB)  kept_so_far=71157
+09:48:06   +7558 kept (total 78715), otc_excluded=141285, repeated_set_ids=0
+09:48:16 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=78715
+09:48:21   +7098 kept (total 85813), otc_excluded=154187, repeated_set_ids=0
+09:48:35 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=85813
+09:48:40   +7027 kept (total 92840), otc_excluded=167160, repeated_set_ids=0
+09:48:45 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0013 (24.3 MB)  kept_so_far=92840
+09:48:46   +1095 kept (total 93935), otc_excluded=168968, repeated_set_ids=0
+09:48:57 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0000 (137.2 MB)  kept_so_far=93935
+09:49:03   +7028 kept (total 100963), otc_excluded=181940, repeated_set_ids=7028
+09:49:15 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0001 (149.5 MB)  kept_so_far=100963
+09:49:20   +7347 kept (total 108310), otc_excluded=194593, repeated_set_ids=14373
+09:49:32 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0002 (143.6 MB)  kept_so_far=108310
+09:49:38   +7203 kept (total 115513), otc_excluded=207390, repeated_set_ids=21574
+09:49:51 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0003 (143.9 MB)  kept_so_far=115513
+09:49:57   +7201 kept (total 122714), otc_excluded=220189, repeated_set_ids=28774
+09:50:07 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=122714
+09:50:12   +6900 kept (total 129614), otc_excluded=233289, repeated_set_ids=35671
+09:50:23 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0005 (142.7 MB)  kept_so_far=129614
+09:50:28   +7056 kept (total 136670), otc_excluded=246233, repeated_set_ids=42726
+09:50:28   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0006
+09:50:28 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0006 (125.8 MB)  kept_so_far=136670
+09:58:10 created fda_label, fda_name, fda_otc_excluded
+09:58:12 openfda blobs found: 42
+09:58:12   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0000
+09:58:12 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0000 (136.7 MB)  kept_so_far=0
+09:58:17   +7023 kept (total 7023), otc_excluded=12977, repeated_set_ids=0
+09:58:17   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0001
+09:58:17 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0001 (150.6 MB)  kept_so_far=7023
+09:58:23   +7385 kept (total 14408), otc_excluded=25592, repeated_set_ids=0
+09:58:23   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0002
+09:58:23 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=14408
+09:58:28   +7180 kept (total 21588), otc_excluded=38412, repeated_set_ids=0
+09:58:28   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0003
+09:58:28 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0003 (143.6 MB)  kept_so_far=21588
+09:58:33   +7181 kept (total 28769), otc_excluded=51231, repeated_set_ids=0
+09:58:33   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0004
+09:58:33 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=28769
+09:58:38   +6894 kept (total 35663), otc_excluded=64337, repeated_set_ids=0
+09:58:38   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0005
+09:58:38 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0005 (142.9 MB)  kept_so_far=35663
+09:58:43   +7065 kept (total 42728), otc_excluded=77272, repeated_set_ids=0
+09:58:43   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0006
+09:58:43 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0006 (147.8 MB)  kept_so_far=42728
+09:58:49   +7461 kept (total 50189), otc_excluded=89811, repeated_set_ids=0
+09:58:49   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0007
+09:58:49 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=50189
+09:58:54   +7223 kept (total 57412), otc_excluded=102588, repeated_set_ids=0
+09:58:54   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0008
+09:58:54 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0008 (132.1 MB)  kept_so_far=57412
+09:58:59   +6909 kept (total 64321), otc_excluded=115679, repeated_set_ids=0
+09:58:59   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0009
+09:58:59 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0009 (137.4 MB)  kept_so_far=64321
+09:59:04   +6836 kept (total 71157), otc_excluded=128843, repeated_set_ids=0
+09:59:04   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0010
+09:59:04 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0010 (149.8 MB)  kept_so_far=71157
+09:59:10   +7558 kept (total 78715), otc_excluded=141285, repeated_set_ids=0
+09:59:10   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0011
+09:59:10 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=78715
+09:59:15   +7098 kept (total 85813), otc_excluded=154187, repeated_set_ids=0
+09:59:15   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0012
+09:59:15 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=85813
+09:59:20   +7027 kept (total 92840), otc_excluded=167160, repeated_set_ids=0
+09:59:20   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0013
+09:59:20 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0013 (24.3 MB)  kept_so_far=92840
+09:59:21   +1095 kept (total 93935), otc_excluded=168968, repeated_set_ids=0
+09:59:21   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0000
+09:59:21 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0000 (137.2 MB)  kept_so_far=93935
+09:59:26   +7028 kept (total 100963), otc_excluded=181940, repeated_set_ids=7028
+09:59:26   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0001
+09:59:26 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0001 (149.5 MB)  kept_so_far=100963
+09:59:32   +7347 kept (total 108310), otc_excluded=194593, repeated_set_ids=14373
+09:59:32   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0002
+09:59:32 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0002 (143.6 MB)  kept_so_far=108310
+09:59:37   +7203 kept (total 115513), otc_excluded=207390, repeated_set_ids=21574
+09:59:37   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0003
+09:59:37 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0003 (143.9 MB)  kept_so_far=115513
+09:59:43   +7201 kept (total 122714), otc_excluded=220189, repeated_set_ids=28774
+09:59:43   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0004
+09:59:43 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=122714
+09:59:48   +6900 kept (total 129614), otc_excluded=233289, repeated_set_ids=35671
+09:59:48   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0005
+09:59:48 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0005 (142.7 MB)  kept_so_far=129614
+09:59:53   +7056 kept (total 136670), otc_excluded=246233, repeated_set_ids=42726
+09:59:53   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0006
+09:59:53 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0006 (147.9 MB)  kept_so_far=136670
+09:59:59   +7466 kept (total 144136), otc_excluded=258767, repeated_set_ids=50188
+09:59:59   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0007
+09:59:59 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0007 (144.1 MB)  kept_so_far=144136
+10:00:05   +7239 kept (total 151375), otc_excluded=271528, repeated_set_ids=57425
+10:00:05   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0008
+10:00:05 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0008 (132.3 MB)  kept_so_far=151375
+10:00:10   +6927 kept (total 158302), otc_excluded=284601, repeated_set_ids=64351
+10:00:10   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0009
+10:00:10 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0009 (137.0 MB)  kept_so_far=158302
+10:00:16   +6796 kept (total 165098), otc_excluded=297805, repeated_set_ids=71146
+10:00:16   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0010
+10:00:16 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0010 (149.9 MB)  kept_so_far=165098
+10:00:22   +7577 kept (total 172675), otc_excluded=310228, repeated_set_ids=78720
+10:00:22   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0011
+10:00:22 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=172675
+10:07:18 created fda_label, fda_name, fda_otc_excluded
+10:07:20 openfda blobs found: 42
+10:07:20   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0000
+10:07:20 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0000 (136.7 MB)  kept_so_far=0
+10:07:25   +7023 kept (total 7023), otc_excluded=12977, repeated_set_ids=0
+10:07:25   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0001
+10:07:25 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0001 (150.6 MB)  kept_so_far=7023
+10:07:30   +7385 kept (total 14408), otc_excluded=25592, repeated_set_ids=0
+10:07:30   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0002
+10:07:30 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=14408
+10:07:35   +7180 kept (total 21588), otc_excluded=38412, repeated_set_ids=0
+10:07:35   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0003
+10:07:35 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0003 (143.6 MB)  kept_so_far=21588
+10:07:41   +7181 kept (total 28769), otc_excluded=51231, repeated_set_ids=0
+10:07:41   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0004
+10:07:41 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=28769
+10:07:45   +6894 kept (total 35663), otc_excluded=64337, repeated_set_ids=0
+10:07:45   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0005
+10:07:45 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0005 (142.9 MB)  kept_so_far=35663
+10:07:51   +7065 kept (total 42728), otc_excluded=77272, repeated_set_ids=0
+10:07:51   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0006
+10:07:51 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0006 (147.8 MB)  kept_so_far=42728
+10:07:56   +7461 kept (total 50189), otc_excluded=89811, repeated_set_ids=0
+10:07:56   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0007
+10:07:56 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=50189
+10:08:01   +7223 kept (total 57412), otc_excluded=102588, repeated_set_ids=0
+10:08:01   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0008
+10:08:01 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0008 (132.1 MB)  kept_so_far=57412
+10:08:06   +6909 kept (total 64321), otc_excluded=115679, repeated_set_ids=0
+10:08:06   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0009
+10:08:06 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0009 (137.4 MB)  kept_so_far=64321
+10:08:11   +6836 kept (total 71157), otc_excluded=128843, repeated_set_ids=0
+10:08:11   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0010
+10:08:11 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0010 (149.8 MB)  kept_so_far=71157
+10:08:17   +7558 kept (total 78715), otc_excluded=141285, repeated_set_ids=0
+10:08:17   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0011
+10:08:17 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=78715
+10:08:22   +7098 kept (total 85813), otc_excluded=154187, repeated_set_ids=0
+10:08:22   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0012
+10:08:22 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=85813
+10:08:27   +7027 kept (total 92840), otc_excluded=167160, repeated_set_ids=0
+10:08:27   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0013
+10:08:27 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0013 (24.3 MB)  kept_so_far=92840
+10:08:28   +1095 kept (total 93935), otc_excluded=168968, repeated_set_ids=0
+10:08:28   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0000
+10:08:28 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0000 (137.2 MB)  kept_so_far=93935
+10:08:34   +7028 kept (total 100963), otc_excluded=181940, repeated_set_ids=7028
+10:08:34   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0001
+10:08:34 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0001 (149.5 MB)  kept_so_far=100963
+10:08:39   +7347 kept (total 108310), otc_excluded=194593, repeated_set_ids=14373
+10:08:39   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0002
+10:08:39 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0002 (143.6 MB)  kept_so_far=108310
+10:08:45   +7203 kept (total 115513), otc_excluded=207390, repeated_set_ids=21574
+10:08:45   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0003
+10:08:45 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0003 (143.9 MB)  kept_so_far=115513
+10:08:50   +7201 kept (total 122714), otc_excluded=220189, repeated_set_ids=28774
+10:08:50   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0004
+10:08:50 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=122714
+10:08:55   +6900 kept (total 129614), otc_excluded=233289, repeated_set_ids=35671
+10:08:55   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0005
+10:08:55 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0005 (142.7 MB)  kept_so_far=129614
+10:09:00   +7056 kept (total 136670), otc_excluded=246233, repeated_set_ids=42726
+10:09:00   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0006
+10:09:00 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0006 (147.9 MB)  kept_so_far=136670
+10:09:06   +7466 kept (total 144136), otc_excluded=258767, repeated_set_ids=50188
+10:09:06   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0007
+10:09:06 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0007 (144.1 MB)  kept_so_far=144136
+10:09:12   +7239 kept (total 151375), otc_excluded=271528, repeated_set_ids=57425
+10:09:12   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0008
+10:09:12 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0008 (132.3 MB)  kept_so_far=151375
+10:09:16   +6927 kept (total 158302), otc_excluded=284601, repeated_set_ids=64351
+10:09:16   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0009
+10:09:16 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0009 (137.0 MB)  kept_so_far=158302
+10:09:22   +6796 kept (total 165098), otc_excluded=297805, repeated_set_ids=71146
+10:09:22   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0010
+10:09:22 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0010 (149.9 MB)  kept_so_far=165098
+10:09:27   +7577 kept (total 172675), otc_excluded=310228, repeated_set_ids=78720
+10:09:27   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0011
+10:09:27 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=172675
+10:09:33   +7093 kept (total 179768), otc_excluded=323135, repeated_set_ids=85812
+10:09:33   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0012
+10:09:33 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=179768
+10:09:38   +7037 kept (total 186805), otc_excluded=336098, repeated_set_ids=92849
+10:09:38   cached C:\DataExperiments\Sources\openfda_labels\dbf6938b27a735ce\openfda_labels_shard_0013
+10:09:38 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0013 (24.1 MB)  kept_so_far=186805
+10:09:39   +1084 kept (total 187889), otc_excluded=337911, repeated_set_ids=93933
+10:09:39   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0000
+10:09:39 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0000 (136.8 MB)  kept_so_far=187889
+10:09:44   +7028 kept (total 194917), otc_excluded=350883, repeated_set_ids=100961
+10:09:44   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0001
+10:09:44 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0001 (150.4 MB)  kept_so_far=194917
+10:09:50   +7368 kept (total 202285), otc_excluded=363515, repeated_set_ids=108329
+10:09:50   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0002
+10:09:50 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=202285
+10:09:55   +7182 kept (total 209467), otc_excluded=376333, repeated_set_ids=115511
+10:09:55   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0003
+10:09:55 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0003 (143.5 MB)  kept_so_far=209467
+10:10:01   +7185 kept (total 216652), otc_excluded=389148, repeated_set_ids=122696
+10:10:01   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0004
+10:10:01 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0004 (131.3 MB)  kept_so_far=216652
+10:10:06   +6893 kept (total 223545), otc_excluded=402255, repeated_set_ids=129589
+10:10:06   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0005
+10:10:06 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0005 (143.5 MB)  kept_so_far=223545
+10:10:11   +7078 kept (total 230623), otc_excluded=415177, repeated_set_ids=136667
+10:10:11   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0006
+10:10:11 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0006 (147.9 MB)  kept_so_far=230623
+10:10:17   +7472 kept (total 238095), otc_excluded=427705, repeated_set_ids=144139
+10:10:17   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0007
+10:10:17 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=238095
+10:10:23   +7226 kept (total 245321), otc_excluded=440479, repeated_set_ids=151365
+10:10:23   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0008
+10:10:23 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0008 (132.2 MB)  kept_so_far=245321
+10:10:28   +6921 kept (total 252242), otc_excluded=453558, repeated_set_ids=158286
+10:10:28   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0009
+10:10:28 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0009 (136.4 MB)  kept_so_far=252242
+10:10:33   +6777 kept (total 259019), otc_excluded=466781, repeated_set_ids=165063
+10:10:33   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0010
+10:10:33 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0010 (150.2 MB)  kept_so_far=259019
+10:10:39   +7598 kept (total 266617), otc_excluded=479183, repeated_set_ids=172661
+10:10:39   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0011
+10:10:39 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0011 (140.9 MB)  kept_so_far=266617
+10:10:45   +7109 kept (total 273726), otc_excluded=492074, repeated_set_ids=179770
+10:10:45   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0012
+10:10:45 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=273726
+10:10:50   +7027 kept (total 280753), otc_excluded=505047, repeated_set_ids=186797
+10:10:50   cached C:\DataExperiments\Sources\openfda_labels\f36f7e0ffbd382d5\openfda_labels_shard_0013
+10:10:50 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0013 (24.1 MB)  kept_so_far=280753
+10:10:51   +1085 kept (total 281838), otc_excluded=506862, repeated_set_ids=187882
+10:10:51 indexing the join surface
+10:10:57 RESULT fda_label rows=281838 distinct_set_id=93956 (repeats=187882)
+10:10:57        fda_name rows=335496   otc_excluded=506862   corpus_records_seen=788700
+10:10:57   brand      rows=107073   distinct_norm=5068
+10:10:57   generic    rows=106578   distinct_norm=3304
+10:10:57   substance  rows=121845   distinct_norm=2324
+10:10:57 OTC exclusion reasons:
+10:10:57   drug_facts_panel:purpose                   349274
+10:10:57   product_type                               143079
+10:10:57   drug_facts_prose:do_not_use                6839
+10:10:57   drug_facts_panel:keep_out_of_reach_of_children 3771
+10:10:57   drug_facts_prose:keep_out_of_reach_of_children 2861
+10:10:57   drug_facts_prose:for_external_use_only     381
+10:10:57   drug_facts_panel:when_using                303
+10:10:57   drug_facts_prose:drug_facts                135
+10:10:57   drug_facts_prose:when_using_this_product   90
+10:10:57   drug_facts_panel:do_not_use                57
+10:10:57   drug_facts_panel:stop_use                  39
+10:10:57   drug_facts_panel:ask_doctor                21
+10:10:57   drug_facts_prose:stop_use_and_ask_a_doctor 12
+10:10:57 of the loaded rows, states an indication: 281829
+10:10:57 STAGE 2 DONE
+10:10:58 created rxnconso
+10:11:00   cached C:\DataExperiments\Sources\rxnorm\555730c3ff2a9817\rxnorm (31 MB)
+10:11:00 loading rxnorm/555730c3ff2a9817/rxnorm -> rxnconso
+10:11:02   rxnorm/555730c3ff2a9817/rxnorm: 247,028 rows
+10:11:02   cached C:\DataExperiments\Sources\rxnorm\ae92f92de757ef30\rxnorm (133 MB)
+10:11:02 loading rxnorm/ae92f92de757ef30/rxnorm -> rxnconso
+10:11:08     500,000 rows
+10:11:14     1,000,000 rows
+10:11:17   rxnorm/ae92f92de757ef30/rxnorm: 1,213,242 rows
+10:11:17 rxnconso total rows=1,460,270
+10:11:17 created rxnrel
+10:11:18   cached C:\DataExperiments\Sources\rxnorm_rel\caeb0528839722b3\rxnorm_rel (533 MB)
+10:11:18 loading rxnorm_rel/caeb0528839722b3/rxnorm_rel -> rxnrel
+10:11:23     500,000 rows
+10:11:28     1,000,000 rows
+10:11:33     1,500,000 rows
+10:11:38     2,000,000 rows
+10:11:44     2,500,000 rows
+10:11:50     3,000,000 rows
+10:11:56     3,500,000 rows
+10:12:02     4,000,000 rows
+10:12:07     4,500,000 rows
+10:12:13     5,000,000 rows
+10:12:19     5,500,000 rows
+10:12:25     6,000,000 rows
+10:12:31     6,500,000 rows
+10:12:37     7,000,000 rows
+10:12:42   rxnorm_rel/caeb0528839722b3/rxnorm_rel: 7,499,361 rows
+10:12:42 rxnrel total rows=7,499,361
+10:12:42 indexing
+10:13:46 --- which archived RXNCONSO copy is complete ---
+10:13:50   rxnorm/ae92f92de757ef30/rxnorm                   rows=1,213,242    distinct_rxcui=415,293
+10:13:50   rxnorm/555730c3ff2a9817/rxnorm                   rows=247,028      distinct_rxcui=82,689
+10:13:50 --- term types present (English, unsuppressed) ---
+10:13:51   DP       218,253
+10:13:51   SY       111,927
+10:13:51   IN       76,589
+10:13:51   BD       65,021
+10:13:51   CD       56,825
+10:13:51   PT       49,488
+10:13:51   PSN      48,835
+10:13:51   FN       47,280
+10:13:51   SU       35,680
+10:13:51   BN       34,837
+10:13:51   SCD      29,691
+10:13:51   SCDC     24,591
+10:13:51   TMSY     23,847
+10:13:51   AB       21,577
+10:13:51   CDC      19,294
+10:13:51 --- relationships that matter for brand -> ingredient ---
+10:13:51   has_ingredient             356,684
+10:13:51   ingredient_of              356,684
+10:13:51   has_tradename              119,208
+10:13:51   tradename_of               119,208
+10:13:51   consists_of                117,461
+10:13:51   constitutes                117,461
+10:13:51   has_form                   18,326
+10:13:51   form_of                    18,326
+10:13:51   has_precise_ingredient     12,406
+10:13:51   precise_ingredient_of      12,406
+10:13:51 STAGE 4 DONE
+14:33:27 created fda_label, fda_name, fda_otc_excluded
+14:33:29 openfda blobs found: 42
+14:33:29   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0000
+14:33:29 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0000 (136.7 MB)  kept_so_far=0
+14:33:35   +7023 kept (total 7023), otc_excluded=12977, repeated_set_ids=0
+14:33:35   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0001
+14:33:35 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0001 (150.6 MB)  kept_so_far=7023
+14:33:41   +7385 kept (total 14408), otc_excluded=25592, repeated_set_ids=0
+14:33:41   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0002
+14:33:41 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=14408
+14:33:47   +7180 kept (total 21588), otc_excluded=38412, repeated_set_ids=0
+14:33:47   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0003
+14:33:47 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0003 (143.6 MB)  kept_so_far=21588
+14:33:52   +7181 kept (total 28769), otc_excluded=51231, repeated_set_ids=0
+14:33:52   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0004
+14:33:52 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=28769
+14:33:57   +6894 kept (total 35663), otc_excluded=64337, repeated_set_ids=0
+14:33:57   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0005
+14:33:57 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0005 (142.9 MB)  kept_so_far=35663
+14:34:03   +7065 kept (total 42728), otc_excluded=77272, repeated_set_ids=0
+14:34:03   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0006
+14:34:03 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0006 (147.8 MB)  kept_so_far=42728
+14:34:08   +7461 kept (total 50189), otc_excluded=89811, repeated_set_ids=0
+14:34:08   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0007
+14:34:08 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=50189
+14:34:13   +7223 kept (total 57412), otc_excluded=102588, repeated_set_ids=0
+14:34:13   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0008
+14:34:13 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0008 (132.1 MB)  kept_so_far=57412
+14:34:18   +6909 kept (total 64321), otc_excluded=115679, repeated_set_ids=0
+14:34:18   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0009
+14:34:18 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0009 (137.4 MB)  kept_so_far=64321
+14:34:23   +6836 kept (total 71157), otc_excluded=128843, repeated_set_ids=0
+14:34:23   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0010
+14:34:23 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0010 (149.8 MB)  kept_so_far=71157
+14:34:29   +7558 kept (total 78715), otc_excluded=141285, repeated_set_ids=0
+14:34:29   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0011
+14:34:29 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=78715
+14:34:35   +7098 kept (total 85813), otc_excluded=154187, repeated_set_ids=0
+14:34:35   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0012
+14:34:35 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=85813
+14:34:40   +7027 kept (total 92840), otc_excluded=167160, repeated_set_ids=0
+14:34:40   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0013
+14:34:40 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0013 (24.3 MB)  kept_so_far=92840
+14:34:40   +1095 kept (total 93935), otc_excluded=168968, repeated_set_ids=0
+14:34:49 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0000 (137.2 MB)  kept_so_far=93935
+14:34:55   +7028 kept (total 100963), otc_excluded=181940, repeated_set_ids=7028
+14:35:11 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0001 (149.5 MB)  kept_so_far=100963
+14:35:17   +7347 kept (total 108310), otc_excluded=194593, repeated_set_ids=14373
+14:35:27 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0002 (143.6 MB)  kept_so_far=108310
+14:35:33   +7203 kept (total 115513), otc_excluded=207390, repeated_set_ids=21574
+14:35:43 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0003 (143.9 MB)  kept_so_far=115513
+14:35:48   +7201 kept (total 122714), otc_excluded=220189, repeated_set_ids=28774
+14:35:58 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=122714
+14:36:03   +6900 kept (total 129614), otc_excluded=233289, repeated_set_ids=35671
+14:36:13 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0005 (142.7 MB)  kept_so_far=129614
+14:36:18   +7056 kept (total 136670), otc_excluded=246233, repeated_set_ids=42726
+14:36:28 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0006 (147.9 MB)  kept_so_far=136670
+14:36:34   +7466 kept (total 144136), otc_excluded=258767, repeated_set_ids=50188
+14:36:45 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0007 (144.1 MB)  kept_so_far=144136
+14:36:51   +7239 kept (total 151375), otc_excluded=271528, repeated_set_ids=57425
+14:37:00 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0008 (132.3 MB)  kept_so_far=151375
+14:37:06   +6927 kept (total 158302), otc_excluded=284601, repeated_set_ids=64351
+14:37:15 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0009 (137.0 MB)  kept_so_far=158302
+14:37:22   +6796 kept (total 165098), otc_excluded=297805, repeated_set_ids=71146
+14:37:32 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0010 (149.9 MB)  kept_so_far=165098
+14:37:38   +7577 kept (total 172675), otc_excluded=310228, repeated_set_ids=78720
+14:37:47 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=172675
+14:37:53   +7093 kept (total 179768), otc_excluded=323135, repeated_set_ids=85812
+14:38:03 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=179768
+14:38:09   +7037 kept (total 186805), otc_excluded=336098, repeated_set_ids=92849
+14:38:13 reading openfda_labels/dbf6938b27a735ce/openfda_labels_shard_0013 (24.1 MB)  kept_so_far=186805
+14:38:14   +1084 kept (total 187889), otc_excluded=337911, repeated_set_ids=93933
+14:38:23 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0000 (136.8 MB)  kept_so_far=187889
+14:38:28   +7028 kept (total 194917), otc_excluded=350883, repeated_set_ids=100961
+14:38:39 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0001 (150.4 MB)  kept_so_far=194917
+14:38:45   +7368 kept (total 202285), otc_excluded=363515, repeated_set_ids=108329
+14:38:55 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=202285
+14:39:01   +7182 kept (total 209467), otc_excluded=376333, repeated_set_ids=115511
+14:39:11 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0003 (143.5 MB)  kept_so_far=209467
+14:39:17   +7185 kept (total 216652), otc_excluded=389148, repeated_set_ids=122696
+14:39:27 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0004 (131.3 MB)  kept_so_far=216652
+14:39:32   +6893 kept (total 223545), otc_excluded=402255, repeated_set_ids=129589
+14:39:42 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0005 (143.5 MB)  kept_so_far=223545
+14:39:48   +7078 kept (total 230623), otc_excluded=415177, repeated_set_ids=136667
+14:39:59 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0006 (147.9 MB)  kept_so_far=230623
+14:40:05   +7472 kept (total 238095), otc_excluded=427705, repeated_set_ids=144139
+14:40:15 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=238095
+14:40:21   +7226 kept (total 245321), otc_excluded=440479, repeated_set_ids=151365
+14:40:31 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0008 (132.2 MB)  kept_so_far=245321
+14:40:37   +6921 kept (total 252242), otc_excluded=453558, repeated_set_ids=158286
+14:40:46 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0009 (136.4 MB)  kept_so_far=252242
+14:40:52   +6777 kept (total 259019), otc_excluded=466781, repeated_set_ids=165063
+14:41:02 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0010 (150.2 MB)  kept_so_far=259019
+14:41:09   +7598 kept (total 266617), otc_excluded=479183, repeated_set_ids=172661
+14:41:18 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0011 (140.9 MB)  kept_so_far=266617
+14:41:24   +7109 kept (total 273726), otc_excluded=492074, repeated_set_ids=179770
+14:41:34 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=273726
+14:41:40   +7027 kept (total 280753), otc_excluded=505047, repeated_set_ids=186797
+14:41:45 reading openfda_labels/f36f7e0ffbd382d5/openfda_labels_shard_0013 (24.1 MB)  kept_so_far=280753
+14:41:46   +1085 kept (total 281838), otc_excluded=506862, repeated_set_ids=187882
+14:41:46 indexing the join surface
+14:41:52 RESULT fda_label rows=281838 distinct_set_id=93956 (repeats=187882)
+14:41:52        fda_name rows=335496   otc_excluded=506862   corpus_records_seen=788700
+14:41:52   brand      rows=107073   distinct_norm=5068
+14:41:52   generic    rows=106578   distinct_norm=3304
+14:41:52   substance  rows=121845   distinct_norm=2324
+14:41:52 OTC exclusion reasons:
+14:41:52   drug_facts_panel:purpose                   349274
+14:41:52   product_type                               143079
+14:41:52   drug_facts_prose:do_not_use                6839
+14:41:52   drug_facts_panel:keep_out_of_reach_of_children 3771
+14:41:52   drug_facts_prose:keep_out_of_reach_of_children 2861
+14:41:52   drug_facts_prose:for_external_use_only     381
+14:41:52   drug_facts_panel:when_using                303
+14:41:52   drug_facts_prose:drug_facts                135
+14:41:52   drug_facts_prose:when_using_this_product   90
+14:41:52   drug_facts_panel:do_not_use                57
+14:41:52   drug_facts_panel:stop_use                  39
+14:41:52   drug_facts_panel:ask_doctor                21
+14:41:52   drug_facts_prose:stop_use_and_ask_a_doctor 12
+14:41:52 of the loaded rows, states an indication: 281829
+14:41:52 STAGE 2 DONE
+14:41:53 created rxnconso
+14:41:55   downloading rxnorm/555730c3ff2a9817/rxnorm
+14:41:59   got 31 MB
+14:41:59 loading rxnorm/555730c3ff2a9817/rxnorm -> rxnconso
+14:42:02   rxnorm/555730c3ff2a9817/rxnorm: 247,028 rows
+14:42:02   cached C:\DataExperiments\Sources\rxnorm\ae92f92de757ef30\rxnorm (133 MB)
+14:42:02 loading rxnorm/ae92f92de757ef30/rxnorm -> rxnconso
+14:42:08     500,000 rows
+14:42:14     1,000,000 rows
+14:42:16   rxnorm/ae92f92de757ef30/rxnorm: 1,213,242 rows
+14:42:16 rxnconso total rows=1,460,270
+14:42:16 created rxnrel
+14:42:18   cached C:\DataExperiments\Sources\rxnorm_rel\caeb0528839722b3\rxnorm_rel (533 MB)
+14:42:18 loading rxnorm_rel/caeb0528839722b3/rxnorm_rel -> rxnrel
+14:42:23     500,000 rows
+14:42:28     1,000,000 rows
+14:42:34     1,500,000 rows
+14:42:39     2,000,000 rows
+14:42:45     2,500,000 rows
+14:42:51     3,000,000 rows
+14:42:56     3,500,000 rows
+14:43:02     4,000,000 rows
+14:43:07     4,500,000 rows
+14:43:13     5,000,000 rows
+14:43:19     5,500,000 rows
+14:43:25     6,000,000 rows
+14:43:31     6,500,000 rows
+14:43:37     7,000,000 rows
+14:43:42   rxnorm_rel/caeb0528839722b3/rxnorm_rel: 7,499,361 rows
+14:43:42 rxnrel total rows=7,499,361
+14:43:42 indexing
+14:44:45 --- which archived RXNCONSO copy is complete ---
+14:44:49   rxnorm/ae92f92de757ef30/rxnorm                   rows=1,213,242    distinct_rxcui=415,293
+14:44:49   rxnorm/555730c3ff2a9817/rxnorm                   rows=247,028      distinct_rxcui=82,689
+14:44:49 --- term types present (English, unsuppressed) ---
+14:44:49   DP       218,253
+14:44:49   SY       111,927
+14:44:49   IN       76,589
+14:44:49   BD       65,021
+14:44:49   CD       56,825
+14:44:49   PT       49,488
+14:44:49   PSN      48,835
+14:44:49   FN       47,280
+14:44:49   SU       35,680
+14:44:49   BN       34,837
+14:44:49   SCD      29,691
+14:44:49   SCDC     24,591
+14:44:49   TMSY     23,847
+14:44:49   AB       21,577
+14:44:49   CDC      19,294
+14:44:49 --- relationships that matter for brand -> ingredient ---
+14:44:50   has_ingredient             356,684
+14:44:50   ingredient_of              356,684
+14:44:50   has_tradename              119,208
+14:44:50   tradename_of               119,208
+14:44:50   consists_of                117,461
+14:44:50   constitutes                117,461
+14:44:50   has_form                   18,326
+14:44:50   form_of                    18,326
+14:44:50   has_precise_ingredient     12,406
+14:44:50   precise_ingredient_of      12,406
+14:44:50 STAGE 4 DONE
+15:26:30 created fda_label, fda_name, fda_otc_excluded
+15:26:30 openfda snapshot 0fdb337f54ef821f: 14 blob(s)
+15:26:30   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0000
+15:26:30 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0000 (136.7 MB)  kept_so_far=0
+15:26:35   +7023 kept (total 7023), otc_excluded=12977, repeated_set_ids=0
+15:26:35   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0001
+15:26:35 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0001 (150.6 MB)  kept_so_far=7023
+15:26:40   +7385 kept (total 14408), otc_excluded=25592, repeated_set_ids=0
+15:26:40   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0002
+15:26:40 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0002 (143.1 MB)  kept_so_far=14408
+15:26:45   +7180 kept (total 21588), otc_excluded=38412, repeated_set_ids=0
+15:26:45   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0003
+15:26:45 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0003 (143.6 MB)  kept_so_far=21588
+15:26:51   +7181 kept (total 28769), otc_excluded=51231, repeated_set_ids=0
+15:26:51   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0004
+15:26:51 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0004 (131.5 MB)  kept_so_far=28769
+15:26:56   +6894 kept (total 35663), otc_excluded=64337, repeated_set_ids=0
+15:26:56   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0005
+15:26:56 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0005 (142.9 MB)  kept_so_far=35663
+15:27:01   +7065 kept (total 42728), otc_excluded=77272, repeated_set_ids=0
+15:27:01   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0006
+15:27:01 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0006 (147.8 MB)  kept_so_far=42728
+15:27:07   +7461 kept (total 50189), otc_excluded=89811, repeated_set_ids=0
+15:27:07   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0007
+15:27:07 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0007 (143.8 MB)  kept_so_far=50189
+15:27:12   +7223 kept (total 57412), otc_excluded=102588, repeated_set_ids=0
+15:27:12   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0008
+15:27:12 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0008 (132.1 MB)  kept_so_far=57412
+15:27:17   +6909 kept (total 64321), otc_excluded=115679, repeated_set_ids=0
+15:27:17   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0009
+15:27:17 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0009 (137.4 MB)  kept_so_far=64321
+15:27:22   +6836 kept (total 71157), otc_excluded=128843, repeated_set_ids=0
+15:27:22   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0010
+15:27:22 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0010 (149.8 MB)  kept_so_far=71157
+15:27:28   +7558 kept (total 78715), otc_excluded=141285, repeated_set_ids=0
+15:27:28   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0011
+15:27:28 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0011 (140.4 MB)  kept_so_far=78715
+15:27:33   +7098 kept (total 85813), otc_excluded=154187, repeated_set_ids=0
+15:27:33   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0012
+15:27:33 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0012 (135.1 MB)  kept_so_far=85813
+15:27:38   +7027 kept (total 92840), otc_excluded=167160, repeated_set_ids=0
+15:27:38   cached C:\DataExperiments\Sources\openfda_labels\0fdb337f54ef821f\openfda_labels_shard_0013
+15:27:38 reading openfda_labels/0fdb337f54ef821f/openfda_labels_shard_0013 (24.3 MB)  kept_so_far=92840
+15:27:39   +1095 kept (total 93935), otc_excluded=168968, repeated_set_ids=0
+15:27:39 indexing the join surface
+15:27:43 RESULT fda_label rows=93935 distinct_set_id=93935 (repeats=0)
+15:27:43        fda_name rows=110846   otc_excluded=168968   corpus_records_seen=262903
+15:27:43   brand      rows=35372    distinct_norm=4965
+15:27:43   generic    rows=35209    distinct_norm=3234
+15:27:43   substance  rows=40265    distinct_norm=2287
+15:27:43 OTC exclusion reasons:
+15:27:43   drug_facts_panel:purpose                   116820
+15:27:43   product_type                               47300
+15:27:43   drug_facts_prose:do_not_use                2289
+15:27:43   drug_facts_panel:keep_out_of_reach_of_children 1257
+15:27:43   drug_facts_prose:keep_out_of_reach_of_children 956
+15:27:43   drug_facts_prose:for_external_use_only     127
+15:27:43   drug_facts_panel:when_using                101
+15:27:43   drug_facts_prose:drug_facts                45
+15:27:43   drug_facts_prose:when_using_this_product   30
+15:27:43   drug_facts_panel:do_not_use                19
+15:27:43   drug_facts_panel:stop_use                  13
+15:27:43   drug_facts_panel:ask_doctor                7
+15:27:43   drug_facts_prose:stop_use_and_ask_a_doctor 4
+15:27:43 of the loaded rows, states an indication: 93932
+15:27:43 STAGE 2 DONE
+15:27:44 created rxnconso
+15:27:44   rxnorm snapshot ae92f92de757ef30: 1 blob(s)
+15:27:44   cached C:\DataExperiments\Sources\rxnorm\ae92f92de757ef30\rxnorm (133 MB)
+15:27:44 loading rxnorm/ae92f92de757ef30/rxnorm -> rxnconso
+15:27:47     500,000 rows
+15:27:53     1,000,000 rows
+15:27:55   rxnorm/ae92f92de757ef30/rxnorm: 1,213,242 rows
+15:27:55 rxnconso total rows=1,213,242
+15:27:55 created rxnrel
+15:27:55   rxnorm_rel snapshot caeb0528839722b3: 1 blob(s)
+15:27:55   cached C:\DataExperiments\Sources\rxnorm_rel\caeb0528839722b3\rxnorm_rel (533 MB)
+15:27:55 loading rxnorm_rel/caeb0528839722b3/rxnorm_rel -> rxnrel
+15:28:00     500,000 rows
+15:28:04     1,000,000 rows
+15:28:10     1,500,000 rows
+15:28:15     2,000,000 rows
+15:28:21     2,500,000 rows
+15:28:27     3,000,000 rows
+15:28:32     3,500,000 rows
+15:28:38     4,000,000 rows
+15:28:44     4,500,000 rows
+15:28:50     5,000,000 rows
+15:28:56     5,500,000 rows
+15:29:02     6,000,000 rows
+15:29:08     6,500,000 rows
+15:29:14     7,000,000 rows
+15:29:19   rxnorm_rel/caeb0528839722b3/rxnorm_rel: 7,499,361 rows
+15:29:19 rxnrel total rows=7,499,361
+15:29:19 indexing
+15:30:14 --- which archived RXNCONSO copy is complete ---
+15:30:22   rxnorm/ae92f92de757ef30/rxnorm                   rows=1,213,242    distinct_rxcui=415,293
+15:30:22 --- term types present (English, unsuppressed) ---
+15:30:22   DP       125,539
+15:30:22   SY       83,563
+15:30:22   IN       70,715
+15:30:22   BD       65,021
+15:30:22   CD       56,825
+15:30:22   PT       49,477
+15:30:22   FN       47,280
+15:30:22   BN       30,697
+15:30:22   PSN      27,484
+15:30:22   SU       24,262
+15:30:22   AB       21,577
+15:30:22   CDC      19,294
+15:30:22   CDA      19,294
+15:30:22   CDD      19,294
+15:30:22   SCD      17,610
+15:30:22 --- relationships that matter for brand -> ingredient ---
+15:30:23   has_ingredient             356,684
+15:30:23   ingredient_of              356,684
+15:30:23   has_tradename              119,208
+15:30:23   tradename_of               119,208
+15:30:23   consists_of                117,461
+15:30:23   constitutes                117,461
+15:30:23   has_form                   18,326
+15:30:23   form_of                    18,326
+15:30:23   has_precise_ingredient     12,406
+15:30:23   precise_ingredient_of      12,406
+15:30:23 STAGE 4 DONE

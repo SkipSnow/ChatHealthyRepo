@@ -12,6 +12,7 @@ import json
 from chathealthy_lib import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 import os
+from pydantic import BaseModel, Field
 from datetime import datetime, timedelta, timezone
 
 log = ChatHealthyLoggingService()
@@ -32,6 +33,20 @@ SAFE_PREFIXES = [
     "what can you tell me about", "who is", "find me", "search for",
     "look up", "what is", "how do i", "where can i",
 ]
+
+
+class MessageToClassify(BaseModel):
+    """What the classifier is given: the message to judge."""
+    message: str = Field(description="The person's message, verbatim.")
+
+
+class EmergencyVerdict(BaseModel):
+    """The classifier's answer."""
+    emergency: bool = Field(
+        description="True only when all three gates are met.")
+    confidence: float = Field(
+        ge=0.0, le=1.0,
+        description="How certain the classifier is, 0.0 to 1.0.")
 
 
 class SafetyService:
@@ -64,31 +79,29 @@ class SafetyService:
 
         # Primary: AI classifier
         try:
-            from openai import OpenAI
-            oai = OpenAI(api_key=self._openai_key)
-            resp = oai.chat.completions.create(
-                model="gpt-4.1-mini",
-                max_tokens=64,
-                temperature=0,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": (
-                        "You are a safety classifier. Decide ONLY between two outcomes:\n"
-                        "  EMERGENCY - call 911 or go to ER immediately\n"
-                        "  PROBE - ask a clarifying question first\n\n"
-                        "EMERGENCY requires ALL of: (1) specific body location or system named, "
-                        "(2) acute onset or severity stated, (3) life-threat implied.\n"
-                        "NEVER EMERGENCY: pain without specific body location, general not feeling well, "
-                        "any question about a doctor/provider, any request for information.\n\n"
-                        'Return ONLY valid JSON: {"emergency": true|false, "confidence": 0.0-1.0}'
-                    )},
-                    {"role": "user", "content": message},
-                ],
+            from pydantic_ai import Agent
+            from pydantic_ai.models.openai import OpenAIChatModel
+            from pydantic_ai.providers.openai import OpenAIProvider
+            agent = Agent(
+                OpenAIChatModel(
+                    "gpt-4.1-mini",
+                    provider=OpenAIProvider(api_key=self._openai_key)),
+                deps_type=MessageToClassify,
+                output_type=EmergencyVerdict,
+                system_prompt=(
+                    "You are a safety classifier. Decide ONLY between two outcomes:\n"
+                    "  EMERGENCY - call 911 or go to ER immediately\n"
+                    "  PROBE - ask a clarifying question first\n\n"
+                    "EMERGENCY requires ALL of: (1) specific body location or system named, "
+                    "(2) acute onset or severity stated, (3) life-threat implied.\n"
+                    "NEVER EMERGENCY: pain without specific body location, general not feeling well, "
+                    "any question about a doctor/provider, any request for information."
+                ),
+                model_settings={"temperature": 0, "max_tokens": 64},
             )
-            raw = resp.choices[0].message.content.strip()
-            result = json.loads(raw)
-            confidence = float(result.get("confidence", 0))
-            return bool(result.get("emergency", False)) and confidence >= 0.80
+            verdict = agent.run_sync(
+                message, deps=MessageToClassify(message=message)).output
+            return verdict.emergency and verdict.confidence >= 0.80
         except Exception as exc:
             # Mode 2 (REQ-B-008): Safety AI down; falls back to keyword
             # detection. Safety degradation — operator MUST know.
